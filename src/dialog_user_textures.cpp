@@ -1,0 +1,129 @@
+﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+
+#include <windows.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <assert.h>
+
+#include "config.h"
+#include "common.h"
+#include "app.h"
+#include "dialog_user_textures.h"
+#include "resource/resource.h"
+
+
+static LRESULT CALLBACK DialogFunc(
+	HWND hDwnd,
+	UINT uMsg,
+	WPARAM wParam,
+	LPARAM lParam
+){
+	switch (uMsg) {
+		/* ダイアログボックスの初期化 */
+		case WM_INITDIALOG: {
+			/* ファイル名をエディットボックスに設定 */
+			for (int userTextureIndex = 0; userTextureIndex < NUM_USER_TEXTURES; userTextureIndex++) {
+				SetDlgItemText(
+					hDwnd, IDD_USER_TEXTURES_FILE_0 + userTextureIndex,
+					AppUserTexturesGetCurrentFileName(userTextureIndex)
+				);
+			}
+
+			/* メッセージは処理された */
+			return 1;
+		} break;
+
+		/* UI 入力を検出 */
+		case WM_COMMAND: {
+			switch (LOWORD(wParam)) {
+				/* OK */
+				case IDOK: {
+					for (int userTextureIndex = 0; userTextureIndex < NUM_USER_TEXTURES; userTextureIndex++) {
+						/* ファイル名をエディットボックスから取得 */
+						char textureFileName[FILENAME_MAX] = {0};
+						GetDlgItemText(
+							hDwnd,
+							IDD_USER_TEXTURES_FILE_0 + userTextureIndex,
+							textureFileName, sizeof(textureFileName)
+						);
+
+						/* App に通知 */
+						if (strcmp(textureFileName, "") != 0) {
+							if (AppUserTexturesLoad(userTextureIndex, textureFileName) == false) {
+								AppErrorMessageBox(APP_NAME, "Load texture failed");
+								return 0;	/* メッセージは処理されなかった */
+							}
+						} else {
+							AppUserTexturesDelete(userTextureIndex);
+						}
+					}
+
+					/* ダイアログボックス終了 */
+					EndDialog(hDwnd, DialogUserTexturesResult_Ok);
+
+					/* メッセージは処理された */
+					return 1;
+				} break;
+
+				/* キャンセル */
+				case IDCANCEL: {
+					/* ダイアログボックス終了 */
+					EndDialog(hDwnd, DialogUserTexturesResult_Canceled);
+
+					/* メッセージは処理された */
+					return 1;
+				} break;
+
+				default :{
+					/* Browse */
+					int idd = LOWORD(wParam);
+					if (IDD_USER_TEXTURES_BROWSE_FILE_0 <= idd
+					&&	idd < IDD_USER_TEXTURES_BROWSE_FILE_0 + NUM_USER_TEXTURES
+					){
+						for (int userTextureIndex = 0; userTextureIndex < NUM_USER_TEXTURES; userTextureIndex++) {
+							if (idd == IDD_USER_TEXTURES_BROWSE_FILE_0 + userTextureIndex) {
+								/* ファイル名をエディットボックスから取得 */
+								char textureFileName[FILENAME_MAX] = {0};
+								GetDlgItemText(
+									hDwnd, IDD_USER_TEXTURES_FILE_0 + userTextureIndex,
+									textureFileName, sizeof(textureFileName)
+								);
+
+								/* ファイル選択 UI */
+								OPENFILENAME ofn = {0};
+								ofn.lStructSize = sizeof(OPENFILENAME);
+								ofn.hwndOwner = NULL;
+								ofn.lpstrFilter =
+									TEXT("PNG file (*.png)\0*.png\0");
+								ofn.lpstrFile = textureFileName;
+								ofn.nMaxFile = sizeof(textureFileName);
+								ofn.lpstrTitle = (LPSTR)"Select user texture file";
+								if (GetSaveFileName(&ofn)) {
+									/* 出力ファイル名をエディットボックスに設定 */
+									SetDlgItemText(hDwnd, IDD_USER_TEXTURES_FILE_0 + userTextureIndex, textureFileName);
+								}
+							}
+						}
+					}
+				} break;
+			}
+		} break;
+	}
+
+	/* メッセージは処理されなかった */
+	return 0;
+}
+
+
+DialogUserTexturesResult
+DialogUserTextures()
+{
+	return (DialogUserTexturesResult)DialogBox(
+		AppGetCurrentInstance(),
+		"USER_TEXTURES",
+		AppGetMainWindowHandle(),
+		DialogFunc
+	);
+}
+
