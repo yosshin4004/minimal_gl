@@ -91,19 +91,19 @@ static LRESULT CALLBACK DialogFunc(
 				HWND dlgItem = GetDlgItem(hDwnd, IDC_RENDER_SETTINGS_NUM_ENABLED_RENDER_TARGETS);
 
 				/* コンボボックスに項目を送信 */
-				for (int numRenderTargets = 1; numRenderTargets <= NUM_RENDER_TARGETS; numRenderTargets++) {
+				for (int numRenderTargets = 2; numRenderTargets <= NUM_RENDER_TARGETS; numRenderTargets++) {
 					char string[0x100];
 					snprintf(string, sizeof(string), "MRT%d", numRenderTargets);
 					SendMessage(
 						dlgItem, CB_INSERTSTRING,
-						numRenderTargets - 1 /* 0 でなく 1 から開始するので */,
+						numRenderTargets - 2 /* 0 でなく 2 から開始するので */,
 						(LPARAM)string);
 				}
 
 				/* 初期状態で選択されている項目の指定 */
 				SendMessage(
 					dlgItem, CB_SETCURSEL,
-					AppRenderSettingsGetNumEnabledRenderTargets() - 1,
+					AppRenderSettingsGetNumEnabledRenderTargets() - 2 /* 0 でなく 2 から開始するので */,
 					(LPARAM)0
 				);
 			}
@@ -194,7 +194,7 @@ static LRESULT CALLBACK DialogFunc(
 					int numRenderTargets = (int)SendMessage(
 						GetDlgItem(hDwnd, IDC_RENDER_SETTINGS_NUM_ENABLED_RENDER_TARGETS),
 						CB_GETCURSEL, 0, (LPARAM)0
-					) + 1 /* 0 でなく 1 から開始するので */;
+					) + 2 /* 0 でなく 2 から開始するので */;
 
 					/* バックバッファ有効化フラグをチェックボックスから取得 */
 					bool enableBackBuffer = GetDlgItemCheck(
