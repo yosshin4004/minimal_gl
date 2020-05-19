@@ -8,9 +8,9 @@
 layout(location = 0) uniform int waveOutPosition;
 #if defined(EXPORT_EXECUTABLE)
 	/*
-		shader minifier が compute シェーダに対応しない問題回避するためハック。
-		シェーダコードとしては正しくないが、shader minifier に認識され、
-		minify が適用されたのち、work_around_begin: 以降のコードに置換される。
+		shader minifier が compute シェーダに対応していない問題を回避するためハック。
+		以下の記述はシェーダコードとしては正しくないが、shader minifier に認識
+		され minify が適用されたのち、work_around_begin: 以降のコードに置換される。
 		%s は、shader minifier によるリネームが適用されたあとのシンボル名に
 		置き換えらえる。
 	*/

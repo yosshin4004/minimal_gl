@@ -20,8 +20,8 @@ layout(location = 0) uniform int waveOutPosition;
 #if defined(EXPORT_EXECUTABLE)
 	/*
 		shader minifier が SSBO を認識できない問題を回避するためのハック。
-		シェーダコードとしては正しくないが、shader minifier に認識され、
-		minify が適用されたのち、work_around_begin: 以降のコードに置換される。
+		以下の記述はシェーダコードとしては正しくないが、shader minifier に認識
+		され minify が適用されたのち、work_around_begin: 以降のコードに置換される。
 		%s は、shader minifier によるリネームが適用されたあとのシンボル名に
 		置き換えらえる。
 	*/

@@ -15,7 +15,7 @@
 	機能が利用可能になる。
 	CUBEMAP キャプチャを行うには、メニューから "Capture cubemap" を選択する。
 
-	実行ファイル上ではこれらの uniform 変数は利用できない。
+	エクスポートされた実行ファイル上ではこれらの uniform 変数は利用できない。
 */
 
 layout(location = 3) uniform vec2 resolution;

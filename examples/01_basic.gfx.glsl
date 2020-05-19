@@ -4,12 +4,16 @@
 /*
 	超基本サンプル。
 
-	実行ファイル上では、time はサウンド再生位置を示す waveOutPosition から
-	計算で求める必要がある。また、resolution は uniform 変数として与えられず、
-	プリプロセッサ定義の SCREEN_XRESO, SCREEN_YRESO を利用する必要がある。
+	エクスポートされた実行ファイル上では、time はサウンド再生位置を示す
+	waveOutPosition から計算で求める必要がある。また、resolution は uniform
+	変数として与えられなくなるので、解像度を知るにはプリプロセッサ定義の
+	SCREEN_XRESO, SCREEN_YRESO を参照する必要がある。
 
-	実行ファイル向けのシェーダかどうかは、プリプロセッサ定義 EXPORT_EXECUTABLE
-	で判別可能である。煩雑になるが、以下のように記述する。
+	シェーダコードが現在、エディットモードで使用されているのか、エクスポート
+	された実行ファイルから利用されているかの判別は、プリプロセッサ定義
+	EXPORT_EXECUTABLE の有無で判別可能である。
+
+	煩雑になるが、シェーダ導入部で以下のような定型的な処理を記述することになる。
 */
 layout(location = 0) uniform int waveOutPosition;
 #if defined(EXPORT_EXECUTABLE)
