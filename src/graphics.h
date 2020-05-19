@@ -29,6 +29,9 @@ struct RenderSettings {
 	TextureWrap textureWrap;
 };
 
+/* テクスチャ及びフレームバッファのクリア */
+void GraphicsClearAllTexturesAndFremeBuffers();
+
 /* シェーダが frameCount uniform 変数を要求するか？ */
 bool GraphicsShaderRequiresFrameCountUniform();
 
@@ -75,9 +78,6 @@ bool GraphicsCaptureCubemap(
 	const float mat4x4CameraInWorld[4][4],
 	const RenderSettings *settings
 );
-
-/* テクスチャ及びフレームバッファのクリア */
-void GraphicsClearAllTexturesAndFremeBuffers();
 
 /* グラフィクスの更新 */
 void GraphicsUpdate(

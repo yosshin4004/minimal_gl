@@ -25,6 +25,105 @@ static int s_xReso = SCREEN_XRESO;
 static int s_yReso = SCREEN_YRESO;
 
 
+static void GraphicsCreateFrameBuffer(
+	int xReso,
+	int yReso,
+	const RenderSettings *settings
+){
+	/* MRT フレームバッファ作成 */
+	glExtGenFramebuffers(
+		/* GLsizei n */		1,
+	 	/* GLuint *ids */	&s_mrtFrameBuffer
+	);
+
+	for (int doubleBufferIndex = 0; doubleBufferIndex < 2; doubleBufferIndex++) {
+		/* テクスチャ作成 */
+		glGenTextures(
+			/* GLsizei n */				NUM_RENDER_TARGETS,
+			/* GLuint * textures */		s_mrtTextures[doubleBufferIndex]
+		);
+
+		/* レンダーターゲットの巡回 */
+		for (int renderTargetIndex = 0; renderTargetIndex < NUM_RENDER_TARGETS; renderTargetIndex++) {
+			glBindTexture(
+				/* GLenum target */		GL_TEXTURE_2D,
+				/* GLuint texture */	s_mrtTextures[doubleBufferIndex][renderTargetIndex]
+			);
+
+			GLint internalformat = 0;
+			GLenum type = 0;
+			switch (settings->pixelFormat) {
+				case PixelFormatUnorm8RGBA: {
+					internalformat = GL_RGBA;
+					type = GL_UNSIGNED_BYTE;
+				} break;
+				case PixelFormatFp16RGBA: {
+					internalformat = GL_RGBA16F;
+					type = GL_HALF_FLOAT;
+				} break;
+				case PixelFormatFp32RGBA: {
+					internalformat = GL_RGBA32F;
+					type = GL_FLOAT;
+				} break;
+				default : {
+					assert(false);
+				} break;
+			}
+
+			/* テクスチャリソースを生成 */
+			glTexImage2D(
+				/* GLenum target */			GL_TEXTURE_2D,
+				/* GLint level */			0,
+				/* GLint internalformat */	internalformat,
+				/* GLsizei width */			xReso,
+				/* GLsizei height */		yReso,
+				/* GLint border */			0,
+				/* GLenum format */			GL_RGBA,
+				/* GLenum type */			type,
+				/* const void * data */		NULL
+			);
+		}
+	}
+}
+
+static void GraphicsDeleteFrameBuffer(
+){
+	/* フレームバッファアンバインド */
+	glExtBindFramebuffer(
+		/* GLenum target */			GL_FRAMEBUFFER,
+		/* GLuint framebuffer */	0	/* unbind */
+	);
+
+	/* MRT フレームバッファ削除 */
+	glExtDeleteFramebuffers(
+		/* GLsizei n */				1,
+	 	/* GLuint *ids */			&s_mrtFrameBuffer
+	);
+
+	for (int doubleBufferIndex = 0; doubleBufferIndex < 2; doubleBufferIndex++) {
+		/* MRT テクスチャ削除 */
+		for (int renderTargetIndex = 0; renderTargetIndex < NUM_RENDER_TARGETS; renderTargetIndex++) {
+			/* テクスチャアンバインド */
+			glExtActiveTexture(GL_TEXTURE0 + renderTargetIndex);
+			glBindTexture(
+				/* GLenum target */		GL_TEXTURE_2D,
+				/* GLuint texture */	0	/* unbind */
+			);
+		}
+
+		/* テクスチャ削除 */
+		glDeleteTextures(
+			/* GLsizei n */			NUM_RENDER_TARGETS,
+			/* GLuint * textures */	s_mrtTextures[doubleBufferIndex]
+		);
+	}
+}
+
+void GraphicsClearAllTexturesAndFremeBuffers(){
+	GraphicsDeleteFrameBuffer();
+	GraphicsCreateFrameBuffer(s_xReso, s_yReso, &s_currentRenderSettings);
+}
+
 bool GraphicsShaderRequiresFrameCountUniform(){
 	if (s_graphicsProgramId != 0) {
 		return ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_FRAME_COUNT, GL_INT);
@@ -234,6 +333,18 @@ static void GraphicsDrawFullScreenQuad(
 	const float mat4x4CameraInWorld[4][4],
 	const RenderSettings *settings
 ){
+	/* RenderSettings 更新を認識 */
+	if (s_xReso != xReso
+	||	s_yReso != yReso
+	||	memcmp(&s_currentRenderSettings, settings, sizeof(RenderSettings)) != 0
+	) {
+		s_xReso = xReso;
+		s_yReso = yReso;
+		s_currentRenderSettings = *settings;
+		GraphicsDeleteFrameBuffer();
+		GraphicsCreateFrameBuffer(xReso, yReso, settings);
+	}
+
 	/* シェーダのバインド */
 	glExtUseProgram(
 		/* GLuint program */	s_graphicsProgramId
@@ -340,6 +451,9 @@ static void GraphicsDrawFullScreenQuad(
 		/* GLenum target */			GL_FRAMEBUFFER,
 		/* GLuint framebuffer */	s_mrtFrameBuffer
 	);
+
+	/* ビューポートの設定 */
+	glViewport(0, 0, xReso, yReso);
 
 	/* MRT の設定 */
 	{
@@ -473,7 +587,6 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 		/* GLenum target */			GL_FRAMEBUFFER,
 		/* GLuint framebuffer */	offscreenRenderTargetFbo
 	);
-	glViewport(0, 0, xReso, yReso);
 
 	/* 画面全体に四角形を描画 */
 	float tanFovY = tanf(fovYAsRadian);
@@ -571,13 +684,6 @@ bool GraphicsCaptureCubemap(
 		/* GLuint texture */		offscreenRenderTargetTexture,
 		/* GLint level */			0
 	);
-
-	/* FBO 設定、ビューポート設定 */
-	glExtBindFramebuffer(
-		/* GLenum target */			GL_FRAMEBUFFER,
-		/* GLuint framebuffer */	offscreenRenderTargetFbo
-	);
-	glViewport(0, 0, cubemapReso, cubemapReso);
 
 	/* キューブマップ各面の描画と結果の取得 */
 	float *(data[6]);
@@ -838,105 +944,6 @@ bool GraphicsCaptureCubemap(
 	return ret;
 }
 
-static void GraphicsCreateFrameBuffer(
-	int xReso,
-	int yReso,
-	const RenderSettings *settings
-){
-	/* MRT フレームバッファ作成 */
-	glExtGenFramebuffers(
-		/* GLsizei n */		1,
-	 	/* GLuint *ids */	&s_mrtFrameBuffer
-	);
-
-	for (int doubleBufferIndex = 0; doubleBufferIndex < 2; doubleBufferIndex++) {
-		/* テクスチャ作成 */
-		glGenTextures(
-			/* GLsizei n */				NUM_RENDER_TARGETS,
-			/* GLuint * textures */		s_mrtTextures[doubleBufferIndex]
-		);
-
-		/* レンダーターゲットの巡回 */
-		for (int renderTargetIndex = 0; renderTargetIndex < NUM_RENDER_TARGETS; renderTargetIndex++) {
-			glBindTexture(
-				/* GLenum target */		GL_TEXTURE_2D,
-				/* GLuint texture */	s_mrtTextures[doubleBufferIndex][renderTargetIndex]
-			);
-
-			GLint internalformat = 0;
-			GLenum type = 0;
-			switch (settings->pixelFormat) {
-				case PixelFormatUnorm8RGBA: {
-					internalformat = GL_RGBA;
-					type = GL_UNSIGNED_BYTE;
-				} break;
-				case PixelFormatFp16RGBA: {
-					internalformat = GL_RGBA16F;
-					type = GL_HALF_FLOAT;
-				} break;
-				case PixelFormatFp32RGBA: {
-					internalformat = GL_RGBA32F;
-					type = GL_FLOAT;
-				} break;
-				default : {
-					assert(false);
-				} break;
-			}
-
-			/* テクスチャリソースを生成 */
-			glTexImage2D(
-				/* GLenum target */			GL_TEXTURE_2D,
-				/* GLint level */			0,
-				/* GLint internalformat */	internalformat,
-				/* GLsizei width */			xReso,
-				/* GLsizei height */		yReso,
-				/* GLint border */			0,
-				/* GLenum format */			GL_RGBA,
-				/* GLenum type */			type,
-				/* const void * data */		NULL
-			);
-		}
-	}
-}
-
-static void GraphicsDeleteFrameBuffer(
-){
-	/* フレームバッファアンバインド */
-	glExtBindFramebuffer(
-		/* GLenum target */			GL_FRAMEBUFFER,
-		/* GLuint framebuffer */	0	/* unbind */
-	);
-
-	/* MRT フレームバッファ削除 */
-	glExtDeleteFramebuffers(
-		/* GLsizei n */				1,
-	 	/* GLuint *ids */			&s_mrtFrameBuffer
-	);
-
-	for (int doubleBufferIndex = 0; doubleBufferIndex < 2; doubleBufferIndex++) {
-		/* MRT テクスチャ削除 */
-		for (int renderTargetIndex = 0; renderTargetIndex < NUM_RENDER_TARGETS; renderTargetIndex++) {
-			/* テクスチャアンバインド */
-			glExtActiveTexture(GL_TEXTURE0 + renderTargetIndex);
-			glBindTexture(
-				/* GLenum target */		GL_TEXTURE_2D,
-				/* GLuint texture */	0	/* unbind */
-			);
-		}
-
-		/* テクスチャ削除 */
-		glDeleteTextures(
-			/* GLsizei n */			NUM_RENDER_TARGETS,
-			/* GLuint * textures */	s_mrtTextures[doubleBufferIndex]
-		);
-	}
-}
-
-void GraphicsClearAllTexturesAndFremeBuffers(){
-	GraphicsDeleteFrameBuffer();
-	GraphicsCreateFrameBuffer(s_xReso, s_yReso, &s_currentRenderSettings);
-}
-
 void GraphicsUpdate(
 	int waveOutPos,
 	int frameCount,
@@ -952,21 +959,6 @@ void GraphicsUpdate(
 	const float mat4x4CameraInWorld[4][4],
 	const RenderSettings *settings
 ){
-	/* RenderSettings 更新を認識 */
-	if (s_xReso != xReso
-	||	s_yReso != yReso
-	||	memcmp(&s_currentRenderSettings, settings, sizeof(RenderSettings)) != 0
-	) {
-		s_xReso = xReso;
-		s_yReso = yReso;
-		s_currentRenderSettings = *settings;
-		GraphicsDeleteFrameBuffer();
-		GraphicsCreateFrameBuffer(xReso, yReso, settings);
-	}
-
-	/* ビューポート設定 */
-	glViewport(0, 0, xReso, yReso);
-
 	/* 画面全体に四角形を描画 */
 	float tanFovY = tanf(fovYAsRadian);
 	GraphicsDrawFullScreenQuad(
