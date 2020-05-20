@@ -46,6 +46,15 @@ static float s_exeExportDuration = 120.0f;
 static float s_soundCaptureDuration = 120.0f;
 static int32_t s_waveOutSampleOffset = 0;
 static int32_t s_frameCount = 0;
+static struct CaptureScreenShotSettings {
+	int xReso;
+	int yReso;
+	bool replaceAlphaByOne;
+} s_captureScreenShotSettings = {
+	SCREEN_XRESO,
+	SCREEN_YRESO,
+	true,
+};
 static RenderSettings s_renderSettings = {
 	/* bool enableBackBuffer; */				true,
 	/* bool enableMipmapGeneration; */			true,
@@ -205,6 +214,7 @@ static const char s_defaultSoundShaderCode[] =
 ▼	現在選択したファイル名
 -----------------------------------------------------------------------------*/
 static char s_currentExecutableFileName[FILENAME_MAX] = {0};
+static char s_currentScreenShotFileName[FILENAME_MAX] = {0};
 static char s_currentCubemapFileName[FILENAME_MAX] = {0};
 static char s_currentSoundFileName[FILENAME_MAX] = {0};
 static char s_currentRecordImageSequenceOutputDirectoryName[FILENAME_MAX] = {0};
@@ -621,6 +631,56 @@ void AppEditCameraParamsSetFovYAsRadian(float rad){
 }
 float AppEditCameraParamsGetFovYAsRadian(){
 	return s_fovYAsRadian;
+}
+
+/*=============================================================================
+▼	スクリーンショットキャプチャ関連
+-----------------------------------------------------------------------------*/
+void AppCaptureScreenShotSetCurrentOutputFileName(const char *fileName){
+	strcpy_s(
+		s_currentScreenShotFileName,
+		sizeof(s_currentScreenShotFileName),
+		fileName
+	);
+}
+const char *AppCaptureScreenShotGetCurrentOutputFileName(){
+	return s_currentScreenShotFileName;
+}
+void AppCaptureScreenShotSetResolution(int xReso, int yReso){
+	s_captureScreenShotSettings.xReso = xReso;
+	s_captureScreenShotSettings.yReso = yReso;
+}
+void AppCaptureScreenShotGetResolution(int *xResoRet, int *yResoRet){
+	*xResoRet = s_captureScreenShotSettings.xReso;
+	*yResoRet = s_captureScreenShotSettings.yReso;
+}
+void AppCaptureScreenShotSetForceReplaceAlphaByOneFlag(bool flag){
+	s_captureScreenShotSettings.replaceAlphaByOne = flag;
+}
+bool AppCaptureScreenShotGetForceReplaceAlphaByOneFlag(){
+	return s_captureScreenShotSettings.replaceAlphaByOne;
+}
+void AppCaptureScreenShot(){
+	if (s_graphicsCreateShaderSucceeded) {
+		if (DialogConfirmOverWrite(s_currentScreenShotFileName) == DialogConfirmOverWriteResult_Yes) {
+			bool ret = GraphicsCaptureScreenShotAsUnorm8RgbaImage(
+				s_currentScreenShotFileName,
+				SoundGetWaveOutPos(), s_frameCount, float(HighPrecisionTimerGet()),
+				s_captureScreenShotSettings.xReso,
+				s_captureScreenShotSettings.yReso,
+				s_fovYAsRadian, s_mat4x4CameraInWorld,
+				s_captureScreenShotSettings.replaceAlphaByOne,
+				&s_renderSettings
+			);
+			if (ret) {
+				AppMessageBox(APP_NAME, "Capture screen shot as png file completed successfully.");
+			} else {
+				AppErrorMessageBox(APP_NAME, "Failed to capture screen shot as png file.");
+			}
+		}
+	} else {
+		AppErrorMessageBox(APP_NAME, "Invalid graphics shader.");
+	}
 }
 
 /*=============================================================================

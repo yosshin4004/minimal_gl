@@ -314,24 +314,17 @@ bool RecordImageSequence(
 				job.settings = recordImageSequenceSettings;
 
 				/* 画像をキャプチャ */
-				size_t imageBufferSizeInBytes = xReso * yReso * 4;
+				size_t bytesPerPixel = 4;
+				size_t imageBufferSizeInBytes = xReso * yReso * bytesPerPixel;
 				job.image = malloc(imageBufferSizeInBytes);
 				if (job.image == NULL) return false;
-				GraphicsCaptureScreenShotAsUnorm8RgbaImage(
+				GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 					job.image, imageBufferSizeInBytes,
 					waveOutPos, frameCount, time,
-					xReso, yReso, fovYAsRadian,
-					mat4x4CameraInWorld, renderSettings
+					xReso, yReso, fovYAsRadian, mat4x4CameraInWorld,
+					recordImageSequenceSettings->replaceAlphaByOne,
+					renderSettings
 				);
-
-				/* αチャンネルの強制 1.0 置換 */
-				if (recordImageSequenceSettings->replaceAlphaByOne) {
-					for (int y = 0; y < yReso; y++) {
-						for (int x = 0; x < xReso; x++) {
-							((uint8_t *)job.image)[(y * xReso + x) * 4 + 3] = 255;
-						}
-					}
-				}
 
 				/* 保存ファイル名 */
 				snprintf(

@@ -155,6 +155,28 @@ void AppEditCameraParamsSetFovYAsRadian(float rad);
 float AppEditCameraParamsGetFovYAsRadian();
 
 
+/* スクリーンショットキャプチャ : 現在の出力ファイル名の設定 */
+void AppCaptureScreenShotSetCurrentOutputFileName(const char *fileName);
+
+/* スクリーンショットキャプチャ : 現在の出力ファイル名の取得 */
+const char *AppCaptureScreenShotGetCurrentOutputFileName();
+
+/* スクリーンショットキャプチャ : 解像度の設定 */
+void AppCaptureScreenShotSetResolution(int xReso, int yReso);
+
+/* スクリーンショットキャプチャ : 解像度の取得 */
+void AppCaptureScreenShotGetResolution(int *xResoRet, int *yResoRet);
+
+/* スクリーンショットキャプチャ : αチャンネル 1.0 強制置換フラグの設定 */
+void AppCaptureScreenShotSetForceReplaceAlphaByOneFlag(bool flag);
+
+/* スクリーンショットキャプチャ : αチャンネル 1.0 強制置換フラグの取得 */
+bool AppCaptureScreenShotGetForceReplaceAlphaByOneFlag();
+
+/* スクリーンショットキャプチャ */
+void AppCaptureScreenShot();
+
+
 /* キューブマップキャプチャ : 現在の出力ファイル名の設定 */
 void AppCaptureCubemapSetCurrentOutputFileName(const char *fileName);
 

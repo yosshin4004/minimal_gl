@@ -55,7 +55,7 @@ bool GraphicsCreateShader(
 bool GraphicsDeleteShader();
 
 /* スクリーンショットキャプチャ */
-bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
+bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	void *buffer,
 	size_t bufferSizeInBytes,
 	int waveOutPos,
@@ -65,6 +65,21 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 	int yReso,
 	float fovYAsRadian,
 	const float mat4x4CameraInWorld[4][4],
+	bool replaceAlphaByOne,
+	const RenderSettings *settings
+);
+
+/* スクリーンショットキャプチャ */
+bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
+	const char *fileName,
+	int waveOutPos,
+	int frameCount,
+	float time,
+	int xReso,
+	int yReso,
+	float fovYAsRadian,
+	const float mat4x4CameraInWorld[4][4],
+	bool replaceAlphaByOne,
 	const RenderSettings *settings
 );
 

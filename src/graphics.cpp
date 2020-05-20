@@ -530,7 +530,7 @@ static void GraphicsDrawFullScreenQuad(
 	glExtUseProgram(NULL);
 }
 
-bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
+bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	void *buffer,
 	size_t bufferSizeInBytes,
 	int waveOutPos,
@@ -540,6 +540,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 	int yReso,
 	float fovYAsRadian,
 	const float mat4x4CameraInWorld[4][4],
+	bool replaceAlphaByOne,
 	const RenderSettings *settings
 ){
 	/* バッファ容量が不足しているならエラー */
@@ -623,6 +624,15 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 		/* GLvoid * data */			buffer
 	);
 
+	/* αチャンネルの強制 1.0 置換 */
+	if (replaceAlphaByOne) {
+		for (int y = 0; y < yReso; y++) {
+			for (int x = 0; x < xReso; x++) {
+				((uint8_t *)buffer)[(y * xReso + x) * 4 + 3] = 255;
+			}
+		}
+	}
+
 	/* オフスクリーンレンダーターゲット、FBO 破棄 */
 	glDeleteTextures(
 		/* GLsizei n */						1,
@@ -633,6 +643,39 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 		/* const GLuint * framebuffers */	&offscreenRenderTargetFbo
 	);
 
+	return true;
+}
+
+bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
+	const char *fileName,
+	int waveOutPos,
+	int frameCount,
+	float time,
+	int xReso,
+	int yReso,
+	float fovYAsRadian,
+	const float mat4x4CameraInWorld[4][4],
+	bool replaceAlphaByOne,
+	const RenderSettings *settings
+){
+	size_t bytesPerPixel = 4;
+	size_t bufferSizeInBytes = xReso * yReso * bytesPerPixel;
+	void *buffer = malloc(bufferSizeInBytes);
+	if (
+		GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
+			buffer, bufferSizeInBytes, waveOutPos, frameCount, time,
+			xReso, yReso, fovYAsRadian, mat4x4CameraInWorld,
+			replaceAlphaByOne, settings
+		) == false
+	) {
+		free(buffer);
+		return false;
+	}
+	if (SerializeAsUnorm8RgbaPng(fileName, buffer, xReso, yReso) == false) {
+		free(buffer);
+		return false;
+	};
+	free(buffer);
 	return true;
 }
 

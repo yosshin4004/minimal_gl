@@ -147,6 +147,7 @@
     <ClCompile Include="src\common.cpp" />
     <ClCompile Include="src\dds_util.cpp" />
     <ClCompile Include="src\dialog_capture_cubemap.cpp" />
+    <ClCompile Include="src\dialog_capture_screen_shot.cpp" />
     <ClCompile Include="src\dialog_capture_sound.cpp" />
     <ClCompile Include="src\dialog_confirm_over_write.cpp" />
     <ClCompile Include="src\dialog_edit_camera_params.cpp" />
@@ -174,6 +175,7 @@
     <ClInclude Include="src\config.h" />
     <ClInclude Include="src\dds_util.h" />
     <ClInclude Include="src\dialog_capture_cubemap.h" />
+    <ClInclude Include="src\dialog_capture_screen_shot.h" />
     <ClInclude Include="src\dialog_capture_sound.h" />
     <ClInclude Include="src\dialog_confirm_over_write.h" />
     <ClInclude Include="src\dialog_edit_camera_params.h" />

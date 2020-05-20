@@ -11,6 +11,7 @@
 #include "config.h"
 #include "dialog_edit_camera_params.h"
 #include "dialog_export_executable.h"
+#include "dialog_capture_screen_shot.h"
 #include "dialog_capture_cubemap.h"
 #include "dialog_capture_sound.h"
 #include "dialog_record_image_sequence.h"
@@ -279,6 +280,18 @@ static LRESULT CALLBACK MainWndProc(
 
 						if (GetOpenFileName(&ofn)) {
 							AppOpenSoundShaderFile(fileName);
+						}
+					}
+					return 0;
+				} break;
+
+				/* スクリーンショット保存 */
+				case IDM_CAPTURE_SCREEN_SHOT: {
+					if (s_fullScreen) {
+						ToggleFullScreen();
+					} else {
+						if (DialogCaptureScreenShot() == DialogCaptureScreenShotResult_Ok) {
+							AppCaptureScreenShot();
 						}
 					}
 					return 0;
