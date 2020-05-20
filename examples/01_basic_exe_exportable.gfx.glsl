@@ -2,7 +2,7 @@
 /* Copyright (C) 2020 Yosshin(@yosshin4004) */
 
 /*
-	超基本サンプル。
+	超基本サンプルコードの実行ファイルエクスポート対応版。
 
 	エクスポートされた実行ファイル上では、time はサウンド再生位置を示す
 	waveOutPosition から計算で求める必要がある。また、resolution は uniform
@@ -13,7 +13,8 @@
 	された実行ファイルから利用されているかは、プリプロセッサ定義
 	EXPORT_EXECUTABLE の有無で判別可能である。
 
-	煩雑になるが、シェーダ導入部で以下のような定型的な処理を記述することになる。
+	以上のような事情から、シェーダを実行ファイルエクスポート対応するには、
+	少々煩雑だがシェーダ導入部で以下のような定型的な処理を記述することになる。
 */
 layout(location = 0) uniform int waveOutPosition;
 #if defined(EXPORT_EXECUTABLE)
