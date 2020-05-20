@@ -26,6 +26,7 @@ Minimal GL は、このうち PC 4K Intro の作成に特化したツールで�
 ![screen_shot_gfx](https://user-images.githubusercontent.com/11882108/82467562-c1ad0800-9afc-11ea-8582-5ef5dbdf2e0f.png)
 ![screen_shot_snd](https://user-images.githubusercontent.com/11882108/82468262-8fe87100-9afd-11ea-8f94-ebf531cb53be.png)
 
+
 # 準備
 
 Minimal GL を利用するには、
@@ -90,7 +91,7 @@ Minimal GL を利用するには、
 	マウスによるカメラ操作機能を提供します（利用するかはオプショナル）。
 
 - キューブマップキャプチャ  
-	現在のカメラ位置から見える全方位の状態をキューブマップにキャプチャします。
+	現在のカメラ位置から見える全方位の状態をキューブマップとして FP32RGBA 形式の dds ファイルにキャプチャします。
 
 - サウンドキャプチャ  
 	サウンド生成結果を float 2ch 形式の wav ファイルに保存します。
