@@ -2,7 +2,7 @@
 /* Copyright (C) 2020 Yosshin(@yosshin4004) */
 
 /*
-	サウンド入力サンプル
+	サウンド入力サンプルコード。
 
 	03_sound_output.snd.glsl と組み合わせることでサウンドが可視化される。
 */

@@ -2,7 +2,7 @@
 /* Copyright (C) 2020 Yosshin(@yosshin4004) */
 
 /*
-	バックバッファ利用サンプル。
+	バックバッファ利用サンプルコード。
 
 	バックバッファを利用する場合は、Render Settings の Enable back buffer の
 	チェックボックスが有効である必要がある（デフォルトで有効）。

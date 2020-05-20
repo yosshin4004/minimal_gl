@@ -2,7 +2,7 @@
 /* Copyright (C) 2020 Yosshin(@yosshin4004) */
 
 /*
-	サウンド出力サンプル
+	サウンド出力サンプルコード。
 */
 
 layout(location = 0) uniform int waveOutPosition;

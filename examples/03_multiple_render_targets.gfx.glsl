@@ -2,7 +2,7 @@
 /* Copyright (C) 2020 Yosshin(@yosshin4004) */
 
 /*
-	MRT4 バックバッファ利用サンプル。
+	MRT4 バックバッファ利用サンプルコード。
 
 	MRT4 バックバッファを利用する場合は、Render Settings の Enable back buffer
 	のチェックボックスを有効にした上で、Frame buffer に MRT4 を選択する必要が
