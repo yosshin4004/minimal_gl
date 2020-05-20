@@ -6,8 +6,8 @@
 
 	デバッグ用途で、マウス座標とボタンの状態が取得できる。
 
-	uniform 変数 mouse が正規化した画面座標。
-	uniform 変数 mouseButtons がボタンの状態を示す。
+	uniform 変数 mouse が、正規化した画面座標。
+	uniform 変数 mouseButtons が、ボタンの状態を示す。
 
 	エクスポートされた実行ファイル上ではこれらの uniform 変数は利用できない。
 */
