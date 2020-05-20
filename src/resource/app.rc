@@ -7,7 +7,7 @@
 #include "resource.h"
 
 IDI_DEFAULT			ICON					"default.ico"
-IDI_SMALL			ICON					"small.ico"
+IDI_SMALL			ICON					"default.ico"
 
 IDR_MAIN_CPP		MY_EMBEDDED_RESOURCE	"main.cpp"
 IDR_MAIN_ASM		MY_EMBEDDED_RESOURCE	"main.asm"
