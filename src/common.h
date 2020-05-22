@@ -109,6 +109,14 @@ char *StrSkipChars(
 	const char *chars
 );
 
+/* BOM をスキップする */
+char *SkipBom(
+	char *string
+);
+const char *SkipBomConst(
+	const char *string
+);
+
 /* ディレクトリの選択 */
 bool SelectDirectory(
 	const char *title,

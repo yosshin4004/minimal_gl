@@ -125,6 +125,18 @@ void AppRenderSettingsSetTextureWrap(TextureWrap wrap);
 /* レンダリング設定 : テクスチャラップの取得 */
 TextureWrap AppRenderSettingsGetTextureWrap();
 
+/* レンダリング設定 : スワップインターバルコントロールフラグの設定 */
+void AppRenderSettingsSetEnableSwapIntervalControlFlag(bool flag);
+
+/* レンダリング設定 : スワップインターバルコントロールフラグの取得 */
+bool AppRenderSettingsGetEnableSwapIntervalControlFlag();
+
+/* レンダリング設定 : スワップインターバルの設定 */
+void AppRenderSettingsSetSwapIntervalControl(SwapInterval interval);
+
+/* レンダリング設定 : スワップインターバルの取得 */
+SwapInterval AppRenderSettingsGetSwapIntervalControl();
+
 
 /* ユーザーテクスチャ : テクスチャの読み込み */
 bool AppUserTexturesLoad(int userTextureIndex, const char *fileName);
@@ -238,12 +250,6 @@ void AppExportExecutableSetEnableSoundDispatchWaitFlag(bool flag);
 
 /* exe エクスポート : サウンドディスパッチのウェイト実行フラグの取得 */
 bool AppExportExecutableGetEnableSoundDispatchWaitFlag();
-
-/* exe エクスポート : ティアリングフリップ許可フラグの設定 */
-void AppExportExecutableSetAllowTearingFlipFlag(bool flag);
-
-/* exe エクスポート : ティアリングフリップ許可フラグの取得 */
-bool AppExportExecutableGetAllowTearingFlipFlag();
 
 /* exe エクスポート : ShaderMinifier の no-renaming フラグの設定 */
 void AppExportExecutableSetShaderMinifierOptionsNoRenaming(bool flag);

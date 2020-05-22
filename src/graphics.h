@@ -18,15 +18,24 @@ typedef enum {
 	PixelFormatFp16RGBA,
 	PixelFormatFp32RGBA,
 } PixelFormat;
+typedef enum {
+	SwapIntervalAllowTearing,
+	SwapIntervalHsync,
+	SwapIntervalVsync,
+} SwapInterval;
 
 struct RenderSettings {
-	bool enableBackBuffer;
-	bool enableMipmapGeneration;
+	PixelFormat pixelFormat;
 	bool enableMultipleRenderTargets;
 	int numEnabledRenderTargets;
-	PixelFormat pixelFormat;
+
+	bool enableBackBuffer;
+	bool enableMipmapGeneration;
 	TextureFilter textureFilter;
 	TextureWrap textureWrap;
+
+	bool enableSwapIntervalControl;
+	SwapInterval swapInterval;
 };
 
 /* テクスチャ及びフレームバッファのクリア */

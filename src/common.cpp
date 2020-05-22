@@ -361,6 +361,38 @@ char *StrSkipChars(
 	return p;
 }
 
+char *SkipBom(
+	char *string
+){
+	/* BOM をスキップ */
+	char *p = string;
+	if (strstr(p, "\xEF\xBB\xBF") == p) {
+		p += 3;
+	} else
+	if (strstr(p, "\xFE\xFF") == p) {
+		p += 2;
+	} else
+	if (strstr(p, "\xFF\xFE") == p) {
+		p += 2;
+	}
+	return p;
+}
+const char *SkipBomConst(
+	const char *string
+){
+	/* BOM をスキップ */
+	const char *p = string;
+	if (strstr(p, "\xEF\xBB\xBF") == p) {
+		p += 3;
+	} else
+	if (strstr(p, "\xFE\xFF") == p) {
+		p += 2;
+	} else
+	if (strstr(p, "\xFF\xFE") == p) {
+		p += 2;
+	}
+	return p;
+}
 
 static int CALLBACK SHBrowseProc(HWND hWnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
 {

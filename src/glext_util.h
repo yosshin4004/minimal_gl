@@ -62,6 +62,7 @@ typedef enum {
 	GlExtGetProgramInterfaceiv,
 	GlExtGetProgramResourceiv,
 	GlExtGetProgramResourceName,
+	WglSwapIntervalEXT,
 	NUM_GLEXT_FUNCTIONS
 } GlExt;
 
@@ -116,6 +117,8 @@ extern void *g_glExtFunctions[NUM_GLEXT_FUNCTIONS];
 #define glExtGetProgramInterfaceiv		((PFNGLGETPROGRAMINTERFACEIVPROC)g_glExtFunctions[GlExtGetProgramInterfaceiv])
 #define glExtGetProgramResourceiv		((PFNGLGETPROGRAMRESOURCEIVPROC)g_glExtFunctions[GlExtGetProgramResourceiv])
 #define glExtGetProgramResourceName		((PFNGLGETPROGRAMRESOURCENAMEPROC)g_glExtFunctions[GlExtGetProgramResourceName])
+#define wglSwapIntervalEXT				((BOOL(WINAPI*)(int))g_glExtFunctions[WglSwapIntervalEXT])
+
 
 /* OpenGL 拡張初期化 */
 bool OpenGlExtInitialize();

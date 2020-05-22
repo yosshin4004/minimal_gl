@@ -241,7 +241,7 @@ bool GraphicsCreateShader(
 ){
 	printf("setup graphics shader ...\n");
 	const GLchar *(strings[]) = {
-		shaderCode
+		SkipBomConst(shaderCode)
 	};
 	assert(s_graphicsProgramId == 0);
 	s_graphicsProgramId = CreateShader(GL_FRAGMENT_SHADER, SIZE_OF_ARRAY(strings), strings);
@@ -1020,6 +1020,24 @@ void GraphicsUpdate(
 		mat4x4CameraInWorld,
 		settings
 	);
+
+	/* スワップ設定 */
+	if (settings->enableSwapIntervalControl) {
+		switch (settings->swapInterval) {
+			case SwapIntervalAllowTearing: {
+				wglSwapIntervalEXT(-1);
+			} break;
+			case SwapIntervalHsync: {
+				wglSwapIntervalEXT(0);
+			} break;
+			case SwapIntervalVsync: {
+				wglSwapIntervalEXT(1);
+			} break;
+			default: {
+				assert(false);
+			} break;
+		}
+	}
 }
 
 bool GraphicsInitialize(

@@ -22,7 +22,7 @@ extern "C" {
 #pragma data_seg("s_concatenatedString")
 char g_concatenatedString_align0[] =
 	/* GL 拡張関数名テーブル（なるべく似た関数名が連続するように配置）*/
-#if ALLOW_TEARING_FLIP
+#if ENABLE_SWAP_INTERVAL_CONTROL
 	"wglSwapIntervalEXT\0"			/* 頻出ワードを持たないので先に配置 */
 #endif
 	"glDispatchCompute\0"			/* 頻出ワードを持たないので先に配置 */
@@ -60,7 +60,7 @@ char g_concatenatedString_align0[] =
 
 /* GL 拡張関数テーブルのインデクス */
 typedef enum {
-#if ALLOW_TEARING_FLIP
+#if ENABLE_SWAP_INTERVAL_CONTROL
 	kWglSwapIntervalEXT,
 #endif
 	GlExtDispatchCompute,

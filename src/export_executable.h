@@ -22,7 +22,6 @@ struct ExecutableExportSettings {
 	int numSoundBufferSamplesPerDispatch;
 	bool enableFrameCountUniform;
 	bool enableSoundDispatchWait;
-	bool allowTearingFlip;
 	struct ShaderMinifierOptions {
 		bool noRenaming;
 		bool noSequence;

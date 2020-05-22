@@ -52,12 +52,6 @@ static LRESULT CALLBACK DialogFunc(
 				AppExportExecutableGetEnableSoundDispatchWaitFlag()
 			);
 
-			/* ティアリングフリップ許可フラグをチェックボックスに設定 */
-			SetDlgItemCheck(
-				hDwnd, IDD_EXPORT_EXECUTABLE_ALLOW_TEARING_FLIP,
-				AppExportExecutableGetAllowTearingFlipFlag()
-			);
-
 			/* ShaderMinifier の no-renaming フラグをチェックボックスに設定 */
 			SetDlgItemCheck(
 				hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING,
@@ -207,11 +201,6 @@ static LRESULT CALLBACK DialogFunc(
 						hDwnd, IDD_EXPORT_EXECUTABLE_ENABLE_SOUND_DISPATCH_WAIT
 					);
 
-					/* ティアリングフリップ許可フラグをチェックボックスから取得 */
-					bool allowTearingFlip = GetDlgItemCheck(
-						hDwnd, IDD_EXPORT_EXECUTABLE_ALLOW_TEARING_FLIP
-					);
-
 					/* ShaderMinifier の no-renaming フラグをチェックボックスから取得 */
 					bool shaderMinifierNoRenaming = GetDlgItemCheck(
 						hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING
@@ -261,7 +250,6 @@ static LRESULT CALLBACK DialogFunc(
 					AppExportExecutableSetDurationInSeconds(duration);
 					AppExportExecutableSetEnableFrameCountUniformFlag(enableFrameCountUniform);
 					AppExportExecutableSetEnableSoundDispatchWaitFlag(enableSoundDispatchWait);
-					AppExportExecutableSetAllowTearingFlipFlag(allowTearingFlip);
 					AppExportExecutableSetCurrentOutputFileName(outputFileName);
 					AppExportExecutableSetShaderMinifierOptionsNoRenaming(shaderMinifierNoRenaming);
 					AppExportExecutableSetShaderMinifierOptionsNoSequence(shaderMinifierNoSequence);

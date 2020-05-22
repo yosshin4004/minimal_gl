@@ -181,15 +181,7 @@ RemoveAndSaveVersionDirective(
 	char *p = fileImage;
 
 	/* BOM をスキップ */
-	if (strstr(p, "\xEF\xBB\xBF") == p) {
-		p += 3;
-	} else
-	if (strstr(p, "\xFE\xFF") == p) {
-		p += 2;
-	} else
-	if (strstr(p, "\xFF\xFE") == p) {
-		p += 2;
-	}
+	p = SkipBom(p);
 
 	/* 1 行目に書かれている version デレクティブを探し、除去と保存 */
 	{
@@ -667,19 +659,20 @@ bool ExportExecutableSub(
 				"/DARG_NUM_SOUND_BUFFER_SAMPLES=%d "				/* arg 3 */
 				"/DARG_NUM_SOUND_BUFFER_AVAILABLE_SAMPLES=%d "		/* arg 4 */
 				"/DARG_NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH=%d "	/* arg 5 */
-				"/DARG_ALLOW_TEARING_FLIP=%d "						/* arg 6 */
-				"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 7 */
-				"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 8 */
-				"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 9 */
-				"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 10 */
-				"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 11 */
-				"/DARG_PIXEL_FORMAT=%d "							/* arg 12 */
-				"/DARG_TEXTURE_FILTER=%d "							/* arg 13 */
-				"/DARG_TEXTURE_WRAP=%d "							/* arg 14 */
-				"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 15 */
-				"/DARG_USE_TINYHEADER=%d "							/* arg 16 */
-				"/DARG_USE_TINYIMPORT=%d "							/* arg 17 */
-				"/I%s "												/* arg 18 */
+				"/DARG_ENABLE_SWAP_INTERVAL_CONTROL=%d "			/* arg 6 */
+				"/DARG_SWAP_INTERVAL=%d "							/* arg 7 */
+				"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 8 */
+				"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 9 */
+				"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 10 */
+				"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 11 */
+				"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 12 */
+				"/DARG_PIXEL_FORMAT=%d "							/* arg 13 */
+				"/DARG_TEXTURE_FILTER=%d "							/* arg 14 */
+				"/DARG_TEXTURE_WRAP=%d "							/* arg 15 */
+				"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 16 */
+				"/DARG_USE_TINYHEADER=%d "							/* arg 17 */
+				"/DARG_USE_TINYIMPORT=%d "							/* arg 18 */
+				"/I%s "												/* arg 19 */
 				"main.cpp || exit /b 2\n"
 #else
 			/* main.asm -> main.obj */
@@ -690,18 +683,19 @@ bool ExportExecutableSub(
 				"/DARG_NUM_SOUND_BUFFER_SAMPLES=%d "				/* arg 3 */
 				"/DARG_NUM_SOUND_BUFFER_AVAILABLE_SAMPLES=%d "		/* arg 4 */
 				"/DARG_NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH=%d "	/* arg 5 */
-				"/DARG_ALLOW_TEARING_FLIP=%d "						/* arg 6 */
-				"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 7 */
-				"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 8 */
-				"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 9 */
-				"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 10 */
-				"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 11 */
-				"/DARG_PIXEL_FORMAT=%d "							/* arg 12 */
-				"/DARG_TEXTURE_FILTER=%d "							/* arg 13 */
-				"/DARG_TEXTURE_WRAP=%d "							/* arg 14 */
-				"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 15 */
-				"/DARG_USE_TINYHEADER=%d "							/* arg 16 */
-				"/DARG_USE_TINYIMPORT=%d "							/* arg 17 */
+				"/DARG_ENABLE_SWAP_INTERVAL_CONTROL=%d "			/* arg 6 */
+				"/DARG_SWAP_INTERVAL=%d "							/* arg 7 */
+				"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 8 */
+				"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 9 */
+				"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 10 */
+				"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 11 */
+				"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 12 */
+				"/DARG_PIXEL_FORMAT=%d "							/* arg 13 */
+				"/DARG_TEXTURE_FILTER=%d "							/* arg 14 */
+				"/DARG_TEXTURE_WRAP=%d "							/* arg 15 */
+				"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 16 */
+				"/DARG_USE_TINYHEADER=%d "							/* arg 17 */
+				"/DARG_USE_TINYIMPORT=%d "							/* arg 18 */
 				"main.asm || exit /b 2\n"
 
 			/* resource.cpp -> resource.obj */
@@ -709,18 +703,18 @@ bool ExportExecutableSub(
 				"/c "			/* コンパイルのみ。リンクは行わない */
 				"/w "			/* 警告をすべて無効にします */
 				"/DEXPORT_EXECUTABLE=1 "
-				"/DALLOW_TEARING_FLIP=%d "							/* arg 18 */
-				"/DENABLE_BACK_BUFFER=%d "							/* arg 19 */
-				"/DENABLE_FRAME_COUNT_UNIFORM=%d "					/* arg 20 */
-				"/DENABLE_MIPMAP_GENERATION=%d "					/* arg 21 */
-				"/DNUM_MIPMAP_LEVELS=%d "							/* arg 22 */
-				"/DNUM_RENDER_TARGETS=%d "							/* arg 23 */
-				"/DPIXEL_FORMAT=%d "								/* arg 24 */
-				"/DTEXTURE_FILTER=%d "								/* arg 25 */
-				"/DTEXTURE_WRAP=%d "								/* arg 26 */
-				"/DENABLE_SOUND_DISPATCH_WAIT=%d "					/* arg 27 */
-				"/DUSE_TINYHEADER=%d "								/* arg 28 */
-				"/DUSE_TINYIMPORT=%d "								/* arg 29 */
+				"/DARG_ENABLE_SWAP_INTERVAL_CONTROL=%d "			/* arg 19 */
+				"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 20 */
+				"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 21 */
+				"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 22 */
+				"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 23 */
+				"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 24 */
+				"/DARG_PIXEL_FORMAT=%d "							/* arg 25 */
+				"/DARG_TEXTURE_FILTER=%d "							/* arg 26 */
+				"/DARG_TEXTURE_WRAP=%d "							/* arg 27 */
+				"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 28 */
+				"/DARG_USE_TINYHEADER=%d "							/* arg 29 */
+				"/DARG_USE_TINYIMPORT=%d "							/* arg 30 */
 				"resource.cpp || exit /b 3\n"
 #endif
 
@@ -764,34 +758,35 @@ bool ExportExecutableSub(
 			executableExportSettings->numSoundBufferSamples,				/* arg 3 */
 			executableExportSettings->numSoundBufferAvailableSamples,		/* arg 4 */
 			executableExportSettings->numSoundBufferSamplesPerDispatch,		/* arg 5 */
-			executableExportSettings->allowTearingFlip? 1:0,				/* arg 6 */
-			renderSettings->enableBackBuffer? 1:0,							/* arg 7 */
-			enableFrameCountUniform? 1:0,									/* arg 8 */
-			renderSettings->enableMipmapGeneration? 1:0,					/* arg 9 */
-			numMipmapLevels,												/* arg 10 */
-			numRenderTargets,												/* arg 11 */
-			renderSettings->pixelFormat,									/* arg 12 */
-			renderSettings->textureFilter,									/* arg 13 */
-			renderSettings->textureWrap,									/* arg 14 */
-			executableExportSettings->enableSoundDispatchWait? 1:0,			/* arg 15 */
-			executableExportSettings->crinklerOptions.useTinyHeader? 1:0,	/* arg 16 */
-			executableExportSettings->crinklerOptions.useTinyImport? 1:0,	/* arg 17 */
+			renderSettings->enableSwapIntervalControl? 1:0,					/* arg 6 */
+			renderSettings->swapInterval,									/* arg 7 */
+			renderSettings->enableBackBuffer? 1:0,							/* arg 8 */
+			enableFrameCountUniform? 1:0,									/* arg 9 */
+			renderSettings->enableMipmapGeneration? 1:0,					/* arg 10 */
+			numMipmapLevels,												/* arg 11 */
+			numRenderTargets,												/* arg 12 */
+			renderSettings->pixelFormat,									/* arg 13 */
+			renderSettings->textureFilter,									/* arg 14 */
+			renderSettings->textureWrap,									/* arg 15 */
+			executableExportSettings->enableSoundDispatchWait? 1:0,			/* arg 16 */
+			executableExportSettings->crinklerOptions.useTinyHeader? 1:0,	/* arg 17 */
+			executableExportSettings->crinklerOptions.useTinyImport? 1:0,	/* arg 18 */
 
 #if USE_MAIN_CPP
-			workDirName,													/* arg 18 */
+			workDirName,													/* arg 19 */
 #else
-			executableExportSettings->allowTearingFlip? 1:0,				/* arg 18 */
-			renderSettings->enableBackBuffer? 1:0,							/* arg 19 */
-			enableFrameCountUniform? 1:0,									/* arg 20 */
-			renderSettings->enableMipmapGeneration? 1:0,					/* arg 21 */
-			numMipmapLevels,												/* arg 22 */
-			numRenderTargets,												/* arg 23 */
-			renderSettings->pixelFormat,									/* arg 24 */
-			renderSettings->textureFilter,									/* arg 25 */
-			renderSettings->textureWrap,									/* arg 26 */
-			executableExportSettings->enableSoundDispatchWait? 1:0,			/* arg 27 */
-			executableExportSettings->crinklerOptions.useTinyHeader? 1:0,	/* arg 28 */
-			executableExportSettings->crinklerOptions.useTinyImport? 1:0,	/* arg 29 */
+			renderSettings->enableSwapIntervalControl? 1:0,					/* arg 19 */
+			renderSettings->enableBackBuffer? 1:0,							/* arg 20 */
+			enableFrameCountUniform? 1:0,									/* arg 21 */
+			renderSettings->enableMipmapGeneration? 1:0,					/* arg 22 */
+			numMipmapLevels,												/* arg 23 */
+			numRenderTargets,												/* arg 24 */
+			renderSettings->pixelFormat,									/* arg 25 */
+			renderSettings->textureFilter,									/* arg 26 */
+			renderSettings->textureWrap,									/* arg 27 */
+			executableExportSettings->enableSoundDispatchWait? 1:0,			/* arg 28 */
+			executableExportSettings->crinklerOptions.useTinyHeader? 1:0,	/* arg 29 */
+			executableExportSettings->crinklerOptions.useTinyImport? 1:0,	/* arg 30 */
 #endif
 
 			crinklerReportFullPath,											/* crinkler arg 1 */

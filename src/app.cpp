@@ -56,13 +56,17 @@ static struct CaptureScreenShotSettings {
 	true,
 };
 static RenderSettings s_renderSettings = {
-	/* bool enableBackBuffer; */				true,
-	/* bool enableMipmapGeneration; */			true,
+	/* PixelFormat pixelFormat; */				PixelFormatUnorm8RGBA,
 	/* bool enableMultipleRenderTargets; */		true,
 	/* int numEnabledRenderTargets; */			4,
-	/* PixelFormat pixelFormat; */				PixelFormatUnorm8RGBA,
+
+	/* bool enableBackBuffer; */				true,
+	/* bool enableMipmapGeneration; */			true,
 	/* TextureFilter textureFilter; */			TextureFilterLinear,
 	/* TextureWrap textureWrap; */				TextureWrapClampToEdge,
+
+	/* bool enableSwapIntervalControl; */		true,
+	/* SwapInterval swapInterval; */			SwapIntervalVsync,
 };
 static struct PreferenceSettings {
 	bool enableAutoRestartByGraphicsShader;
@@ -78,7 +82,6 @@ static ExecutableExportSettings s_executableExportSettings = {
 	/* int numSoundBufferSamplesPerDispatch; */	NUM_SAMPLES_PER_DISPATCH,
 	/* bool enableFrameCountUniform; */			true,
 	/* bool enableSoundDispatchWait; */			true,
-	/* bool allowTearingFlip; */				false,
 	/* struct ShaderMinifierOptions { */		{
 	/*  bool noRenaming; */							false,
 	/*  bool noSequence; */							false,
@@ -579,6 +582,18 @@ void AppRenderSettingsSetTextureWrap(TextureWrap wrap){
 TextureWrap AppRenderSettingsGetTextureWrap(){
 	return s_renderSettings.textureWrap;
 }
+void AppRenderSettingsSetEnableSwapIntervalControlFlag(bool flag){
+	s_renderSettings.enableSwapIntervalControl = flag;
+}
+bool AppRenderSettingsGetEnableSwapIntervalControlFlag(){
+	return s_renderSettings.enableSwapIntervalControl;
+}
+void AppRenderSettingsSetSwapIntervalControl(SwapInterval interval){
+	s_renderSettings.swapInterval = interval;
+}
+SwapInterval AppRenderSettingsGetSwapIntervalControl(){
+	return s_renderSettings.swapInterval;
+}
 
 /*=============================================================================
 ▼	ユーザーテクスチャ関連
@@ -800,12 +815,6 @@ void AppExportExecutableSetEnableSoundDispatchWaitFlag(bool flag){
 }
 bool AppExportExecutableGetEnableSoundDispatchWaitFlag(){
 	return s_executableExportSettings.enableSoundDispatchWait;
-}
-void AppExportExecutableSetAllowTearingFlipFlag(bool flag){
-	s_executableExportSettings.allowTearingFlip = flag;
-}
-bool AppExportExecutableGetAllowTearingFlipFlag(){
-	return s_executableExportSettings.allowTearingFlip;
 }
 void AppExportExecutableSetShaderMinifierOptionsNoRenaming(bool flag){
 	s_executableExportSettings.shaderMinifierOptions.noRenaming = flag;

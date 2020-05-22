@@ -165,6 +165,8 @@ SetTextureSampler(
 		/* GLenum pname */	GL_TEXTURE_MIN_FILTER,
 		/* GLint param */	ENABLE_MIPMAP_GENERATION? GL_LINEAR_MIPMAP_LINEAR: GL_LINEAR
 	);
+#else
+#	error
 #endif
 
 #if (TEXTURE_WRAP == TEXTURE_WRAP_REPEAT)
@@ -191,6 +193,8 @@ SetTextureSampler(
 		/* GLenum pname */	GL_TEXTURE_WRAP_T,
 		/* GLint param */	GL_MIRRORED_REPEAT
 	);
+#else
+#	error
 #endif
 }
 
@@ -457,11 +461,23 @@ entrypoint(
 #	endif
 #endif
 
-#if ALLOW_TEARING_FLIP
+#if ENABLE_SWAP_INTERVAL_CONTROL
 	/* フリップの挙動を指定 */
+#	if SWAP_INTERVAL == SWAP_INTERVAL_ALLOW_TEARING
 	wglSwapIntervalEXT(
 		/* int interval */	-1		/* ティアリング許可 */
 	);
+#	elif SWAP_INTERVAL == SWAP_INTERVAL_HSYNC
+	wglSwapIntervalEXT(
+		/* int interval */	0		/* HSYNC */
+	);
+#	elif SWAP_INTERVAL == SWAP_INTERVAL_VSYNC
+	wglSwapIntervalEXT(
+		/* int interval */	1		/* VSYNC */
+	);
+#	else
+#		error
+#	endif
 #endif
 
 	/* サウンド再生 */
@@ -613,6 +629,8 @@ entrypoint(
 #			if AVOID_GL_RUNTIME_ERROR_AND_START_FROM_ZERO_FRAME
 		if (frameCount < 0) continue;		/* これを省略すると初回フレームでランタイムエラー */
 #			endif
+#		else
+#			error
 #		endif
 #	endif
 #endif

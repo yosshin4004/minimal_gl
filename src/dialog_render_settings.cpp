@@ -49,6 +49,22 @@ static void updateButtonState(HWND hDwnd){
 		GetDlgItem(hDwnd, IDR_RENDER_SETTINGS_TEXTURE_WRAP_MIRRORED_REPEAT),
 		enableBackBuffer
 	);
+
+	bool enableSwapIntervalControl = GetDlgItemCheck(
+		hDwnd, IDC_RENDER_SETTINGS_ENABLE_SWAP_INTERVAL_CONTROL
+	);
+	EnableWindow(
+		GetDlgItem(hDwnd, IDR_RENDER_SETTINGS_SWAP_INTERVAL_ALLOW_TEARING),
+		enableSwapIntervalControl
+	);
+	EnableWindow(
+		GetDlgItem(hDwnd, IDR_RENDER_SETTINGS_SWAP_INTERVAL_HSYNC),
+		enableSwapIntervalControl
+	);
+	EnableWindow(
+		GetDlgItem(hDwnd, IDR_RENDER_SETTINGS_SWAP_INTERVAL_VSYNC),
+		enableSwapIntervalControl
+	);
 }
 
 static LRESULT CALLBACK DialogFunc(
@@ -157,6 +173,32 @@ static LRESULT CALLBACK DialogFunc(
 				SetDlgItemCheck(hDwnd, nIDDlgItem, true);
 			}
 
+			/* スワップインターバルコントロール有効化フラグをチェックボックスに設定 */
+			SetDlgItemCheck(
+				hDwnd, IDC_RENDER_SETTINGS_ENABLE_SWAP_INTERVAL_CONTROL,
+				AppRenderSettingsGetEnableSwapIntervalControlFlag()
+			);
+
+			/* スワップインターバルをラジオボタンに設定 */
+			{
+				int nIDDlgItem = 0;
+				switch (AppRenderSettingsGetSwapIntervalControl()) {
+					case SwapIntervalAllowTearing :{
+						nIDDlgItem = IDR_RENDER_SETTINGS_SWAP_INTERVAL_ALLOW_TEARING;
+					} break;
+					case SwapIntervalHsync :{
+						nIDDlgItem = IDR_RENDER_SETTINGS_SWAP_INTERVAL_HSYNC;
+					} break;
+					case SwapIntervalVsync :{
+						nIDDlgItem = IDR_RENDER_SETTINGS_SWAP_INTERVAL_VSYNC;
+					} break;
+					default : {
+						assert(false);
+					} break;
+				}
+				SetDlgItemCheck(hDwnd, nIDDlgItem, true);
+			}
+
 			/* ボタン有効/無効ステート更新 */
 			updateButtonState(hDwnd);
 
@@ -235,6 +277,27 @@ static LRESULT CALLBACK DialogFunc(
 						}
 					}
 
+					/* スワップインターバルコントロール有効化フラグをチェックボックスから取得 */
+					bool enableSwapIntervalControl = GetDlgItemCheck(
+						hDwnd, IDC_RENDER_SETTINGS_ENABLE_SWAP_INTERVAL_CONTROL
+					);
+
+					/* スワップインターバルをラジオボタンから取得 */
+					SwapInterval swapInterval = SwapIntervalAllowTearing;
+					{
+						if (GetDlgItemCheck(hDwnd, IDR_RENDER_SETTINGS_SWAP_INTERVAL_ALLOW_TEARING)) {
+							swapInterval = SwapIntervalAllowTearing;
+						} else
+						if (GetDlgItemCheck(hDwnd, IDR_RENDER_SETTINGS_SWAP_INTERVAL_HSYNC)) {
+							swapInterval = SwapIntervalHsync;
+						} else
+						if (GetDlgItemCheck(hDwnd, IDR_RENDER_SETTINGS_SWAP_INTERVAL_VSYNC)) {
+							swapInterval = SwapIntervalVsync;
+						} else {
+							AppErrorMessageBox(APP_NAME, "Invalid swap interval.");
+						}
+					}
+
 					/* App に通知 */
 					AppRenderSettingsSetPixelFormat(pixelFormat);
 					AppRenderSettingsSetEnableMultipleRenderTargetsFlag(enableMultipleRenderTargets);
@@ -243,6 +306,8 @@ static LRESULT CALLBACK DialogFunc(
 					AppRenderSettingsSetEnableMipmapGenerationFlag(enableMipmapGeneration);
 					AppRenderSettingsSetTextureFilter(textureFilter);
 					AppRenderSettingsSetTextureWrap(textureWrap);
+					AppRenderSettingsSetEnableSwapIntervalControlFlag(enableSwapIntervalControl);
+					AppRenderSettingsSetSwapIntervalControl(swapInterval);
 
 					/* ダイアログボックス終了 */
 					EndDialog(hDwnd, DialogRenderSettingsResult_Ok);
@@ -268,6 +333,12 @@ static LRESULT CALLBACK DialogFunc(
 
 				/* Enable back buffer チェックボックスの更新  */
 				case IDD_RENDER_SETTINGS_ENABLE_BACK_BUFFER: {
+					/* ボタン有効/無効ステート更新 */
+					updateButtonState(hDwnd);
+				} break;
+
+				/* Enable swap interval control チェックボックスの更新  */
+				case IDC_RENDER_SETTINGS_ENABLE_SWAP_INTERVAL_CONTROL: {
 					/* ボタン有効/無効ステート更新 */
 					updateButtonState(hDwnd);
 				} break;

@@ -110,7 +110,7 @@ bool SoundCreateShader(
 ){
 	printf("setup sound shader ...\n");
 	const GLchar *(strings[]) = {
-		shaderCode
+		SkipBomConst(shaderCode)
 	};
 	assert(s_soundProgramId == 0);
 	s_soundProgramId = CreateShader(GL_COMPUTE_SHADER, SIZE_OF_ARRAY(strings), strings);
