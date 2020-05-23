@@ -1,11 +1,11 @@
 ﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
 
+#ifndef _EXPORT_EXECUTABLE_H_
+#define _EXPORT_EXECUTABLE_H_
+
 
 #include "graphics.h"
 
-
-#ifndef _EXPORT_EXECUTABLE_H_
-#define _EXPORT_EXECUTABLE_H_
 
 typedef enum {
 	CrinklerCompModeInstant,
@@ -15,6 +15,7 @@ typedef enum {
 } CrinklerCompMode;
 
 struct ExecutableExportSettings {
+	char fileName[FILENAME_MAX];
 	int xReso;
 	int yReso;
 	int numSoundBufferSamples;
@@ -36,7 +37,6 @@ struct ExecutableExportSettings {
 
 /* exe ファイルにエクスポート */
 bool ExportExecutable(
-	const char *exeFileName,
 	const char *graphicsShaderCode,
 	const char *soundShaderCode,
 	const RenderSettings *renderSettings,

@@ -350,7 +350,6 @@ ApplyWorkAround(
 -----------------------------------------------------------------------------*/
 bool ExportExecutableSub(
 	const char *workDirName,
-	const char *exeFileName,
 	const char *graphicsShaderCode,
 	const char *soundShaderCode,
 #if USE_MAIN_CPP
@@ -792,7 +791,7 @@ bool ExportExecutableSub(
 			crinklerReportFullPath,											/* crinkler arg 1 */
 			crinklerReuseFullPath,											/* crinkler arg 2 */
 			crinklerOptions,												/* crinkler arg 3 */
-			exeFileName,													/* crinkler arg 4 */
+			executableExportSettings->fileName,								/* crinkler arg 4 */
 			outputGraphicsFragmentShaderInlFullPath,						/* crinkler arg 5 */
 			outputSoundComputeShaderInlFullPath								/* crinkler arg 6 */
 		);
@@ -851,7 +850,6 @@ bool ExportExecutableSub(
 ▼	exe ファイルのエクスポート
 -----------------------------------------------------------------------------*/
 bool ExportExecutable(
-	const char *exeFileName,
 	const char *graphicsShaderCode,
 	const char *soundShaderCode,
 	const RenderSettings *renderSettings,
@@ -902,7 +900,7 @@ bool ExportExecutable(
 #endif
 
 	/* 旧ファイルサイズを確認 */
-	size_t prevExeFileSize = GetFileSize(exeFileName);
+	size_t prevExeFileSize = GetFileSize(executableExportSettings->fileName);
 
 	/* 各種ファイル名生成 */
 #if USE_MAIN_CPP
@@ -945,15 +943,15 @@ bool ExportExecutable(
 	snprintf(soundComputeShaderGlslFullPath, sizeof(soundComputeShaderGlslFullPath), "%s\\sound_compute_shader.glsl", workDirName);
 	snprintf(soundComputeShaderTmpFullPath,  sizeof(soundComputeShaderTmpFullPath),  "%s\\sound_compute_shader.i",  workDirName);
 	snprintf(soundComputeShaderInlFullPath,  sizeof(soundComputeShaderInlFullPath),  "%s\\sound_compute_shader.inl",  workDirName);
-	snprintf(crinklerReportFullPath, sizeof(crinklerReportFullPath), "%s.crinkler_report.html", exeFileName);
-	snprintf(crinklerReuseFullPath, sizeof(crinklerReuseFullPath), "%s.crinkler_reuse.txt", exeFileName);
+	snprintf(crinklerReportFullPath, sizeof(crinklerReportFullPath), "%s.crinkler_report.html", executableExportSettings->fileName);
+	snprintf(crinklerReuseFullPath, sizeof(crinklerReuseFullPath), "%s.crinkler_reuse.txt", executableExportSettings->fileName);
 	snprintf(minifyBatFullPath, sizeof(minifyBatFullPath), "%s\\minify.bat", workDirName);
 	snprintf(buildBatFullPath, sizeof(buildBatFullPath), "%s\\build.bat", workDirName);
-	snprintf(outputGraphicsFragmentShaderInlFullPath, sizeof(outputGraphicsFragmentShaderInlFullPath), "%s.gfx.inl", exeFileName);
-	snprintf(outputSoundComputeShaderInlFullPath, sizeof(outputSoundComputeShaderInlFullPath), "%s.snd.inl", exeFileName);
+	snprintf(outputGraphicsFragmentShaderInlFullPath, sizeof(outputGraphicsFragmentShaderInlFullPath), "%s.gfx.inl", executableExportSettings->fileName);
+	snprintf(outputSoundComputeShaderInlFullPath, sizeof(outputSoundComputeShaderInlFullPath), "%s.snd.inl", executableExportSettings->fileName);
 
 	/* 上書き確認 */
-	if (DialogConfirmOverWrite(exeFileName) == DialogConfirmOverWriteResult_Canceled
+	if (DialogConfirmOverWrite(executableExportSettings->fileName) == DialogConfirmOverWriteResult_Canceled
 	||	DialogConfirmOverWrite(crinklerReportFullPath) == DialogConfirmOverWriteResult_Canceled
 	||	DialogConfirmOverWrite(crinklerReuseFullPath) == DialogConfirmOverWriteResult_Canceled
 	||	DialogConfirmOverWrite(outputGraphicsFragmentShaderInlFullPath) == DialogConfirmOverWriteResult_Canceled
@@ -965,7 +963,6 @@ bool ExportExecutable(
 	/* エラー処理の都合、下請け関数に丸投げ */
 	bool ret = ExportExecutableSub(
 		workDirName,
-		exeFileName,
 		graphicsShaderCode,
 		soundShaderCode,
 #if USE_MAIN_CPP
@@ -995,7 +992,7 @@ bool ExportExecutable(
 
 	/* 完了の通知 */
 	if (ret) {
-		size_t exeFileSize = GetFileSize(exeFileName);
+		size_t exeFileSize = GetFileSize(executableExportSettings->fileName);
 		int exeFileSizeDiff = (int)(exeFileSize - prevExeFileSize);
 		AppMessageBox(
 			APP_NAME, "Export executable file completed successfully.\n\nFile size = %d bytes. (change %+d bytes)\n\n",

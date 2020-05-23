@@ -23,16 +23,18 @@ static LRESULT CALLBACK DialogFunc(
 		/* ダイアログボックスの初期化 */
 		case WM_INITDIALOG: {
 			/* 解像度をエディットボックスに設定 */
-			int xReso = 0, yReso = 0;
-			AppRecordImageSequenceGetResolution(&xReso, &yReso);
-			SetDlgItemInt(
-				hDwnd, IDD_RECORD_IMAGE_SEQUENCE_SCREEN_XRESO,
-				xReso, FALSE
-			);
-			SetDlgItemInt(
-				hDwnd, IDD_RECORD_IMAGE_SEQUENCE_SCREEN_YRESO,
-				yReso, FALSE
-			);
+			{
+				int xReso = 0, yReso = 0;
+				AppRecordImageSequenceGetResolution(&xReso, &yReso);
+				SetDlgItemInt(
+					hDwnd, IDD_RECORD_IMAGE_SEQUENCE_SCREEN_XRESO,
+					xReso, FALSE
+				);
+				SetDlgItemInt(
+					hDwnd, IDD_RECORD_IMAGE_SEQUENCE_SCREEN_YRESO,
+					yReso, FALSE
+				);
+			}
 
 			/* 開始位置（秒）をエディットボックスに設定 */
 			SetDlgItemFloat(

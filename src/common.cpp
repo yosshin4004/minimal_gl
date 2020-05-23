@@ -488,5 +488,4 @@ BOOL GetDlgItemCheck(
 		(WPARAM)0,
 		(LPARAM)0
 	);
-	
 }

@@ -12,6 +12,12 @@
 #include <GL/gl.h>
 
 
+struct CaptureSoundSettings {
+	char fileName[FILENAME_MAX];
+	float durationInSeconds;
+};
+
+
 /* 再生一時停止 */
 void SoundPauseWaveOut();
 
@@ -46,8 +52,7 @@ GLuint SoundGetOutputSsbo();
 
 /* サウンドを wav ファイルに保存 */
 bool SoundCaptureSound(
-	const char *fileName,
-	float durationInSeconds
+	const CaptureSoundSettings *settings
 );
 
 /* サウンドの更新 */

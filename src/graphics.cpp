@@ -536,15 +536,13 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	int waveOutPos,
 	int frameCount,
 	float time,
-	int xReso,
-	int yReso,
 	float fovYAsRadian,
 	const float mat4x4CameraInWorld[4][4],
-	bool replaceAlphaByOne,
-	const RenderSettings *settings
+	const RenderSettings *renderSettings,
+	const CaptureScreenShotSettings *captureSettings
 ){
 	/* バッファ容量が不足しているならエラー */
-	if (bufferSizeInBytes < (xReso * yReso * 4)) return false;
+	if (bufferSizeInBytes < (captureSettings->xReso * captureSettings->yReso * 4)) return false;
 
 	/* FBO 作成 */
 	GLuint offscreenRenderTargetFbo = 0;
@@ -571,8 +569,8 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 		/* GLenum target */			GL_TEXTURE_2D,
 		/* GLsizei levels */		1,
 		/* GLenum internalformat */	GL_RGBA8,
-		/* GLsizei width */			xReso,
-		/* GLsizei height */		yReso
+		/* GLsizei width */			captureSettings->xReso,
+		/* GLsizei height */		captureSettings->yReso
 	);
 
 	/* レンダーターゲットのバインド */
@@ -601,11 +599,11 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 		0,		/* キャプチャ時はマウスボタンは常に 0 */
 		0,		/* キャプチャ時はマウスボタンは常に 0 */
 		0,		/* キャプチャ時はマウスボタンは常に 0 */
-		xReso,
-		yReso,
+		captureSettings->xReso,
+		captureSettings->yReso,
 		tanFovY,
 		mat4x4CameraInWorld,
-		settings
+		renderSettings
 	);
 
 	/* 描画結果の取得 */
@@ -617,18 +615,18 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	glReadPixels(
 		/* GLint x */				0,
 		/* GLint y */				0,
-		/* GLsizei width */			xReso,
-		/* GLsizei height */		yReso,
+		/* GLsizei width */			captureSettings->xReso,
+		/* GLsizei height */		captureSettings->yReso,
 		/* GLenum format */			GL_RGBA,
 		/* GLenum type */			GL_UNSIGNED_BYTE,
 		/* GLvoid * data */			buffer
 	);
 
 	/* αチャンネルの強制 1.0 置換 */
-	if (replaceAlphaByOne) {
-		for (int y = 0; y < yReso; y++) {
-			for (int x = 0; x < xReso; x++) {
-				((uint8_t *)buffer)[(y * xReso + x) * 4 + 3] = 255;
+	if (captureSettings->replaceAlphaByOne) {
+		for (int y = 0; y < captureSettings->yReso; y++) {
+			for (int x = 0; x < captureSettings->xReso; x++) {
+				((uint8_t *)buffer)[(y * captureSettings->xReso + x) * 4 + 3] = 255;
 			}
 		}
 	}
@@ -647,31 +645,32 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 }
 
 bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
-	const char *fileName,
 	int waveOutPos,
 	int frameCount,
 	float time,
-	int xReso,
-	int yReso,
 	float fovYAsRadian,
 	const float mat4x4CameraInWorld[4][4],
-	bool replaceAlphaByOne,
-	const RenderSettings *settings
+	const RenderSettings *renderSettings,
+	const CaptureScreenShotSettings *captureSettings
 ){
 	size_t bytesPerPixel = 4;
-	size_t bufferSizeInBytes = xReso * yReso * bytesPerPixel;
+	size_t bufferSizeInBytes = captureSettings->xReso * captureSettings->yReso * bytesPerPixel;
 	void *buffer = malloc(bufferSizeInBytes);
 	if (
 		GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 			buffer, bufferSizeInBytes, waveOutPos, frameCount, time,
-			xReso, yReso, fovYAsRadian, mat4x4CameraInWorld,
-			replaceAlphaByOne, settings
+			fovYAsRadian, mat4x4CameraInWorld,
+			renderSettings, captureSettings
 		) == false
 	) {
 		free(buffer);
 		return false;
 	}
-	if (SerializeAsUnorm8RgbaPng(fileName, buffer, xReso, yReso) == false) {
+	if (
+		SerializeAsUnorm8RgbaPng(
+			captureSettings->fileName, buffer, captureSettings->xReso, captureSettings->yReso
+		) == false
+	) {
 		free(buffer);
 		return false;
 	};
@@ -680,13 +679,12 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 }
 
 bool GraphicsCaptureCubemap(
-	const char *fileName,
 	int waveOutPos,
 	int frameCount,
 	float time,
-	int cubemapReso,
 	const float mat4x4CameraInWorld[4][4],
-	const RenderSettings *settings
+	const RenderSettings *renderSettings,
+	const CaptureCubemapSettings *captureSettings
 ){
 	/* 先だって画像の全クリア */
 	GraphicsClearAllTexturesAndFremeBuffers();
@@ -716,8 +714,8 @@ bool GraphicsCaptureCubemap(
 		/* GLenum target */			GL_TEXTURE_2D,
 		/* GLsizei levels */		1,
 		/* GLenum internalformat */	GL_RGBA32F,
-		/* GLsizei width */			cubemapReso,
-		/* GLsizei height */		cubemapReso
+		/* GLsizei width */			captureSettings->reso,
+		/* GLsizei height */		captureSettings->reso
 	);
 
 	/* レンダーターゲットのバインド */
@@ -924,15 +922,15 @@ bool GraphicsCaptureCubemap(
 			0,		/* キューブマップキャプチャ時はマウスボタンは常に 0 */
 			0,		/* キューブマップキャプチャ時はマウスボタンは常に 0 */
 			0,		/* キューブマップキャプチャ時はマウスボタンは常に 0 */
-			cubemapReso,
-			cubemapReso,
+			captureSettings->reso,
+			captureSettings->reso,
 			tanFovY,
 			mat4x4FaceInWorld,
-			settings
+			renderSettings
 		);
 
 		/* 描画結果の取得 */
-		data[iFace] = (float *)malloc(sizeof(float) * 4 * cubemapReso * cubemapReso);
+		data[iFace] = (float *)malloc(sizeof(float) * 4 * captureSettings->reso * captureSettings->reso);
 		glFinish();		/* 不要と信じたいが念のため */
 		glExtBindFramebuffer(
 			/* GLenum target */			GL_FRAMEBUFFER,
@@ -941,21 +939,21 @@ bool GraphicsCaptureCubemap(
 		glReadPixels(
 			/* GLint x */				0,
 			/* GLint y */				0,
-			/* GLsizei width */			cubemapReso,
-			/* GLsizei height */		cubemapReso,
+			/* GLsizei width */			captureSettings->reso,
+			/* GLsizei height */		captureSettings->reso,
 			/* GLenum format */			GL_RGBA,
 			/* GLenum type */			GL_FLOAT,
 			/* GLvoid * data */			data[iFace]
 		);
 
 		/* 上下反転 */
-		for (int y = 0; y < cubemapReso/2; y++) {
-			for (int x = 0; x < cubemapReso; x++) {
+		for (int y = 0; y < captureSettings->reso/2; y++) {
+			for (int x = 0; x < captureSettings->reso; x++) {
 				for (int i = 0; i < 4; i++) {
-					float tmp = data[iFace][(y * cubemapReso + x) * 4 + i];
-					data[iFace][(y * cubemapReso + x) * 4 + i]
-					=	data[iFace][((cubemapReso - y - 1) * cubemapReso + x) * 4 + i];
-					data[iFace][((cubemapReso - y - 1) * cubemapReso + x) * 4 + i] = tmp;
+					float tmp = data[iFace][(y * captureSettings->reso + x) * 4 + i];
+					data[iFace][(y * captureSettings->reso + x) * 4 + i]
+					=	data[iFace][((captureSettings->reso - y - 1) * captureSettings->reso + x) * 4 + i];
+					data[iFace][((captureSettings->reso - y - 1) * captureSettings->reso + x) * 4 + i] = tmp;
 				}
 			}
 		}
@@ -963,10 +961,10 @@ bool GraphicsCaptureCubemap(
 
 	/* ファイルに書き出し */
 	bool ret = SerializeAsFp32RgbaCubemapDds(
-		/* const char *fileName */	fileName,
+		/* const char *fileName */	captureSettings->fileName,
 		/* float *(data[6]) */		data,
-		/* int width */				cubemapReso,
-		/* int height */			cubemapReso
+		/* int width */				captureSettings->reso,
+		/* int height */			captureSettings->reso
 	);
 
 	/* メモリ破棄 */

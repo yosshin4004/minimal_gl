@@ -11,6 +11,9 @@
 /* キューブマップの初期解像度 */
 #define CUBEMAP_RESO							(512)
 
+/* 解像度の上限 */
+#define MAX_RESO								(8192)
+
 /* uniform の location */
 #define UNIFORM_LOCATION_WAVE_OUT_POS			0
 #define UNIFORM_LOCATION_FRAME_COUNT			1

@@ -77,8 +77,8 @@ static LRESULT CALLBACK DialogFunc(
 						AppErrorMessageBox(APP_NAME, "Invalid resolution");
 						return 0;	/* メッセージは処理されなかった */
 					}
-					if (reso > 4096) {
-						AppErrorMessageBox(APP_NAME, "Invalid resolution (mast be < 4096)");
+					if (reso > MAX_RESO) {
+						AppErrorMessageBox(APP_NAME, "Invalid resolution (mast be <= %d)", MAX_RESO);
 						return 0;	/* メッセージは処理されなかった */
 					}
 

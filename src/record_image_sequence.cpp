@@ -238,10 +238,8 @@ static bool QueueTerminate(){
 }
 
 bool RecordImageSequence(
-	const char *directoryName,
 	const RenderSettings *renderSettings,
 	const RecordImageSequenceSettings *recordImageSequenceSettings
-	
 ){
 	s_state = StateWorkInProgress;
 
@@ -291,9 +289,6 @@ bool RecordImageSequence(
 		float fovYAsRadian = AppEditCameraParamsGetFovYAsRadian();
 		float mat4x4CameraInWorld[4][4];
 		AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
-		int xReso = 0;
-		int yReso = 0;
-		AppRecordImageSequenceGetResolution(&xReso, &yReso);
 
 		int numFrameCount = (int)(framesPerSecond * duration);
 		for (int frameCount = 0; frameCount < numFrameCount && s_state == StateWorkInProgress; ++frameCount) {
@@ -312,27 +307,33 @@ bool RecordImageSequence(
 			{
 				/* 設定 */
 				job.settings = recordImageSequenceSettings;
-
-				/* 画像をキャプチャ */
-				size_t bytesPerPixel = 4;
-				size_t imageBufferSizeInBytes = xReso * yReso * bytesPerPixel;
-				job.image = malloc(imageBufferSizeInBytes);
-				if (job.image == NULL) return false;
-				GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
-					job.image, imageBufferSizeInBytes,
-					waveOutPos, frameCount, time,
-					xReso, yReso, fovYAsRadian, mat4x4CameraInWorld,
-					recordImageSequenceSettings->replaceAlphaByOne,
-					renderSettings
-				);
-
-				/* 保存ファイル名 */
 				snprintf(
 					job.fileName,
 					sizeof(job.fileName),
 					"%s\\%08d.png",
-					directoryName,
+					recordImageSequenceSettings->directoryName,
 					frameCount
+				);
+
+				/* 画像をキャプチャ */
+				size_t bytesPerPixel = 4;
+				size_t imageBufferSizeInBytes = recordImageSequenceSettings->xReso * recordImageSequenceSettings->yReso * bytesPerPixel;
+				job.image = malloc(imageBufferSizeInBytes);
+				if (job.image == NULL) return false;
+
+				CaptureScreenShotSettings captureSettings = {
+					/* char fileName[FILENAME_MAX]; */	{0},
+					/* int xReso; */					recordImageSequenceSettings->xReso,
+					/* int yReso; */					recordImageSequenceSettings->yReso,
+					/* bool replaceAlphaByOne; */		recordImageSequenceSettings->replaceAlphaByOne,
+				};
+				snprintf(captureSettings.fileName, sizeof(captureSettings.fileName), "%s", job.fileName);
+				GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
+					job.image, imageBufferSizeInBytes,
+					waveOutPos, frameCount, time,
+					fovYAsRadian, mat4x4CameraInWorld,
+					renderSettings,
+					&captureSettings
 				);
 			}
 

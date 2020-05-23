@@ -6,6 +6,7 @@
 
 #include <stdint.h>
 
+
 /* 生波形データを wav ファイルに保存する */
 bool SerializeAsWav(
 	const char *fileName,

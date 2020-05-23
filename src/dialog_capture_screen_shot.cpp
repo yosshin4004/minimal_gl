@@ -23,17 +23,19 @@ static LRESULT CALLBACK DialogFunc(
 		/* ダイアログボックスの初期化 */
 		case WM_INITDIALOG: {
 			/* 解像度をエディットボックスに設定 */
-			int xReso = 0;
-			int yReso = 0;
-			AppCaptureScreenShotGetResolution(&xReso, &yReso);
-			SetDlgItemInt(
-				hDwnd, IDD_CAPTURE_SCREEN_SHOT_XRESO,
-				xReso, false
-			);
-			SetDlgItemInt(
-				hDwnd, IDD_CAPTURE_SCREEN_SHOT_YRESO,
-				yReso, false
-			);
+			{
+				int xReso = 0;
+				int yReso = 0;
+				AppCaptureScreenShotGetResolution(&xReso, &yReso);
+				SetDlgItemInt(
+					hDwnd, IDD_CAPTURE_SCREEN_SHOT_XRESO,
+					xReso, false
+				);
+				SetDlgItemInt(
+					hDwnd, IDD_CAPTURE_SCREEN_SHOT_YRESO,
+					yReso, false
+				);
+			}
 
 			/* 出力ファイル名をエディットボックスに設定 */
 			SetDlgItemText(
@@ -99,8 +101,8 @@ static LRESULT CALLBACK DialogFunc(
 						AppErrorMessageBox(APP_NAME, "Invalid Y resolution");
 						return 0;	/* メッセージは処理されなかった */
 					}
-					if (xReso > 4096 || yReso > 4096) {
-						AppErrorMessageBox(APP_NAME, "Invalid resolution (mast be < 4096)");
+					if (xReso > MAX_RESO || yReso > MAX_RESO) {
+						AppErrorMessageBox(APP_NAME, "Invalid resolution (mast be <= %d)", MAX_RESO);
 						return 0;	/* メッセージは処理されなかった */
 					}
 

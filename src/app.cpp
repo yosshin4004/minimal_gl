@@ -30,43 +30,54 @@
 
 static bool s_paused = false;
 static double s_fp64PausedTime = 0;
-static int s_mouseLButtonPressed = 0;
-static int s_mouseMButtonPressed = 0;
-static int s_mouseRButtonPressed = 0;
-static int s_mouseWheelDelta = 0;
-static int s_xMouseDelta = 0;
-static int s_yMouseDelta = 0;
-static int s_xMouse = 0;
-static int s_yMouse = 0;
 static int s_xReso = SCREEN_XRESO;
 static int s_yReso = SCREEN_YRESO;
-static float s_fovYAsRadian = PI / 8.0f;
-static int s_cubemapReso = CUBEMAP_RESO;
 static float s_exeExportDuration = 120.0f;
-static float s_soundCaptureDuration = 120.0f;
 static int32_t s_waveOutSampleOffset = 0;
 static int32_t s_frameCount = 0;
-static struct CaptureScreenShotSettings {
-	int xReso;
-	int yReso;
-	bool replaceAlphaByOne;
-} s_captureScreenShotSettings = {
-	SCREEN_XRESO,
-	SCREEN_YRESO,
-	true,
+static struct Mouse {
+	int x;
+	int y;
+	int xDelta;
+	int yDelta;
+	int wheelDelta;
+	int LButtonPressed;
+	int MButtonPressed;
+	int RButtonPressed;
+} s_mouse = {0};
+static struct Camera {
+	float vec3Pos[3];
+	float vec3Ang[3];
+	float fovYAsRadian;
+	float mat4x4InWorld[4][4];
+} s_camera = {
+	{0},
+	{0},
+	{0},
+	PI / 8.0f
+};
+static CaptureScreenShotSettings s_captureScreenShotSettings = {
+	/* char fileName[FILENAME_MAX]; */	{0},
+	/* int xReso; */					SCREEN_XRESO,
+	/* int yReso; */					SCREEN_YRESO,
+	/* bool replaceAlphaByOne; */		true,
+};
+static CaptureCubemapSettings s_captureCubemapSettings = {
+	/* char fileName[FILENAME_MAX]; */	{0},
+	/* int reso; */						CUBEMAP_RESO
 };
 static RenderSettings s_renderSettings = {
-	/* PixelFormat pixelFormat; */				PixelFormatUnorm8RGBA,
-	/* bool enableMultipleRenderTargets; */		true,
-	/* int numEnabledRenderTargets; */			4,
+	/* PixelFormat pixelFormat; */			PixelFormatUnorm8RGBA,
+	/* bool enableMultipleRenderTargets; */	true,
+	/* int numEnabledRenderTargets; */		4,
 
-	/* bool enableBackBuffer; */				true,
-	/* bool enableMipmapGeneration; */			true,
-	/* TextureFilter textureFilter; */			TextureFilterLinear,
-	/* TextureWrap textureWrap; */				TextureWrapClampToEdge,
+	/* bool enableBackBuffer; */			true,
+	/* bool enableMipmapGeneration; */		true,
+	/* TextureFilter textureFilter; */		TextureFilterLinear,
+	/* TextureWrap textureWrap; */			TextureWrapClampToEdge,
 
-	/* bool enableSwapIntervalControl; */		true,
-	/* SwapInterval swapInterval; */			SwapIntervalVsync,
+	/* bool enableSwapIntervalControl; */	true,
+	/* SwapInterval swapInterval; */		SwapIntervalVsync,
 };
 static struct PreferenceSettings {
 	bool enableAutoRestartByGraphicsShader;
@@ -75,6 +86,7 @@ static struct PreferenceSettings {
 	true, true
 };
 static ExecutableExportSettings s_executableExportSettings = {
+	/* char fileName[FILENAME_MAX]; */			{0},
 	/* int xReso; */							SCREEN_XRESO,
 	/* int yReso; */							SCREEN_YRESO,
 	/* int numSoundBufferSamples; */			NUM_SOUND_BUFFER_SAMPLES,
@@ -94,12 +106,17 @@ static ExecutableExportSettings s_executableExportSettings = {
 	/* } crinklerOptions; */					}
 };
 static RecordImageSequenceSettings s_recordImageSequenceSettings = {
-	/* int xReso; */				SCREEN_XRESO,
-	/* int yReso; */				SCREEN_YRESO,
-	/* float startTime; */			0.0f,
-	/* float duration; */			120.0f,
-	/* float framesPerSecond; */	60.0f,
-	/* bool replaceAlphaByOne; */	true,
+	/* char directoryName[FILENAME_MAX]; */	{0},
+	/* int xReso; */						SCREEN_XRESO,
+	/* int yReso; */						SCREEN_YRESO,
+	/* float startTime; */					0.0f,
+	/* float duration; */					120.0f,
+	/* float framesPerSecond; */			60.0f,
+	/* bool replaceAlphaByOne; */			true,
+};
+static CaptureSoundSettings s_captureSoundSettings = {
+	/* char fileName[FILENAME_MAX]; */	{0},
+	/* float durationInSeconds; */		120.0f
 };
 static bool s_forceOverWrite = false;
 
@@ -214,16 +231,6 @@ static const char s_defaultSoundShaderCode[] =
 ;
 
 /*=============================================================================
-▼	現在選択したファイル名
------------------------------------------------------------------------------*/
-static char s_currentExecutableFileName[FILENAME_MAX] = {0};
-static char s_currentScreenShotFileName[FILENAME_MAX] = {0};
-static char s_currentCubemapFileName[FILENAME_MAX] = {0};
-static char s_currentSoundFileName[FILENAME_MAX] = {0};
-static char s_currentRecordImageSequenceOutputDirectoryName[FILENAME_MAX] = {0};
-static char s_currentUserTextureFileName[NUM_USER_TEXTURES][FILENAME_MAX] = {0};
-
-/*=============================================================================
 ▼	windows 関連
 -----------------------------------------------------------------------------*/
 static HINSTANCE s_hCurrentInstance = 0;
@@ -305,10 +312,6 @@ void AppLastErrorMessageBox(const char *caption){
 /*=============================================================================
 ▼	カメラ関連
 -----------------------------------------------------------------------------*/
-static float s_vec3CameraPos[3];
-static float s_vec3CameraAng[3];
-static float s_mat4x4CameraInWorld[4][4];
-
 static void
 Mat4x4Copy(
 	float mat4x4Dst[4][4],
@@ -398,20 +401,6 @@ Mat4x4SetAffineRotZ(
 }
 
 static void
-CameraIntialize(){
-	s_vec3CameraPos[0] = 0.0f;
-	s_vec3CameraPos[1] = 0.0f;
-	s_vec3CameraPos[2] = 0.0f;
-	s_vec3CameraAng[0] = 0.0f;
-	s_vec3CameraAng[1] = 0.0f;
-	s_vec3CameraAng[2] = 0.0f;
-}
-
-static void
-CameraTerminate(){
-}
-
-static void
 CameraUpdate(){
 	/*
 		右手座標系を利用すると想定
@@ -427,86 +416,103 @@ CameraUpdate(){
 	*/
 
 	/* 角度を変更 */
-	if (s_mouseRButtonPressed) {
+	if (s_mouse.RButtonPressed) {
 		float k = 0.005f;
-		s_vec3CameraAng[0] -= float(s_yMouseDelta) * k;
-		s_vec3CameraAng[1] -= float(s_xMouseDelta) * k;
+		s_camera.vec3Ang[0] -= float(s_mouse.yDelta) * k;
+		s_camera.vec3Ang[1] -= float(s_mouse.xDelta) * k;
 	}
 
 	/* 座標を変更 */
-	if (s_mouseLButtonPressed) {
+	if (s_mouse.LButtonPressed) {
 		float k = 0.005f;
-		s_vec3CameraPos[0] -= s_mat4x4CameraInWorld[0][0] * float(s_xMouseDelta) * k;
-		s_vec3CameraPos[1] -= s_mat4x4CameraInWorld[0][1] * float(s_xMouseDelta) * k;
-		s_vec3CameraPos[2] -= s_mat4x4CameraInWorld[0][2] * float(s_xMouseDelta) * k;
-		s_vec3CameraPos[0] += s_mat4x4CameraInWorld[1][0] * float(s_yMouseDelta) * k;
-		s_vec3CameraPos[1] += s_mat4x4CameraInWorld[1][1] * float(s_yMouseDelta) * k;
-		s_vec3CameraPos[2] += s_mat4x4CameraInWorld[1][2] * float(s_yMouseDelta) * k;
+		s_camera.vec3Pos[0] -= s_camera.mat4x4InWorld[0][0] * float(s_mouse.xDelta) * k;
+		s_camera.vec3Pos[1] -= s_camera.mat4x4InWorld[0][1] * float(s_mouse.xDelta) * k;
+		s_camera.vec3Pos[2] -= s_camera.mat4x4InWorld[0][2] * float(s_mouse.xDelta) * k;
+		s_camera.vec3Pos[0] += s_camera.mat4x4InWorld[1][0] * float(s_mouse.yDelta) * k;
+		s_camera.vec3Pos[1] += s_camera.mat4x4InWorld[1][1] * float(s_mouse.yDelta) * k;
+		s_camera.vec3Pos[2] += s_camera.mat4x4InWorld[1][2] * float(s_mouse.yDelta) * k;
 	}
 
 	/* 角度と座標から行列を作成 */
-	Mat4x4SetUnit(s_mat4x4CameraInWorld);
+	Mat4x4SetUnit(s_camera.mat4x4InWorld);
 	float mat4x4RotX[4][4];
 	float mat4x4RotY[4][4];
 	float mat4x4RotZ[4][4];
-	Mat4x4SetAffineRotZ(mat4x4RotX, s_vec3CameraAng[2]);
-	Mat4x4SetAffineRotX(mat4x4RotY, s_vec3CameraAng[0]);
-	Mat4x4SetAffineRotY(mat4x4RotZ, s_vec3CameraAng[1]);
-	Mat4x4Mul(s_mat4x4CameraInWorld, mat4x4RotZ, s_mat4x4CameraInWorld);
-	Mat4x4Mul(s_mat4x4CameraInWorld, mat4x4RotX, s_mat4x4CameraInWorld);
-	Mat4x4Mul(s_mat4x4CameraInWorld, mat4x4RotY, s_mat4x4CameraInWorld);
-	s_mat4x4CameraInWorld[3][0] = s_vec3CameraPos[0];
-	s_mat4x4CameraInWorld[3][1] = s_vec3CameraPos[1];
-	s_mat4x4CameraInWorld[3][2] = s_vec3CameraPos[2];
+	Mat4x4SetAffineRotZ(mat4x4RotX, s_camera.vec3Ang[2]);
+	Mat4x4SetAffineRotX(mat4x4RotY, s_camera.vec3Ang[0]);
+	Mat4x4SetAffineRotY(mat4x4RotZ, s_camera.vec3Ang[1]);
+	Mat4x4Mul(s_camera.mat4x4InWorld, mat4x4RotZ, s_camera.mat4x4InWorld);
+	Mat4x4Mul(s_camera.mat4x4InWorld, mat4x4RotX, s_camera.mat4x4InWorld);
+	Mat4x4Mul(s_camera.mat4x4InWorld, mat4x4RotY, s_camera.mat4x4InWorld);
+	s_camera.mat4x4InWorld[3][0] = s_camera.vec3Pos[0];
+	s_camera.mat4x4InWorld[3][1] = s_camera.vec3Pos[1];
+	s_camera.mat4x4InWorld[3][2] = s_camera.vec3Pos[2];
 
 	/* マウスホイール移動量に従い Z 軸方向に移動 */
-	if (s_mouseWheelDelta) {
-		s_vec3CameraPos[0] -= s_mat4x4CameraInWorld[2][0] * float(s_mouseWheelDelta) * 0.001f;
-		s_vec3CameraPos[1] -= s_mat4x4CameraInWorld[2][1] * float(s_mouseWheelDelta) * 0.001f;
-		s_vec3CameraPos[2] -= s_mat4x4CameraInWorld[2][2] * float(s_mouseWheelDelta) * 0.001f;
+	if (s_mouse.wheelDelta) {
+		s_camera.vec3Pos[0] -= s_camera.mat4x4InWorld[2][0] * float(s_mouse.wheelDelta) * 0.001f;
+		s_camera.vec3Pos[1] -= s_camera.mat4x4InWorld[2][1] * float(s_mouse.wheelDelta) * 0.001f;
+		s_camera.vec3Pos[2] -= s_camera.mat4x4InWorld[2][2] * float(s_mouse.wheelDelta) * 0.001f;
 	}
 
 	/* マウスの移動量をクリア */
-	s_mouseWheelDelta = 0;
-	s_xMouseDelta = 0;
-	s_yMouseDelta = 0;
+	s_mouse.wheelDelta = 0;
+	s_mouse.xDelta = 0;
+	s_mouse.yDelta = 0;
+}
+
+static bool
+CameraInitialize(){
+	s_camera.vec3Pos[0] = 0.0f;
+	s_camera.vec3Pos[1] = 0.0f;
+	s_camera.vec3Pos[2] = 0.0f;
+	s_camera.vec3Ang[0] = 0.0f;
+	s_camera.vec3Ang[1] = 0.0f;
+	s_camera.vec3Ang[2] = 0.0f;
+	s_camera.fovYAsRadian = PI / 8.0f;
+	return true;
+}
+
+static bool
+CameraTerminate(){
+	return true;
 }
 
 /*=============================================================================
 ▼	マウス操作関連
 -----------------------------------------------------------------------------*/
 void AppMouseLButtonDown(){
-	s_mouseLButtonPressed = 1;
+	s_mouse.LButtonPressed = 1;
 }
 void AppMouseMButtonDown(){
-	s_mouseMButtonPressed = 1;
+	s_mouse.MButtonPressed = 1;
 }
 void AppMouseRButtonDown(){
-	s_mouseRButtonPressed = 1;
+	s_mouse.RButtonPressed = 1;
 }
 void AppMouseLButtonUp(){
-	s_mouseLButtonPressed = 0;
+	s_mouse.LButtonPressed = 0;
 }
 void AppMouseMButtonUp(){
-	s_mouseMButtonPressed = 0;
+	s_mouse.MButtonPressed = 0;
 }
 void AppMouseRButtonUp(){
-	s_mouseRButtonPressed = 0;
+	s_mouse.RButtonPressed = 0;
 }
 void AppSetMouseWheelDelta(int delta, int mButton){
 	if (mButton == 0) {
-		s_mouseWheelDelta += delta;
+		s_mouse.wheelDelta += delta;
 	} else {
-		s_fovYAsRadian += ((float)delta / 120.0f / 180.0f) * PI;
-		if (s_fovYAsRadian < 0.0f) s_fovYAsRadian = 0.0f;
-		if (s_fovYAsRadian > PI * 0.5f) s_fovYAsRadian = PI * 0.5f;
+		s_camera.fovYAsRadian += ((float)delta / 120.0f / 180.0f) * PI;
+		if (s_camera.fovYAsRadian < 0.0f) s_camera.fovYAsRadian = 0.0f;
+		if (s_camera.fovYAsRadian > PI * 0.5f) s_camera.fovYAsRadian = PI * 0.5f;
 	}
 }
 void AppSetMousePosition(int x, int y){
-	s_xMouseDelta += x - s_xMouse;
-	s_yMouseDelta += y - s_yMouse;
-	s_xMouse = x;
-	s_yMouse = y;
+	s_mouse.xDelta += x - s_mouse.x;
+	s_mouse.yDelta += y - s_mouse.y;
+	s_mouse.x = x;
+	s_mouse.y = y;
 }
 void AppSetResolution(int xReso, int yReso){
 	printf("\nchange the resolution to %dx%d.\n", xReso, yReso);
@@ -517,8 +523,8 @@ void AppGetResolution(int *xResoRet, int *yResoRet){
 	*xResoRet = s_xReso;
 	*yResoRet = s_yReso;
 }
-void AppGetMat4x4CameraInWorld(float mat4x4CameraInWorld[4][4]){
-	Mat4x4Copy(mat4x4CameraInWorld, s_mat4x4CameraInWorld);
+void AppGetMat4x4CameraInWorld(float mat4x4InWorld[4][4]){
+	Mat4x4Copy(mat4x4InWorld, s_camera.mat4x4InWorld);
 }
 
 /*=============================================================================
@@ -598,6 +604,8 @@ SwapInterval AppRenderSettingsGetSwapIntervalControl(){
 /*=============================================================================
 ▼	ユーザーテクスチャ関連
 -----------------------------------------------------------------------------*/
+static char s_currentUserTextureFileName[NUM_USER_TEXTURES][FILENAME_MAX] = {0};
+
 bool AppUserTexturesLoad(int userTextureIndex, const char *fileName){
 	if (userTextureIndex < 0 || NUM_USER_TEXTURES <= userTextureIndex) return false;
 	strcpy_s(
@@ -620,32 +628,32 @@ bool AppUserTexturesDelete(int userTextureIndex){
 ▼	カメラパラメータのエディット関連
 -----------------------------------------------------------------------------*/
 void AppEditCameraParamsSetPosition(const float vec3Pos[3]){
-	s_vec3CameraPos[0] = vec3Pos[0];
-	s_vec3CameraPos[1] = vec3Pos[1];
-	s_vec3CameraPos[2] = vec3Pos[2];
+	s_camera.vec3Pos[0] = vec3Pos[0];
+	s_camera.vec3Pos[1] = vec3Pos[1];
+	s_camera.vec3Pos[2] = vec3Pos[2];
 }
 void AppEditCameraParamsGetPosition(float vec3Pos[3]){
-	vec3Pos[0] = s_vec3CameraPos[0];
-	vec3Pos[1] = s_vec3CameraPos[1];
-	vec3Pos[2] = s_vec3CameraPos[2];
+	vec3Pos[0] = s_camera.vec3Pos[0];
+	vec3Pos[1] = s_camera.vec3Pos[1];
+	vec3Pos[2] = s_camera.vec3Pos[2];
 }
 void AppEditCameraParamsSetAngleAsRadian(const float vec3Ang[3]){
-	s_vec3CameraAng[0] = vec3Ang[0];
-	s_vec3CameraAng[1] = vec3Ang[1];
-	s_vec3CameraAng[2] = vec3Ang[2];
+	s_camera.vec3Ang[0] = vec3Ang[0];
+	s_camera.vec3Ang[1] = vec3Ang[1];
+	s_camera.vec3Ang[2] = vec3Ang[2];
 }
 void AppEditCameraParamsGetAngleAsRadian(float vec3Ang[3]){
-	vec3Ang[0] = s_vec3CameraAng[0];
-	vec3Ang[1] = s_vec3CameraAng[1];
-	vec3Ang[2] = s_vec3CameraAng[2];
+	vec3Ang[0] = s_camera.vec3Ang[0];
+	vec3Ang[1] = s_camera.vec3Ang[1];
+	vec3Ang[2] = s_camera.vec3Ang[2];
 }
 void AppEditCameraParamsSetFovYAsRadian(float rad){
-	s_fovYAsRadian = rad;
-	if (s_fovYAsRadian < 0.0f) s_fovYAsRadian = 0.0f;
-	if (s_fovYAsRadian > PI * 0.5f) s_fovYAsRadian = PI * 0.5f;
+	s_camera.fovYAsRadian = rad;
+	if (s_camera.fovYAsRadian < 0.0f) s_camera.fovYAsRadian = 0.0f;
+	if (s_camera.fovYAsRadian > PI * 0.5f) s_camera.fovYAsRadian = PI * 0.5f;
 }
 float AppEditCameraParamsGetFovYAsRadian(){
-	return s_fovYAsRadian;
+	return s_camera.fovYAsRadian;
 }
 
 /*=============================================================================
@@ -653,13 +661,13 @@ float AppEditCameraParamsGetFovYAsRadian(){
 -----------------------------------------------------------------------------*/
 void AppCaptureScreenShotSetCurrentOutputFileName(const char *fileName){
 	strcpy_s(
-		s_currentScreenShotFileName,
-		sizeof(s_currentScreenShotFileName),
+		s_captureScreenShotSettings.fileName,
+		sizeof(s_captureScreenShotSettings.fileName),
 		fileName
 	);
 }
 const char *AppCaptureScreenShotGetCurrentOutputFileName(){
-	return s_currentScreenShotFileName;
+	return s_captureScreenShotSettings.fileName;
 }
 void AppCaptureScreenShotSetResolution(int xReso, int yReso){
 	s_captureScreenShotSettings.xReso = xReso;
@@ -677,15 +685,11 @@ bool AppCaptureScreenShotGetForceReplaceAlphaByOneFlag(){
 }
 void AppCaptureScreenShot(){
 	if (s_graphicsCreateShaderSucceeded) {
-		if (DialogConfirmOverWrite(s_currentScreenShotFileName) == DialogConfirmOverWriteResult_Yes) {
+		if (DialogConfirmOverWrite(s_captureScreenShotSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
 			bool ret = GraphicsCaptureScreenShotAsUnorm8RgbaImage(
-				s_currentScreenShotFileName,
 				SoundGetWaveOutPos(), s_frameCount, float(HighPrecisionTimerGet()),
-				s_captureScreenShotSettings.xReso,
-				s_captureScreenShotSettings.yReso,
-				s_fovYAsRadian, s_mat4x4CameraInWorld,
-				s_captureScreenShotSettings.replaceAlphaByOne,
-				&s_renderSettings
+				s_camera.fovYAsRadian, s_camera.mat4x4InWorld,
+				&s_renderSettings, &s_captureScreenShotSettings
 			);
 			if (ret) {
 				AppMessageBox(APP_NAME, "Capture screen shot as png file completed successfully.");
@@ -703,27 +707,26 @@ void AppCaptureScreenShot(){
 -----------------------------------------------------------------------------*/
 void AppCaptureCubemapSetCurrentOutputFileName(const char *fileName){
 	strcpy_s(
-		s_currentCubemapFileName,
-		sizeof(s_currentCubemapFileName),
+		s_captureCubemapSettings.fileName,
+		sizeof(s_captureCubemapSettings.fileName),
 		fileName
 	);
 }
 const char *AppCaptureCubemapGetCurrentOutputFileName(){
-	return s_currentCubemapFileName;
+	return s_captureCubemapSettings.fileName;
 }
 void AppCaptureCubemapSetResolution(int reso){
-	s_cubemapReso = reso;
+	s_captureCubemapSettings.reso = reso;
 }
 int AppCaptureCubemapGetResolution(){
-	return s_cubemapReso;
+	return s_captureCubemapSettings.reso;
 }
 void AppCaptureCubemap(){
 	if (s_graphicsCreateShaderSucceeded) {
-		if (DialogConfirmOverWrite(s_currentCubemapFileName) == DialogConfirmOverWriteResult_Yes) {
+		if (DialogConfirmOverWrite(s_captureCubemapSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
 			bool ret = GraphicsCaptureCubemap(
-				s_currentCubemapFileName,
 				SoundGetWaveOutPos(), s_frameCount, float(HighPrecisionTimerGet()),
-				s_cubemapReso, s_mat4x4CameraInWorld, &s_renderSettings
+				s_camera.mat4x4InWorld, &s_renderSettings, &s_captureCubemapSettings
 			);
 			if (ret) {
 				AppMessageBox(APP_NAME, "Capture cubemap as dds file completed successfully.");
@@ -741,25 +744,25 @@ void AppCaptureCubemap(){
 -----------------------------------------------------------------------------*/
 void AppCaptureSoundSetCurrentOutputFileName(const char *fileName){
 	strcpy_s(
-		s_currentSoundFileName,
-		sizeof(s_currentSoundFileName),
+		s_captureSoundSettings.fileName,
+		sizeof(s_captureSoundSettings.fileName),
 		fileName
 	);
 }
 const char *AppCaptureSoundGetCurrentOutputFileName(){
-	return s_currentSoundFileName;
+	return s_captureSoundSettings.fileName;
 }
 void AppCaptureSoundSetDurationInSeconds(float duration){
-	s_soundCaptureDuration = duration;
+	s_captureSoundSettings.durationInSeconds = duration;
 }
 float AppCaptureSoundGetDurationInSeconds(){
-	return s_soundCaptureDuration;
+	return s_captureSoundSettings.durationInSeconds;
 }
 void AppCaptureSound(){
 	printf("\ncapture the sound.\n");
 	if (s_soundCreateShaderSucceeded) {
-		if (DialogConfirmOverWrite(s_currentSoundFileName) == DialogConfirmOverWriteResult_Yes) {
-			bool ret = SoundCaptureSound(s_currentSoundFileName, s_soundCaptureDuration);
+		if (DialogConfirmOverWrite(s_captureSoundSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
+			bool ret = SoundCaptureSound(&s_captureSoundSettings);
 			if (ret) {
 				AppMessageBox(APP_NAME, "Capture sound as wav file completed successfully.");
 			} else {
@@ -776,13 +779,13 @@ void AppCaptureSound(){
 -----------------------------------------------------------------------------*/
 void AppExportExecutableSetCurrentOutputFileName(const char *fileName){
 	strcpy_s(
-		s_currentExecutableFileName,
-		sizeof(s_currentExecutableFileName),
+		s_executableExportSettings.fileName,
+		sizeof(s_executableExportSettings.fileName),
 		fileName
 	);
 }
 const char *AppExportExecutableGetCurrentOutputFileName(){
-	return s_currentExecutableFileName;
+	return s_executableExportSettings.fileName;
 }
 void AppExportExecutableSetResolution(int xReso, int yReso){
 	s_executableExportSettings.xReso = xReso;
@@ -858,7 +861,6 @@ void AppExportExecutable(){
 	&&	s_graphicsCreateShaderSucceeded
 	) {
 		bool ret = ExportExecutable(
-			s_currentExecutableFileName,
 			s_graphicsShaderCode,
 			s_soundShaderCode,
 			&s_renderSettings,
@@ -874,13 +876,13 @@ void AppExportExecutable(){
 -----------------------------------------------------------------------------*/
 void AppRecordImageSequenceSetCurrentOutputDirectoryName(const char *directoryName){
 	strcpy_s(
-		s_currentRecordImageSequenceOutputDirectoryName,
-		sizeof(s_currentRecordImageSequenceOutputDirectoryName),
+		s_recordImageSequenceSettings.directoryName,
+		sizeof(s_recordImageSequenceSettings.directoryName),
 		directoryName
 	);
 }
 const char *AppRecordImageSequenceGetCurrentOutputDirectoryName(){
-	return s_currentRecordImageSequenceOutputDirectoryName;
+	return s_recordImageSequenceSettings.directoryName;
 }
 void AppRecordImageSequenceSetResolution(int xReso, int yReso){
 	s_recordImageSequenceSettings.xReso = xReso;
@@ -920,7 +922,6 @@ void AppRecordImageSequence(){
 	&&	s_graphicsCreateShaderSucceeded
 	) {
 		bool ret = RecordImageSequence(
-			s_currentRecordImageSequenceOutputDirectoryName,
 			&s_renderSettings,
 			&s_recordImageSequenceSettings
 		);
@@ -1000,12 +1001,12 @@ void AppRestart(){
 
 void AppResetCamera(){
 	printf("\nreset the camera.\n");
-	s_vec3CameraPos[0] = 0;
-	s_vec3CameraPos[1] = 0;
-	s_vec3CameraPos[2] = 0;
-	s_vec3CameraAng[0] = 0;
-	s_vec3CameraAng[1] = 0;
-	s_vec3CameraAng[2] = 0;
+	s_camera.vec3Pos[0] = 0;
+	s_camera.vec3Pos[1] = 0;
+	s_camera.vec3Pos[2] = 0;
+	s_camera.vec3Ang[0] = 0;
+	s_camera.vec3Ang[1] = 0;
+	s_camera.vec3Ang[2] = 0;
 }
 
 void AppTogglePauseAndResume(){
@@ -1102,13 +1103,13 @@ bool AppUpdate(){
 			fp64CurrentTime,
 			SoundGetWaveOutPos(),
 			s_fp64Fps,
-			s_vec3CameraPos[0],
-			s_vec3CameraPos[1],
-			s_vec3CameraPos[2],
-			s_vec3CameraAng[0] * 180.0f / PI,
-			s_vec3CameraAng[1] * 180.0f / PI,
-			s_vec3CameraAng[2] * 180.0f / PI,
-			s_fovYAsRadian * 180.0f / PI
+			s_camera.vec3Pos[0],
+			s_camera.vec3Pos[1],
+			s_camera.vec3Pos[2],
+			s_camera.vec3Ang[0] * 180.0f / PI,
+			s_camera.vec3Ang[1] * 180.0f / PI,
+			s_camera.vec3Ang[2] * 180.0f / PI,
+			s_camera.fovYAsRadian * 180.0f / PI
 		);
 	}
 
@@ -1160,10 +1161,10 @@ bool AppUpdate(){
 	if (s_graphicsCreateShaderSucceeded) {
 		GraphicsUpdate(
 			SoundGetWaveOutPos(), s_frameCount, float(fp64CurrentTime),
-			s_xMouse, s_yMouse,
-			s_mouseLButtonPressed, s_mouseMButtonPressed, s_mouseRButtonPressed,
+			s_mouse.x, s_mouse.y,
+			s_mouse.LButtonPressed, s_mouse.MButtonPressed, s_mouse.RButtonPressed,
 			s_xReso, s_yReso,
-			s_fovYAsRadian, s_mat4x4CameraInWorld, &s_renderSettings
+			s_camera.fovYAsRadian, s_camera.mat4x4InWorld, &s_renderSettings
 		);
 	}
 	CheckGlError("post GraphicsUpdate");
@@ -1190,6 +1191,10 @@ bool AppInitialize(){
 	}
 	if (HighPrecisionTimerInitialize() == false) {
 		AppErrorMessageBox(APP_NAME, "HighPrecisionTimerInitialize() failed.");
+		return false;
+	}
+	if (CameraInitialize() == false) {
+		AppErrorMessageBox(APP_NAME, "CameraInitialize() failed.");
 		return false;
 	}
 	if (SoundInitialize() == false) {
@@ -1224,6 +1229,10 @@ bool AppTerminate(){
 	}
 	if (SoundTerminate() == false) {
 		AppErrorMessageBox(APP_NAME, "SoundTerminate() failed.");
+		return false;
+	}
+	if (CameraTerminate() == false) {
+		AppErrorMessageBox(APP_NAME, "CameraTerminate() failed.");
 		return false;
 	}
 	if (HighPrecisionTimerTerminate() == false) {

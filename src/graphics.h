@@ -38,6 +38,18 @@ struct RenderSettings {
 	SwapInterval swapInterval;
 };
 
+struct CaptureScreenShotSettings {
+	char fileName[FILENAME_MAX];
+	int xReso;
+	int yReso;
+	bool replaceAlphaByOne;
+};
+
+struct CaptureCubemapSettings {
+	char fileName[FILENAME_MAX];
+	int reso;
+};
+
 /* テクスチャ及びフレームバッファのクリア */
 void GraphicsClearAllTexturesAndFremeBuffers();
 
@@ -70,37 +82,31 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	int waveOutPos,
 	int frameCount,
 	float time,
-	int xReso,
-	int yReso,
 	float fovYAsRadian,
 	const float mat4x4CameraInWorld[4][4],
-	bool replaceAlphaByOne,
-	const RenderSettings *settings
+	const RenderSettings *renderSettings,
+	const CaptureScreenShotSettings *captureSettings
 );
 
 /* スクリーンショットキャプチャ */
 bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
-	const char *fileName,
 	int waveOutPos,
 	int frameCount,
 	float time,
-	int xReso,
-	int yReso,
 	float fovYAsRadian,
 	const float mat4x4CameraInWorld[4][4],
-	bool replaceAlphaByOne,
-	const RenderSettings *settings
+	const RenderSettings *renderSettings,
+	const CaptureScreenShotSettings *captureSettings
 );
 
 /* キューブマップキャプチャ */
 bool GraphicsCaptureCubemap(
-	const char *fileName,
 	int waveOutPos,
 	int frameCount,
 	float time,
-	int cubemapReso,
 	const float mat4x4CameraInWorld[4][4],
-	const RenderSettings *settings
+	const RenderSettings *renderSettings,
+	const CaptureCubemapSettings *captureSettings
 );
 
 /* グラフィクスの更新 */

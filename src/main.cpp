@@ -675,11 +675,12 @@ int WINAPI WinMain(
 	}
 
 	/* メインループ */
+	HWND hWnd = AppGetMainWindowHandle();
 	while (!done) {
 		/* メッセージ監視 */
 		while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
 			if (msg.message == WM_QUIT) done = 1;
-			if (!TranslateAccelerator(AppGetMainWindowHandle(), s_hAccel, &msg)) {
+			if (!TranslateAccelerator(hWnd, s_hAccel, &msg)) {
 				TranslateMessage(&msg);
 				DispatchMessage(&msg);
 			}
@@ -689,6 +690,55 @@ int WINAPI WinMain(
 		if (AppUpdate() == false) {
 			AppErrorMessageBox(APP_NAME, "AppUpdate() failed.");
 			break;
+		}
+
+		/* アプリケーション側で解像度変更があったらメインウィンドウをリサイズ */
+		{
+			int wClient, hClient;
+			int xReso, yReso;
+			{
+				RECT clientRect;
+				GetClientRect(hWnd, &clientRect);
+				wClient = clientRect.right - clientRect.left;
+				hClient = clientRect.bottom - clientRect.top;
+				AppGetResolution(&xReso, &yReso);
+			}
+			if (wClient != xReso || hClient != yReso) {
+				printf(
+					"\n"
+					"clientSize %d %d != currentReso %d %d\n",
+					wClient, hClient,
+					xReso, yReso
+				);
+				int xWindow, yWindow;
+				{
+					RECT windowRect;
+					GetWindowRect(hWnd, &windowRect);
+					xWindow = windowRect.left;
+					yWindow = windowRect.top;
+				}
+				int wWindow, hWindow;
+				{
+					RECT windowRect = {0, 0, xReso, yReso};
+					AdjustWindowRectEx(
+						&windowRect,
+						GetWindowLong(hWnd, GWL_STYLE),
+						TRUE,		/* メニューを持つか？ */
+						GetWindowLong(hWnd, GWL_EXSTYLE)
+					);
+					wWindow = windowRect.right - windowRect.left;
+					hWindow = windowRect.bottom - windowRect.top;
+				}
+				SetWindowPos(
+					/* HWND hWnd */				hWnd,
+					/* HWND hWndInsertAfter */	NULL,
+					/* int X */					xWindow,
+					/* int Y */					yWindow,
+					/* int cx */				wWindow,
+					/* int cy */				hWindow,
+					/* UINT uFlags */			SWP_FRAMECHANGED
+				);
+			}
 		}
 
 		/* フリップ */

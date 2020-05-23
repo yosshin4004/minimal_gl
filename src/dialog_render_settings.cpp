@@ -76,6 +76,21 @@ static LRESULT CALLBACK DialogFunc(
 	switch (uMsg) {
 		/* ダイアログボックスの初期化 */
 		case WM_INITDIALOG: {
+			/* 解像度をエディットボックスに設定 */
+			{
+				int xReso = 0;
+				int yReso = 0;
+				AppGetResolution(&xReso, &yReso);
+				SetDlgItemInt(
+					hDwnd, IDD_RENDER_SETTINGS_XRESO,
+					xReso, false
+				);
+				SetDlgItemInt(
+					hDwnd, IDD_RENDER_SETTINGS_YRESO,
+					yReso, false
+				);
+			}
+
 			/* ピクセルフォーマットをラジオボタンに設定 */
 			{
 				int nIDDlgItem = 0;
@@ -211,6 +226,30 @@ static LRESULT CALLBACK DialogFunc(
 			switch (LOWORD(wParam)) {
 				/* OK */
 				case IDOK: {
+					/* 解像度をエディットボックスから取得 */
+					BOOL xResoTranslated = FALSE;
+					int xReso = GetDlgItemInt(
+						hDwnd, IDD_RENDER_SETTINGS_XRESO,
+						&xResoTranslated, false
+					);
+					BOOL yResoTranslated = FALSE;
+					int yReso = GetDlgItemInt(
+						hDwnd, IDD_RENDER_SETTINGS_YRESO,
+						&yResoTranslated, false
+					);
+					if (xResoTranslated == FALSE) {
+						AppErrorMessageBox(APP_NAME, "Invalid X resolution");
+						return 0;	/* メッセージは処理されなかった */
+					}
+					if (yResoTranslated == FALSE) {
+						AppErrorMessageBox(APP_NAME, "Invalid Y resolution");
+						return 0;	/* メッセージは処理されなかった */
+					}
+					if (xReso > MAX_RESO || yReso > MAX_RESO) {
+						AppErrorMessageBox(APP_NAME, "Invalid resolution (mast be <= %d)", MAX_RESO);
+						return 0;	/* メッセージは処理されなかった */
+					}
+
 					/* ピクセルフォーマットをラジオボタンから取得 */
 					PixelFormat pixelFormat = PixelFormatUnorm8RGBA;
 					{
@@ -299,6 +338,7 @@ static LRESULT CALLBACK DialogFunc(
 					}
 
 					/* App に通知 */
+					AppSetResolution(xReso, yReso);
 					AppRenderSettingsSetPixelFormat(pixelFormat);
 					AppRenderSettingsSetEnableMultipleRenderTargetsFlag(enableMultipleRenderTargets);
 					AppRenderSettingsSetNumEnabledRenderTargets(numRenderTargets);

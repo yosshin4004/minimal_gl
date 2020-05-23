@@ -1,14 +1,14 @@
 ﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
 
-
-#include "graphics.h"
-
-
 #ifndef _RECORD_IMAGE_SEQUENCE_H_
 #define _RECORD_IMAGE_SEQUENCE_H_
 
 
+#include "graphics.h"
+
+
 struct RecordImageSequenceSettings {
+	char directoryName[FILENAME_MAX];
 	int xReso;
 	int yReso;
 	float startTime;
@@ -19,7 +19,6 @@ struct RecordImageSequenceSettings {
 
 /* 連番画像の保存 */
 bool RecordImageSequence(
-	const char *directoryName,
 	const RenderSettings *renderSettings,
 	const RecordImageSequenceSettings *recordImageSequenceSettings
 );

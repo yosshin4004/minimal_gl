@@ -206,14 +206,13 @@ GLuint SoundGetOutputSsbo(
 ▼	サウンドキャプチャ関連
 -----------------------------------------------------------------------------*/
 bool SoundCaptureSound(
-	const char *fileName,
-	float durationInSeconds
+	const CaptureSoundSettings *settings
 ){
-	int numSamples = (int)(durationInSeconds * NUM_SAMPLES_PER_SEC);
+	int numSamples = (int)(settings->durationInSeconds * NUM_SAMPLES_PER_SEC);
 	if (numSamples < 0) numSamples = 0;
 	if (numSamples >= NUM_SOUND_BUFFER_SAMPLES) numSamples = NUM_SOUND_BUFFER_SAMPLES - 1;
 	return SerializeAsWav(
-		/* const char *fileName */			fileName,
+		/* const char *fileName */			settings->fileName,
 		/* const void *buffer */			s_soundBuffer,
 		/* int numChannels */				NUM_SOUND_CHANNELS,
 		/* int numSamples */				numSamples,
