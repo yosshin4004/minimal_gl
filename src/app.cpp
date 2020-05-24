@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
 #include <windows.h>
+#include <Shlwapi.h>	/* for PathRelativePathTo */
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,6 +13,9 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include "external/cJSON/cJSON.h"
+#include "external/cJSON/cJSON_Utils.h"
 
 #include "common.h"
 #include "config.h"
@@ -32,7 +36,6 @@ static bool s_paused = false;
 static double s_fp64PausedTime = 0;
 static int s_xReso = SCREEN_XRESO;
 static int s_yReso = SCREEN_YRESO;
-static float s_exeExportDuration = 120.0f;
 static int32_t s_waveOutSampleOffset = 0;
 static int32_t s_frameCount = 0;
 static struct Mouse {
@@ -49,22 +52,16 @@ static struct Camera {
 	float vec3Pos[3];
 	float vec3Ang[3];
 	float fovYAsRadian;
-	float mat4x4InWorld[4][4];
-} s_camera = {
-	{0},
-	{0},
-	{0},
-	PI / 8.0f
-};
+} s_camera = {0};
 static CaptureScreenShotSettings s_captureScreenShotSettings = {
-	/* char fileName[FILENAME_MAX]; */	{0},
-	/* int xReso; */					SCREEN_XRESO,
-	/* int yReso; */					SCREEN_YRESO,
-	/* bool replaceAlphaByOne; */		true,
+	/* char fileName[MAX_PATH]; */	{0},
+	/* int xReso; */				SCREEN_XRESO,
+	/* int yReso; */				SCREEN_YRESO,
+	/* bool replaceAlphaByOne; */	true,
 };
 static CaptureCubemapSettings s_captureCubemapSettings = {
-	/* char fileName[FILENAME_MAX]; */	{0},
-	/* int reso; */						CUBEMAP_RESO
+	/* char fileName[MAX_PATH]; */	{0},
+	/* int reso; */					CUBEMAP_RESO
 };
 static RenderSettings s_renderSettings = {
 	/* PixelFormat pixelFormat; */			PixelFormatUnorm8RGBA,
@@ -86,9 +83,10 @@ static struct PreferenceSettings {
 	true, true
 };
 static ExecutableExportSettings s_executableExportSettings = {
-	/* char fileName[FILENAME_MAX]; */			{0},
+	/* char fileName[MAX_PATH]; */				{0},
 	/* int xReso; */							SCREEN_XRESO,
 	/* int yReso; */							SCREEN_YRESO,
+	/* float durationInSeconds; */				120.0f,
 	/* int numSoundBufferSamples; */			NUM_SOUND_BUFFER_SAMPLES,
 	/* int numSoundBufferAvailableSamples; */	NUM_SOUND_BUFFER_SAMPLES,
 	/* int numSoundBufferSamplesPerDispatch; */	NUM_SAMPLES_PER_DISPATCH,
@@ -106,29 +104,29 @@ static ExecutableExportSettings s_executableExportSettings = {
 	/* } crinklerOptions; */					}
 };
 static RecordImageSequenceSettings s_recordImageSequenceSettings = {
-	/* char directoryName[FILENAME_MAX]; */	{0},
-	/* int xReso; */						SCREEN_XRESO,
-	/* int yReso; */						SCREEN_YRESO,
-	/* float startTime; */					0.0f,
-	/* float duration; */					120.0f,
-	/* float framesPerSecond; */			60.0f,
-	/* bool replaceAlphaByOne; */			true,
+	/* char directoryName[MAX_PATH]; */	{0},
+	/* int xReso; */					SCREEN_XRESO,
+	/* int yReso; */					SCREEN_YRESO,
+	/* float startTimeInSeconds; */		0.0f,
+	/* float durationInSeconds; */		120.0f,
+	/* float framesPerSecond; */		60.0f,
+	/* bool replaceAlphaByOne; */		true,
 };
 static CaptureSoundSettings s_captureSoundSettings = {
-	/* char fileName[FILENAME_MAX]; */	{0},
-	/* float durationInSeconds; */		120.0f
+	/* char fileName[MAX_PATH]; */	{0},
+	/* float durationInSeconds; */	120.0f
 };
 static bool s_forceOverWrite = false;
 
 /*=============================================================================
 ▼	シェーダソースファイル関連
 -----------------------------------------------------------------------------*/
-static char s_soundShaderFileName[FILENAME_MAX] = "default.snd.glsl";
+static char s_soundShaderFileName[MAX_PATH] = "";
 static char *s_soundShaderCode = NULL;
 static struct stat s_soundShaderFileStat;
 static bool s_soundCreateShaderSucceeded = false;
 
-static char s_graphicsShaderFileName[FILENAME_MAX] = "default.gfx.glsl";
+static char s_graphicsShaderFileName[MAX_PATH] = "";
 static char *s_graphicsShaderCode = NULL;
 static struct stat s_graphicsShaderFileStat;
 static bool s_graphicsCreateShaderSucceeded = false;
@@ -310,7 +308,7 @@ void AppLastErrorMessageBox(const char *caption){
 }
 
 /*=============================================================================
-▼	カメラ関連
+▼	簡易ベクトル演算関連
 -----------------------------------------------------------------------------*/
 static void
 Mat4x4Copy(
@@ -400,84 +398,6 @@ Mat4x4SetAffineRotZ(
 	mat4x4[1][1] = c;
 }
 
-static void
-CameraUpdate(){
-	/*
-		右手座標系を利用すると想定
-
-		      [y+]
-		       |
-		       | /
-		       |/
-		-------+-------[x+]
-		      /|
-		     / |
-		  [z+] |
-	*/
-
-	/* 角度を変更 */
-	if (s_mouse.RButtonPressed) {
-		float k = 0.005f;
-		s_camera.vec3Ang[0] -= float(s_mouse.yDelta) * k;
-		s_camera.vec3Ang[1] -= float(s_mouse.xDelta) * k;
-	}
-
-	/* 座標を変更 */
-	if (s_mouse.LButtonPressed) {
-		float k = 0.005f;
-		s_camera.vec3Pos[0] -= s_camera.mat4x4InWorld[0][0] * float(s_mouse.xDelta) * k;
-		s_camera.vec3Pos[1] -= s_camera.mat4x4InWorld[0][1] * float(s_mouse.xDelta) * k;
-		s_camera.vec3Pos[2] -= s_camera.mat4x4InWorld[0][2] * float(s_mouse.xDelta) * k;
-		s_camera.vec3Pos[0] += s_camera.mat4x4InWorld[1][0] * float(s_mouse.yDelta) * k;
-		s_camera.vec3Pos[1] += s_camera.mat4x4InWorld[1][1] * float(s_mouse.yDelta) * k;
-		s_camera.vec3Pos[2] += s_camera.mat4x4InWorld[1][2] * float(s_mouse.yDelta) * k;
-	}
-
-	/* 角度と座標から行列を作成 */
-	Mat4x4SetUnit(s_camera.mat4x4InWorld);
-	float mat4x4RotX[4][4];
-	float mat4x4RotY[4][4];
-	float mat4x4RotZ[4][4];
-	Mat4x4SetAffineRotZ(mat4x4RotX, s_camera.vec3Ang[2]);
-	Mat4x4SetAffineRotX(mat4x4RotY, s_camera.vec3Ang[0]);
-	Mat4x4SetAffineRotY(mat4x4RotZ, s_camera.vec3Ang[1]);
-	Mat4x4Mul(s_camera.mat4x4InWorld, mat4x4RotZ, s_camera.mat4x4InWorld);
-	Mat4x4Mul(s_camera.mat4x4InWorld, mat4x4RotX, s_camera.mat4x4InWorld);
-	Mat4x4Mul(s_camera.mat4x4InWorld, mat4x4RotY, s_camera.mat4x4InWorld);
-	s_camera.mat4x4InWorld[3][0] = s_camera.vec3Pos[0];
-	s_camera.mat4x4InWorld[3][1] = s_camera.vec3Pos[1];
-	s_camera.mat4x4InWorld[3][2] = s_camera.vec3Pos[2];
-
-	/* マウスホイール移動量に従い Z 軸方向に移動 */
-	if (s_mouse.wheelDelta) {
-		s_camera.vec3Pos[0] -= s_camera.mat4x4InWorld[2][0] * float(s_mouse.wheelDelta) * 0.001f;
-		s_camera.vec3Pos[1] -= s_camera.mat4x4InWorld[2][1] * float(s_mouse.wheelDelta) * 0.001f;
-		s_camera.vec3Pos[2] -= s_camera.mat4x4InWorld[2][2] * float(s_mouse.wheelDelta) * 0.001f;
-	}
-
-	/* マウスの移動量をクリア */
-	s_mouse.wheelDelta = 0;
-	s_mouse.xDelta = 0;
-	s_mouse.yDelta = 0;
-}
-
-static bool
-CameraInitialize(){
-	s_camera.vec3Pos[0] = 0.0f;
-	s_camera.vec3Pos[1] = 0.0f;
-	s_camera.vec3Pos[2] = 0.0f;
-	s_camera.vec3Ang[0] = 0.0f;
-	s_camera.vec3Ang[1] = 0.0f;
-	s_camera.vec3Ang[2] = 0.0f;
-	s_camera.fovYAsRadian = PI / 8.0f;
-	return true;
-}
-
-static bool
-CameraTerminate(){
-	return true;
-}
-
 /*=============================================================================
 ▼	マウス操作関連
 -----------------------------------------------------------------------------*/
@@ -523,8 +443,90 @@ void AppGetResolution(int *xResoRet, int *yResoRet){
 	*xResoRet = s_xReso;
 	*yResoRet = s_yReso;
 }
-void AppGetMat4x4CameraInWorld(float mat4x4InWorld[4][4]){
-	Mat4x4Copy(mat4x4InWorld, s_camera.mat4x4InWorld);
+void AppGetMat4x4CameraInWorld(float mat4x4CameraInWorld[4][4]){
+	Mat4x4SetUnit(mat4x4CameraInWorld);
+	float mat4x4RotX[4][4];
+	float mat4x4RotY[4][4];
+	float mat4x4RotZ[4][4];
+	Mat4x4SetAffineRotZ(mat4x4RotX, s_camera.vec3Ang[2]);
+	Mat4x4SetAffineRotX(mat4x4RotY, s_camera.vec3Ang[0]);
+	Mat4x4SetAffineRotY(mat4x4RotZ, s_camera.vec3Ang[1]);
+	Mat4x4Mul(mat4x4CameraInWorld, mat4x4RotZ, mat4x4CameraInWorld);
+	Mat4x4Mul(mat4x4CameraInWorld, mat4x4RotX, mat4x4CameraInWorld);
+	Mat4x4Mul(mat4x4CameraInWorld, mat4x4RotY, mat4x4CameraInWorld);
+	mat4x4CameraInWorld[3][0] = s_camera.vec3Pos[0];
+	mat4x4CameraInWorld[3][1] = s_camera.vec3Pos[1];
+	mat4x4CameraInWorld[3][2] = s_camera.vec3Pos[2];
+}
+
+/*=============================================================================
+▼	カメラ関連
+-----------------------------------------------------------------------------*/
+static void
+CameraUpdate(){
+	/*
+		右手座標系を利用すると想定
+
+		      [y+]
+		       |
+		       | /
+		       |/
+		-------+-------[x+]
+		      /|
+		     / |
+		  [z+] |
+	*/
+
+	/* 角度を変更 */
+	if (s_mouse.RButtonPressed) {
+		float k = 0.005f;
+		s_camera.vec3Ang[0] -= float(s_mouse.yDelta) * k;
+		s_camera.vec3Ang[1] -= float(s_mouse.xDelta) * k;
+	}
+
+	/* Camera -> World 変換行列の取得 */
+	float mat4x4CameraInWorld[4][4];
+	AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
+
+	/* 座標を変更 */
+	if (s_mouse.LButtonPressed) {
+		float k = 0.005f;
+		s_camera.vec3Pos[0] -= mat4x4CameraInWorld[0][0] * float(s_mouse.xDelta) * k;
+		s_camera.vec3Pos[1] -= mat4x4CameraInWorld[0][1] * float(s_mouse.xDelta) * k;
+		s_camera.vec3Pos[2] -= mat4x4CameraInWorld[0][2] * float(s_mouse.xDelta) * k;
+		s_camera.vec3Pos[0] += mat4x4CameraInWorld[1][0] * float(s_mouse.yDelta) * k;
+		s_camera.vec3Pos[1] += mat4x4CameraInWorld[1][1] * float(s_mouse.yDelta) * k;
+		s_camera.vec3Pos[2] += mat4x4CameraInWorld[1][2] * float(s_mouse.yDelta) * k;
+	}
+
+	/* マウスホイール移動量に従い Z 軸方向に移動 */
+	if (s_mouse.wheelDelta) {
+		s_camera.vec3Pos[0] -= mat4x4CameraInWorld[2][0] * float(s_mouse.wheelDelta) * 0.001f;
+		s_camera.vec3Pos[1] -= mat4x4CameraInWorld[2][1] * float(s_mouse.wheelDelta) * 0.001f;
+		s_camera.vec3Pos[2] -= mat4x4CameraInWorld[2][2] * float(s_mouse.wheelDelta) * 0.001f;
+	}
+
+	/* マウスの移動量をクリア */
+	s_mouse.wheelDelta = 0;
+	s_mouse.xDelta = 0;
+	s_mouse.yDelta = 0;
+}
+
+static bool
+CameraInitialize(){
+	s_camera.vec3Pos[0] = 0.0f;
+	s_camera.vec3Pos[1] = 0.0f;
+	s_camera.vec3Pos[2] = 0.0f;
+	s_camera.vec3Ang[0] = 0.0f;
+	s_camera.vec3Ang[1] = 0.0f;
+	s_camera.vec3Ang[2] = 0.0f;
+	s_camera.fovYAsRadian = PI / 8.0f;
+	return true;
+}
+
+static bool
+CameraTerminate(){
+	return true;
 }
 
 /*=============================================================================
@@ -604,7 +606,7 @@ SwapInterval AppRenderSettingsGetSwapIntervalControl(){
 /*=============================================================================
 ▼	ユーザーテクスチャ関連
 -----------------------------------------------------------------------------*/
-static char s_currentUserTextureFileName[NUM_USER_TEXTURES][FILENAME_MAX] = {0};
+static char s_currentUserTextureFileName[NUM_USER_TEXTURES][MAX_PATH] = {0};
 
 bool AppUserTexturesLoad(int userTextureIndex, const char *fileName){
 	if (userTextureIndex < 0 || NUM_USER_TEXTURES <= userTextureIndex) return false;
@@ -686,9 +688,11 @@ bool AppCaptureScreenShotGetForceReplaceAlphaByOneFlag(){
 void AppCaptureScreenShot(){
 	if (s_graphicsCreateShaderSucceeded) {
 		if (DialogConfirmOverWrite(s_captureScreenShotSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
+			float mat4x4CameraInWorld[4][4];
+			AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
 			bool ret = GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 				SoundGetWaveOutPos(), s_frameCount, float(HighPrecisionTimerGet()),
-				s_camera.fovYAsRadian, s_camera.mat4x4InWorld,
+				s_camera.fovYAsRadian, mat4x4CameraInWorld,
 				&s_renderSettings, &s_captureScreenShotSettings
 			);
 			if (ret) {
@@ -724,9 +728,11 @@ int AppCaptureCubemapGetResolution(){
 void AppCaptureCubemap(){
 	if (s_graphicsCreateShaderSucceeded) {
 		if (DialogConfirmOverWrite(s_captureCubemapSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
+			float mat4x4CameraInWorld[4][4];
+			AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
 			bool ret = GraphicsCaptureCubemap(
 				SoundGetWaveOutPos(), s_frameCount, float(HighPrecisionTimerGet()),
-				s_camera.mat4x4InWorld, &s_renderSettings, &s_captureCubemapSettings
+				mat4x4CameraInWorld, &s_renderSettings, &s_captureCubemapSettings
 			);
 			if (ret) {
 				AppMessageBox(APP_NAME, "Capture cubemap as dds file completed successfully.");
@@ -752,8 +758,8 @@ void AppCaptureSoundSetCurrentOutputFileName(const char *fileName){
 const char *AppCaptureSoundGetCurrentOutputFileName(){
 	return s_captureSoundSettings.fileName;
 }
-void AppCaptureSoundSetDurationInSeconds(float duration){
-	s_captureSoundSettings.durationInSeconds = duration;
+void AppCaptureSoundSetDurationInSeconds(float durationInSeconds){
+	s_captureSoundSettings.durationInSeconds = durationInSeconds;
 }
 float AppCaptureSoundGetDurationInSeconds(){
 	return s_captureSoundSettings.durationInSeconds;
@@ -795,9 +801,9 @@ void AppExportExecutableGetResolution(int *xResoRet, int *yResoRet){
 	*xResoRet = s_executableExportSettings.xReso;
 	*yResoRet = s_executableExportSettings.yReso;
 }
-void AppExportExecutableSetDurationInSeconds(float duration){
-	s_exeExportDuration = duration;
-	int numSamples = (int)(duration * NUM_SAMPLES_PER_SEC);
+void AppExportExecutableSetDurationInSeconds(float durationInSeconds){
+	s_executableExportSettings.durationInSeconds = durationInSeconds;
+	int numSamples = (int)(durationInSeconds * NUM_SAMPLES_PER_SEC);
 	int numSamplesPerDispatch = NUM_SAMPLES_PER_DISPATCH;
 	numSamples = CeilAlign(numSamples, numSamplesPerDispatch);
 	s_executableExportSettings.numSoundBufferSamples = numSamples;
@@ -805,7 +811,7 @@ void AppExportExecutableSetDurationInSeconds(float duration){
 	s_executableExportSettings.numSoundBufferSamplesPerDispatch = numSamplesPerDispatch;
 }
 float AppExportExecutableGetDurationInSeconds(){
-	return s_exeExportDuration;
+	return s_executableExportSettings.durationInSeconds;
 }
 void AppExportExecutableSetEnableFrameCountUniformFlag(bool flag){
 	s_executableExportSettings.enableFrameCountUniform = flag;
@@ -892,17 +898,17 @@ void AppRecordImageSequenceGetResolution(int *xResoRet, int *yResoRet){
 	*xResoRet = s_recordImageSequenceSettings.xReso;
 	*yResoRet = s_recordImageSequenceSettings.yReso;
 }
-void AppRecordImageSequenceSetStartTimeInSeconds(float startTime){
-	s_recordImageSequenceSettings.startTime = startTime;
+void AppRecordImageSequenceSetStartTimeInSeconds(float startTimeInSeconds){
+	s_recordImageSequenceSettings.startTimeInSeconds = startTimeInSeconds;
 }
 float AppRecordImageSequenceGetStartTimeInSeconds(){
-	return s_recordImageSequenceSettings.startTime;
+	return s_recordImageSequenceSettings.startTimeInSeconds;
 }
-void AppRecordImageSequenceSetDurationInSeconds(float duration){
-	s_recordImageSequenceSettings.duration = duration;
+void AppRecordImageSequenceSetDurationInSeconds(float durationInSeconds){
+	s_recordImageSequenceSettings.durationInSeconds = durationInSeconds;
 }
 float AppRecordImageSequenceGetDurationInSeconds(){
-	return s_recordImageSequenceSettings.duration;
+	return s_recordImageSequenceSettings.durationInSeconds;
 }
 void AppRecordImageSequenceSetFramesPerSecond(float framesPerSecond){
 	s_recordImageSequenceSettings.framesPerSecond = framesPerSecond;
@@ -943,7 +949,12 @@ bool AppGetForceOverWriteFlag(){
 /*=============================================================================
 ▼	シェーダファイル関連
 -----------------------------------------------------------------------------*/
-void AppOpenGraphicsShaderFile(const char *fileName){
+bool AppOpenGraphicsShaderFile(const char *fileName){
+	if (IsValidFileName(fileName) == false) {
+		AppErrorMessageBox(APP_NAME, "Invalid file name %s.", fileName);
+		return false;
+	}
+
 	printf("\nopen graphics shader file %s.\n", fileName);
 	strcpy_s(
 		s_graphicsShaderFileName,
@@ -951,8 +962,15 @@ void AppOpenGraphicsShaderFile(const char *fileName){
 		fileName
 	);
 	s_graphicsShaderFileStat.st_mtime = 0;	/* 強制的に再読み込み */
+
+	return true;
 }
-void AppOpenSoundShaderFile(const char *fileName){
+bool AppOpenSoundShaderFile(const char *fileName){
+	if (IsValidFileName(fileName) == false) {
+		AppErrorMessageBox(APP_NAME, "Invalid file name %s.", fileName);
+		return false;
+	}
+
 	printf("\nopen sound shader file %s.\n", fileName);
 	strcpy_s(
 		s_soundShaderFileName,
@@ -960,8 +978,15 @@ void AppOpenSoundShaderFile(const char *fileName){
 		fileName
 	);
 	s_soundShaderFileStat.st_mtime = 0;		/* 強制的に再読み込み */
+
+	return true;
 }
-void AppOpenDragAndDroppedFile(const char *fileName){
+bool AppOpenDragAndDroppedFile(const char *fileName){
+	if (IsValidFileName(fileName) == false) {
+		AppErrorMessageBox(APP_NAME, "Invalid file name %s.", fileName);
+		return false;
+	}
+
 	if (IsSuffix(fileName, ".gfx.glsl")) {
 		AppOpenGraphicsShaderFile(fileName);
 	} else
@@ -970,6 +995,8 @@ void AppOpenDragAndDroppedFile(const char *fileName){
 	} else {
 		AppErrorMessageBox(APP_NAME, "Cannot recognize file type.");
 	}
+
+	return true;
 }
 const char *AppGetCurrentGraphicsShaderFileName(){
 	return s_graphicsShaderFileName;
@@ -1159,12 +1186,14 @@ bool AppUpdate(){
 	/* グラフィクスの更新 */
 	CheckGlError("pre GraphicsUpdate");
 	if (s_graphicsCreateShaderSucceeded) {
+		float mat4x4CameraInWorld[4][4];
+		AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
 		GraphicsUpdate(
 			SoundGetWaveOutPos(), s_frameCount, float(fp64CurrentTime),
 			s_mouse.x, s_mouse.y,
 			s_mouse.LButtonPressed, s_mouse.MButtonPressed, s_mouse.RButtonPressed,
 			s_xReso, s_yReso,
-			s_camera.fovYAsRadian, s_camera.mat4x4InWorld, &s_renderSettings
+			s_camera.fovYAsRadian, mat4x4CameraInWorld, &s_renderSettings
 		);
 	}
 	CheckGlError("post GraphicsUpdate");
@@ -1175,6 +1204,464 @@ bool AppUpdate(){
 	CheckGlError("post glFlush");
 
 	s_frameCount++;
+	return true;
+}
+
+/*=============================================================================
+▼	設定ファイル関連
+-----------------------------------------------------------------------------*/
+static bool JsonGetAsString(
+	cJSON *json,
+	const char *pointer,
+	char *dstString,
+	size_t dstStringSizeInBytes
+){
+	memset(dstString, 0, dstStringSizeInBytes);
+	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
+	if (jsonFound == NULL) return false;
+	if (cJSON_IsString(jsonFound) == false || (jsonFound->valuestring == NULL)) return false;
+	if (strlen(jsonFound->valuestring) + 1 /* 末端 \0 分 */ > dstStringSizeInBytes) return false;
+	strlcpy(dstString, jsonFound->valuestring, dstStringSizeInBytes);
+	return true;
+}
+
+static bool JsonGetAsInt(
+	cJSON *json,
+	const char *pointer,
+	int *dst
+){
+	*dst = 0;
+	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
+	if (jsonFound == NULL) return false;
+	if (cJSON_IsNumber(jsonFound) == false) return false;
+	*dst = (int)jsonFound->valuedouble;
+	return true;
+}
+
+static bool JsonGetAsFloat(
+	cJSON *json,
+	const char *pointer,
+	float *dst
+){
+	*dst = 0;
+	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
+	if (jsonFound == NULL) return false;
+	if (cJSON_IsNumber(jsonFound) == false) return false;
+	*dst = (float)jsonFound->valuedouble;
+	return true;
+}
+
+static bool JsonGetAsBool(
+	cJSON *json,
+	const char *pointer,
+	bool *dst
+){
+	*dst = false;
+	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
+	if (jsonFound == NULL) return false;
+	if (cJSON_IsBool(jsonFound) == false) return false;
+	*dst = cJSON_IsTrue(jsonFound);
+	return true;
+}
+
+static bool JsonGetAsVec3(
+	cJSON *json,
+	const char *pointer,
+	float vec3Dst[3]
+){
+	vec3Dst[0] = 0;
+	vec3Dst[1] = 0;
+	vec3Dst[2] = 0;
+	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
+	if (jsonFound == NULL) return false;
+
+	if (cJSON_IsArray(jsonFound) == false) return false;
+	if (cJSON_GetArraySize(jsonFound) != 3) return false;
+	cJSON *jsonFoundElement0 = cJSON_GetArrayItem(jsonFound, 0);
+	cJSON *jsonFoundElement1 = cJSON_GetArrayItem(jsonFound, 1);
+	cJSON *jsonFoundElement2 = cJSON_GetArrayItem(jsonFound, 2);
+	if (cJSON_IsNumber(jsonFoundElement0) == false) return false;
+	if (cJSON_IsNumber(jsonFoundElement1) == false) return false;
+	if (cJSON_IsNumber(jsonFoundElement2) == false) return false;
+	vec3Dst[0] = (float)jsonFoundElement0->valuedouble;
+	vec3Dst[1] = (float)jsonFoundElement1->valuedouble;
+	vec3Dst[2] = (float)jsonFoundElement2->valuedouble;
+	return true;
+}
+
+bool AppImportProjectFile(const char *fileName){
+	char *text = MallocReadTextFile(fileName);
+	if (text == NULL) {
+		AppErrorMessageBox(APP_NAME, "Failed to read %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Failed to import project.");
+		return false;
+	}
+
+	bool result = false;
+	{
+		cJSON *jsonRoot = cJSON_Parse(text);
+
+		if (jsonRoot == NULL) {
+			const char *errorPtr = cJSON_GetErrorPtr();
+			if (errorPtr != NULL) {
+				AppErrorMessageBox(APP_NAME, "Failed to parse %s.\n\n%s", fileName, errorPtr);
+				goto AppImportProjectFileEnd;
+			}
+		}
+
+		printf("\n");
+
+		char splittedDriveName[MAX_PATH] = {0};
+		char splittedDirectoryName[MAX_PATH] = {0};
+		char splittedFileName[MAX_PATH] = {0};
+		char splittedExtName[MAX_PATH] = {0};
+		_splitpath_s(
+			/* const char * path */				fileName,
+			/* char * drive */					splittedDriveName,
+			/* size_t driveNumberOfElements */	sizeof(splittedDriveName),
+			/* char * dir */					splittedDirectoryName,
+			/* size_t dirNumberOfElements */	sizeof(splittedDirectoryName),
+			/* char * fname */					splittedFileName,
+			/* size_t nameNumberOfElements */	sizeof(splittedFileName),
+			/* char * ext */					splittedExtName,
+			/* size_t extNumberOfElements */	sizeof(splittedExtName)
+		);
+
+		char driveAndDirectoryName[MAX_PATH] = {0};
+		snprintf(
+			driveAndDirectoryName,
+			sizeof(driveAndDirectoryName),
+			"%s%s",
+			splittedDriveName,
+			splittedDirectoryName
+		);
+
+		{
+			char graphicsShaderRelativeFileName[MAX_PATH] = {0};
+			char soundShaderRelativeFileName[MAX_PATH] = {0};
+
+			if (JsonGetAsString(jsonRoot, "/app/graphicsShaderFileName", graphicsShaderRelativeFileName, sizeof(graphicsShaderRelativeFileName)) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsString(jsonRoot, "/app/soundShaderFileName",    soundShaderRelativeFileName, sizeof(soundShaderRelativeFileName)      ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/app/xReso",                 &s_xReso) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/app/yReso",                 &s_yReso) == false) goto AppImportProjectFileEnd;
+
+			PathCombine(
+				/* LPSTR  pszDest */	s_graphicsShaderFileName,
+				/* LPCSTR pszDir */		driveAndDirectoryName,
+				/* LPCSTR pszFile */	graphicsShaderRelativeFileName
+			);
+			PathCombine(
+				/* LPSTR  pszDest */	s_soundShaderFileName,
+				/* LPCSTR pszDir */		driveAndDirectoryName,
+				/* LPCSTR pszFile */	soundShaderRelativeFileName
+			);
+		}
+		{
+			if (JsonGetAsVec3  (jsonRoot, "/camera/vec3Pos",       s_camera.vec3Pos     ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsVec3  (jsonRoot, "/camera/vec3Ang",       s_camera.vec3Ang     ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsFloat (jsonRoot, "/camera/fovYAsRadian", &s_camera.fovYAsRadian) == false) goto AppImportProjectFileEnd;
+		}
+		{
+			char relativeFileName[MAX_PATH] = {0};
+
+			if (JsonGetAsString(jsonRoot, "/captureScreenShotSettings/fileName",          relativeFileName, sizeof(relativeFileName)    ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/xReso",             &s_captureScreenShotSettings.xReso            ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/yReso",             &s_captureScreenShotSettings.yReso            ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/captureScreenShotSettings/replaceAlphaByOne", &s_captureScreenShotSettings.replaceAlphaByOne) == false) goto AppImportProjectFileEnd;
+
+			PathCombine(
+				/* LPSTR  pszDest */	s_captureScreenShotSettings.fileName,
+				/* LPCSTR pszDir */		driveAndDirectoryName,
+				/* LPCSTR pszFile */	relativeFileName
+			);
+		}
+		{
+			char relativeFileName[MAX_PATH] = {0};
+
+			if (JsonGetAsString(jsonRoot, "/captureCubemapSettings/fileName", relativeFileName, sizeof(relativeFileName)) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/captureCubemapSettings/reso",     &s_captureCubemapSettings.reso            ) == false) goto AppImportProjectFileEnd;
+
+			PathCombine(
+				/* LPSTR  pszDest */	s_captureCubemapSettings.fileName,
+				/* LPCSTR pszDir */		driveAndDirectoryName,
+				/* LPCSTR pszFile */	relativeFileName
+			);
+		}
+		{
+			if (JsonGetAsInt   (jsonRoot, "/renderSettings/pixelFormat",                 (int *)&s_renderSettings.pixelFormat         ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableMultipleRenderTargets", &s_renderSettings.enableMultipleRenderTargets) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/renderSettings/numEnabledRenderTargets",     &s_renderSettings.numEnabledRenderTargets    ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableBackBuffer",            &s_renderSettings.enableBackBuffer           ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableMipmapGeneration",      &s_renderSettings.enableMipmapGeneration     ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/renderSettings/textureFilter",               (int *)&s_renderSettings.textureFilter       ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/renderSettings/textureWrap",                 (int *)&s_renderSettings.textureWrap         ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableSwapIntervalControl",   &s_renderSettings.enableSwapIntervalControl  ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/renderSettings/swapInterval",                (int *)&s_renderSettings.swapInterval        ) == false) goto AppImportProjectFileEnd;
+		}
+		{
+			if (JsonGetAsBool  (jsonRoot, "/preferenceSettings/enableAutoRestartByGraphicsShader", &s_preferenceSettings.enableAutoRestartByGraphicsShader) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/preferenceSettings/enableAutoRestartBySoundShader",    &s_preferenceSettings.enableAutoRestartBySoundShader   ) == false) goto AppImportProjectFileEnd;
+		}
+		{
+			char relativeFileName[MAX_PATH] = {0};
+
+			if (JsonGetAsString(jsonRoot, "/executableExportSettings/fileName",                         relativeFileName, sizeof(relativeFileName)                  ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/xReso",                            &s_executableExportSettings.xReso                           ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/yReso",                            &s_executableExportSettings.yReso                           ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsFloat (jsonRoot, "/executableExportSettings/durationInSeconds",                &s_executableExportSettings.durationInSeconds               ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamples",            &s_executableExportSettings.numSoundBufferSamples           ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferAvailableSamples",   &s_executableExportSettings.numSoundBufferAvailableSamples  ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamplesPerDispatch", &s_executableExportSettings.numSoundBufferSamplesPerDispatch) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableFrameCountUniform",          &s_executableExportSettings.enableFrameCountUniform         ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableSoundDispatchWait",          &s_executableExportSettings.enableSoundDispatchWait         ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noRenaming", &s_executableExportSettings.shaderMinifierOptions.noRenaming) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noSequence", &s_executableExportSettings.shaderMinifierOptions.noSequence) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/smoothstep", &s_executableExportSettings.shaderMinifierOptions.smoothstep) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyHeader",    &s_executableExportSettings.crinklerOptions.useTinyHeader   ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyImport",    &s_executableExportSettings.crinklerOptions.useTinyImport   ) == false) goto AppImportProjectFileEnd;
+
+			PathCombine(
+				/* LPSTR  pszDest */	s_executableExportSettings.fileName,
+				/* LPCSTR pszDir */		driveAndDirectoryName,
+				/* LPCSTR pszFile */	relativeFileName
+			);
+		}
+		{
+			char relativeDirectoryName[MAX_PATH] = {0};
+
+			if (JsonGetAsString(jsonRoot, "/recordImageSequenceSettings/directoryName",      relativeDirectoryName, sizeof(relativeDirectoryName)) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/xReso",              &s_recordImageSequenceSettings.xReso                ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/yReso",              &s_recordImageSequenceSettings.yReso                ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/startTimeInSeconds", &s_recordImageSequenceSettings.startTimeInSeconds   ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/durationInSeconds",  &s_recordImageSequenceSettings.durationInSeconds    ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/framesPerSecond",    &s_recordImageSequenceSettings.framesPerSecond      ) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsBool  (jsonRoot, "/recordImageSequenceSettings/replaceAlphaByOne",  &s_recordImageSequenceSettings.replaceAlphaByOne    ) == false) goto AppImportProjectFileEnd;
+
+			PathCombine(
+				/* LPSTR  pszDest */	s_recordImageSequenceSettings.directoryName,
+				/* LPCSTR pszDir */		driveAndDirectoryName,
+				/* LPCSTR pszFile */	relativeDirectoryName
+			);
+		}
+		{
+			char relativeFileName[MAX_PATH] = {0};
+
+			if (JsonGetAsString(jsonRoot, "/captureSoundSettings/fileName",          relativeFileName, sizeof(relativeFileName)) == false) goto AppImportProjectFileEnd;
+			if (JsonGetAsFloat (jsonRoot, "/captureSoundSettings/durationInSeconds", &s_captureSoundSettings.durationInSeconds ) == false) goto AppImportProjectFileEnd;
+
+			PathCombine(
+				/* LPSTR  pszDest */	s_captureSoundSettings.fileName,
+				/* LPCSTR pszDir */		driveAndDirectoryName,
+				/* LPCSTR pszFile */	relativeFileName
+			);
+		}
+
+		result = true;
+	}
+
+AppImportProjectFileEnd:
+	if (result) {
+		AppMessageBox(APP_NAME, "Import project successfully.");
+	} else {
+		AppErrorMessageBox(APP_NAME, "Failed to import project.");
+	}
+
+	free(text);
+
+	return result;
+}
+
+bool AppExportProjectFile(const char *fileName){
+	FILE *file = fopen(fileName, "wb");
+	if (file == NULL) {
+		AppErrorMessageBox(APP_NAME, "Failed to create %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Failed to export project.");
+		return false;
+	}
+
+	{
+		cJSON *jsonRoot = cJSON_CreateObject();
+
+		{
+			cJSON *jsonApp = cJSON_AddObjectToObject(jsonRoot, "app");
+
+			char graphicsShaderRelativeFileName[MAX_PATH] = {0};
+			PathRelativePathTo(
+				/* LPSTR  pszPath */	graphicsShaderRelativeFileName,
+				/* LPCSTR pszFrom */	fileName,
+				/* DWORD  dwAttrFrom */	0 /* from file */,
+				/* LPCSTR pszTo */		s_graphicsShaderFileName,
+				/* DWORD  dwAttrTo */	0 /* to file */
+			);
+			char soundShaderRelativeFileName[MAX_PATH] = {0};
+			PathRelativePathTo(
+				/* LPSTR  pszPath */	soundShaderRelativeFileName,
+				/* LPCSTR pszFrom */	fileName,
+				/* DWORD  dwAttrFrom */	0 /* from file */,
+				/* LPCSTR pszTo */		s_soundShaderFileName,
+				/* DWORD  dwAttrTo */	0 /* to file */
+			);
+
+			cJSON_AddStringToObject(jsonApp, "graphicsShaderFileName" , graphicsShaderRelativeFileName);
+			cJSON_AddStringToObject(jsonApp, "soundShaderFileName"    , soundShaderRelativeFileName);
+			cJSON_AddNumberToObject(jsonApp, "xReso"                  , s_xReso);
+			cJSON_AddNumberToObject(jsonApp, "yReso"                  , s_yReso);
+		}
+		{
+			cJSON *jsonCamera = cJSON_AddObjectToObject(jsonRoot, "camera");
+
+			cJSON *jsonVec3Pos = cJSON_AddArrayToObject(jsonCamera, "vec3Pos");
+			cJSON_AddItemToArray(jsonVec3Pos, cJSON_CreateNumber(s_camera.vec3Pos[0]));
+			cJSON_AddItemToArray(jsonVec3Pos, cJSON_CreateNumber(s_camera.vec3Pos[1]));
+			cJSON_AddItemToArray(jsonVec3Pos, cJSON_CreateNumber(s_camera.vec3Pos[2]));
+
+			cJSON *jsonVec3Ang = cJSON_AddArrayToObject(jsonCamera, "vec3Ang");
+			cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[0]));
+			cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[1]));
+			cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[2]));
+
+			cJSON_AddNumberToObject(jsonCamera, "fovYAsRadian", s_camera.fovYAsRadian);
+		}
+		{
+			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureScreenShotSettings");
+
+			char relativeFileName[MAX_PATH] = {0};
+			PathRelativePathTo(
+				/* LPSTR  pszPath */	relativeFileName,
+				/* LPCSTR pszFrom */	fileName,
+				/* DWORD  dwAttrFrom */	0 /* from file */,
+				/* LPCSTR pszTo */		s_captureScreenShotSettings.fileName,
+				/* DWORD  dwAttrTo */	0 /* to file */
+			);
+
+			cJSON_AddStringToObject(jsonSettings, "fileName"         , relativeFileName);
+			cJSON_AddNumberToObject(jsonSettings, "xReso"            , s_captureScreenShotSettings.xReso);
+			cJSON_AddNumberToObject(jsonSettings, "yReso"            , s_captureScreenShotSettings.yReso);
+			cJSON_AddBoolToObject  (jsonSettings, "replaceAlphaByOne", s_captureScreenShotSettings.replaceAlphaByOne);
+		}
+		{
+			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureCubemapSettings");
+
+			char relativeFileName[MAX_PATH] = {0};
+			PathRelativePathTo(
+				/* LPSTR  pszPath */	relativeFileName,
+				/* LPCSTR pszFrom */	fileName,
+				/* DWORD  dwAttrFrom */	0 /* from file */,
+				/* LPCSTR pszTo */		s_captureCubemapSettings.fileName,
+				/* DWORD  dwAttrTo */	0 /* to file */
+			);
+
+			cJSON_AddStringToObject(jsonSettings, "fileName", relativeFileName);
+			cJSON_AddNumberToObject(jsonSettings, "reso"    , s_captureCubemapSettings.reso);
+		}
+		{
+			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "renderSettings");
+			cJSON_AddNumberToObject(jsonSettings, "pixelFormat",                s_renderSettings.pixelFormat);
+			cJSON_AddBoolToObject  (jsonSettings, "enableMultipleRenderTargets",s_renderSettings.enableMultipleRenderTargets);
+			cJSON_AddNumberToObject(jsonSettings, "numEnabledRenderTargets",    s_renderSettings.numEnabledRenderTargets);
+			cJSON_AddBoolToObject  (jsonSettings, "enableBackBuffer",           s_renderSettings.enableBackBuffer);
+			cJSON_AddBoolToObject  (jsonSettings, "enableMipmapGeneration",     s_renderSettings.enableMipmapGeneration);
+			cJSON_AddNumberToObject(jsonSettings, "textureFilter",              s_renderSettings.textureFilter);
+			cJSON_AddNumberToObject(jsonSettings, "textureWrap",                s_renderSettings.textureWrap);
+			cJSON_AddBoolToObject  (jsonSettings, "enableSwapIntervalControl",  s_renderSettings.enableSwapIntervalControl);
+			cJSON_AddNumberToObject(jsonSettings, "swapInterval",               s_renderSettings.swapInterval);
+		}
+		{
+			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "preferenceSettings");
+			cJSON_AddBoolToObject(jsonSettings, "enableAutoRestartByGraphicsShader", s_preferenceSettings.enableAutoRestartByGraphicsShader);
+			cJSON_AddBoolToObject(jsonSettings, "enableAutoRestartBySoundShader",    s_preferenceSettings.enableAutoRestartBySoundShader);
+		}
+		{
+			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "executableExportSettings");
+
+			char relativeFileName[MAX_PATH] = {0};
+			PathRelativePathTo(
+				/* LPSTR  pszPath */	relativeFileName,
+				/* LPCSTR pszFrom */	fileName,
+				/* DWORD  dwAttrFrom */	0 /* from file */,
+				/* LPCSTR pszTo */		s_executableExportSettings.fileName,
+				/* DWORD  dwAttrTo */	0 /* to file */
+			);
+
+			cJSON_AddStringToObject(jsonSettings, "fileName",                         relativeFileName);
+			cJSON_AddNumberToObject(jsonSettings, "xReso",                            s_executableExportSettings.xReso);
+			cJSON_AddNumberToObject(jsonSettings, "yReso",                            s_executableExportSettings.yReso);
+			cJSON_AddNumberToObject(jsonSettings, "durationInSeconds",                s_executableExportSettings.durationInSeconds);
+			cJSON_AddNumberToObject(jsonSettings, "numSoundBufferSamples",            s_executableExportSettings.numSoundBufferSamples);
+			cJSON_AddNumberToObject(jsonSettings, "numSoundBufferAvailableSamples",   s_executableExportSettings.numSoundBufferAvailableSamples);
+			cJSON_AddNumberToObject(jsonSettings, "numSoundBufferSamplesPerDispatch", s_executableExportSettings.numSoundBufferSamplesPerDispatch);
+			cJSON_AddBoolToObject  (jsonSettings, "enableFrameCountUniform",          s_executableExportSettings.enableFrameCountUniform);
+			cJSON_AddBoolToObject  (jsonSettings, "enableSoundDispatchWait",          s_executableExportSettings.enableSoundDispatchWait);
+			{
+				cJSON *jsonOptions = cJSON_AddObjectToObject(jsonSettings, "shaderMinifierOptions");
+				cJSON_AddBoolToObject(jsonOptions, "noRenaming", s_executableExportSettings.shaderMinifierOptions.noRenaming);
+				cJSON_AddBoolToObject(jsonOptions, "noSequence", s_executableExportSettings.shaderMinifierOptions.noSequence);
+				cJSON_AddBoolToObject(jsonOptions, "smoothstep", s_executableExportSettings.shaderMinifierOptions.smoothstep);
+			}
+			{
+				cJSON *jsonOptions = cJSON_AddObjectToObject(jsonSettings, "crinklerOptions");
+				cJSON_AddBoolToObject(jsonOptions, "useTinyHeader", s_executableExportSettings.crinklerOptions.useTinyHeader);
+				cJSON_AddBoolToObject(jsonOptions, "useTinyImport", s_executableExportSettings.crinklerOptions.useTinyImport);
+			}
+		}
+		{
+			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "recordImageSequenceSettings");
+
+			char relativeDirectoryName[MAX_PATH] = {0};
+			PathRelativePathTo(
+				/* LPSTR  pszPath */	relativeDirectoryName,
+				/* LPCSTR pszFrom */	fileName,
+				/* DWORD  dwAttrFrom */	0 /* from file */,
+				/* LPCSTR pszTo */		s_recordImageSequenceSettings.directoryName,
+				/* DWORD  dwAttrTo */	FILE_ATTRIBUTE_DIRECTORY /* to directory */
+			);
+
+			cJSON_AddStringToObject(jsonSettings, "directoryName",      relativeDirectoryName);
+			cJSON_AddNumberToObject(jsonSettings, "xReso",              s_recordImageSequenceSettings.xReso);
+			cJSON_AddNumberToObject(jsonSettings, "yReso",              s_recordImageSequenceSettings.yReso);
+			cJSON_AddNumberToObject(jsonSettings, "startTimeInSeconds", s_recordImageSequenceSettings.startTimeInSeconds);
+			cJSON_AddNumberToObject(jsonSettings, "durationInSeconds",  s_recordImageSequenceSettings.durationInSeconds);
+			cJSON_AddNumberToObject(jsonSettings, "framesPerSecond",    s_recordImageSequenceSettings.framesPerSecond);
+			cJSON_AddBoolToObject  (jsonSettings, "replaceAlphaByOne",  s_recordImageSequenceSettings.replaceAlphaByOne);
+		}
+		{
+			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureSoundSettings");
+
+			char relativeFileName[MAX_PATH] = {0};
+			PathRelativePathTo(
+				/* LPSTR  pszPath */	relativeFileName,
+				/* LPCSTR pszFrom */	fileName,
+				/* DWORD  dwAttrFrom */	0 /* from file */,
+				/* LPCSTR pszTo */		s_captureSoundSettings.fileName,
+				/* DWORD  dwAttrTo */	0 /* to file */
+			);
+
+			cJSON_AddStringToObject(jsonSettings, "fileName",          relativeFileName);
+			cJSON_AddNumberToObject(jsonSettings, "durationInSeconds", s_captureSoundSettings.durationInSeconds);
+		}
+
+		fputs(cJSON_Print(jsonRoot), file);
+
+		cJSON_Delete(jsonRoot);
+	}
+
+	fclose(file);
+
+	AppMessageBox(APP_NAME, "Export project successfully.");
+	return true;
+}
+
+/*=============================================================================
+▼	ヘルプ表示関連
+-----------------------------------------------------------------------------*/
+bool AppHelpAbout(
+){
+	AppMessageBox(
+		APP_NAME,
+		"Minimal GL\n\n"
+		"Copyright (c)2020 @yosshin4004\n"
+		"https://github.com/yosshin4004/minimal_gl"
+	);
 	return true;
 }
 

@@ -13,7 +13,9 @@
 #define IDM_CAPTURE_SOUND										0x204
 #define IDM_EXPORT_EXECUTABLE									0x205
 #define IDM_RECORD_IMAGE_SEQUENCE								0x206
-#define IDM_QUIT												0x207
+#define IDM_IMPORT_PROJECT										0x207
+#define IDM_EXPORT_PROJECT										0x208
+#define IDM_QUIT												0x209
 
 #define IDM_RENDER_SETTINGS										0x210
 #define IDM_USER_TEXTURES										0x211

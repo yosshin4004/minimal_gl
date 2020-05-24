@@ -109,7 +109,7 @@ struct Worker {
 	HANDLE hThread;
 };
 struct Job {
-	char fileName[FILENAME_MAX];
+	char fileName[MAX_PATH];
 	void *image;
 	const RecordImageSequenceSettings *settings;
 };
@@ -317,15 +317,15 @@ bool RecordImageSequence(
 
 				/* 画像をキャプチャ */
 				size_t bytesPerPixel = 4;
-				size_t imageBufferSizeInBytes = recordImageSequenceSettings->xReso * recordImageSequenceSettings->yReso * bytesPerPixel;
+				size_t imageBufferSizeInBytes = (size_t)(recordImageSequenceSettings->xReso * recordImageSequenceSettings->yReso) * bytesPerPixel;
 				job.image = malloc(imageBufferSizeInBytes);
 				if (job.image == NULL) return false;
 
 				CaptureScreenShotSettings captureSettings = {
-					/* char fileName[FILENAME_MAX]; */	{0},
-					/* int xReso; */					recordImageSequenceSettings->xReso,
-					/* int yReso; */					recordImageSequenceSettings->yReso,
-					/* bool replaceAlphaByOne; */		recordImageSequenceSettings->replaceAlphaByOne,
+					/* char fileName[MAX_PATH]; */	{0},
+					/* int xReso; */				recordImageSequenceSettings->xReso,
+					/* int yReso; */				recordImageSequenceSettings->yReso,
+					/* bool replaceAlphaByOne; */	recordImageSequenceSettings->replaceAlphaByOne,
 				};
 				snprintf(captureSettings.fileName, sizeof(captureSettings.fileName), "%s", job.fileName);
 				GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(

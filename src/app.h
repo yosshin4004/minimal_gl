@@ -24,6 +24,7 @@ void AppSetMainWindowHandle(HWND hWindow);
 /* 現在のメインウィンドウのハンドルを取得 */
 HWND AppGetMainWindowHandle();
 
+
 /* メッセージ BOX の表示 */
 void AppMessageBox(const char *caption, const char *format, ...);
 
@@ -35,6 +36,7 @@ void AppErrorMessageBox(const char *caption, const char *format, ...);
 
 /* GetLastError() の結果をメッセージ BOX で表示 */
 void AppLastErrorMessageBox(const char *caption);
+
 
 /* マウス L ボタンが押された */
 void AppMouseLButtonDown();
@@ -212,7 +214,7 @@ void AppCaptureSoundSetCurrentOutputFileName(const char *fileName);
 const char *AppCaptureSoundGetCurrentOutputFileName();
 
 /* サウンドキャプチャ : 継続時間（秒）の設定 */
-void AppCaptureSoundSetDurationInSeconds(float duration);
+void AppCaptureSoundSetDurationInSeconds(float durationInSeconds);
 
 /* サウンドキャプチャ : 継続時間（秒）の取得 */
 float AppCaptureSoundGetDurationInSeconds();
@@ -234,7 +236,7 @@ void AppExportExecutableSetResolution(int xReso, int yReso);
 void AppExportExecutableGetResolution(int *xResoRet, int *yResoRet);
 
 /* exe エクスポート : 継続時間（秒）の設定 */
-void AppExportExecutableSetDurationInSeconds(float duration);
+void AppExportExecutableSetDurationInSeconds(float durationInSeconds);
 
 /* exe エクスポート : 継続時間（秒）の取得 */
 float AppExportExecutableGetDurationInSeconds();
@@ -304,13 +306,13 @@ void AppRecordImageSequenceSetResolution(int xReso, int yReso);
 void AppRecordImageSequenceGetResolution(int *xResoRet, int *yResoRet);
 
 /* 連番画像保存 : 開始位置（秒）の設定 */
-void AppRecordImageSequenceSetStartTimeInSeconds(float startTime);
+void AppRecordImageSequenceSetStartTimeInSeconds(float startTimeInSeconds);
 
 /* 連番画像保存 : 開始位置（秒）の取得 */
 float AppRecordImageSequenceGetStartTimeInSeconds();
 
 /* 連番画像保存 : 継続時間（秒）の設定 */
-void AppRecordImageSequenceSetDurationInSeconds(float duration);
+void AppRecordImageSequenceSetDurationInSeconds(float durationInSeconds);
 
 /* 連番画像保存 : 継続時間（秒）の取得 */
 float AppRecordImageSequenceGetDurationInSeconds();
@@ -339,13 +341,13 @@ bool AppGetForceOverWriteFlag();
 
 
 /* グラフィクスシェーダファイルを開く */
-void AppOpenGraphicsShaderFile(const char *fileName);
+bool AppOpenGraphicsShaderFile(const char *fileName);
 
 /* サウンドシェーダファイルを開く */
-void AppOpenSoundShaderFile(const char *fileName);
+bool AppOpenSoundShaderFile(const char *fileName);
 
 /* ドラッグ＆ドロップされたファイルを開く */
-void AppOpenDragAndDroppedFile(const char *fileName);
+bool AppOpenDragAndDroppedFile(const char *fileName);
 
 /* 現在開かれているグラフィクスシェーダファイル名の取得 */
 const char *AppGetCurrentGraphicsShaderFileName();
@@ -392,6 +394,14 @@ void AppFastBackward();
 /* アプリケーションの更新（毎フレーム実行）*/
 bool AppUpdate();
 
+/* プロジェクトファイルのインポート */
+bool AppImportProjectFile(const char *fileName);
+
+/* プロジェクトファイルのエクスポート */
+bool AppExportProjectFile(const char *fileName);
+
+/* アプリケーションの説明 */
+bool AppHelpAbout();
 
 /* アプリケーション初期化 */
 bool AppInitialize();

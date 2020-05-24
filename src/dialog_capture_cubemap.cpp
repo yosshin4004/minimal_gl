@@ -44,7 +44,7 @@ static LRESULT CALLBACK DialogFunc(
 				/* Browse */
 				case IDD_CAPTURE_CUBEMAP_BROWSE_OUTPUT_FILE: {
 					/* 出力ファイル名をエディットボックスから取得 */
-					char outputFileName[FILENAME_MAX] = {0};
+					char outputFileName[MAX_PATH] = {0};
 					GetDlgItemText(
 						hDwnd, IDD_CAPTURE_CUBEMAP_OUTPUT_FILE,
 						outputFileName, sizeof(outputFileName)
@@ -83,7 +83,7 @@ static LRESULT CALLBACK DialogFunc(
 					}
 
 					/* 出力ファイル名をエディットボックスから取得 */
-					char outputFileName[FILENAME_MAX] = {0};
+					char outputFileName[MAX_PATH] = {0};
 					GetDlgItemText(
 						hDwnd,
 						IDD_CAPTURE_CUBEMAP_OUTPUT_FILE,

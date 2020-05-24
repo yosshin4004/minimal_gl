@@ -15,9 +15,10 @@ typedef enum {
 } CrinklerCompMode;
 
 struct ExecutableExportSettings {
-	char fileName[FILENAME_MAX];
+	char fileName[MAX_PATH];
 	int xReso;
 	int yReso;
+	float durationInSeconds;
 	int numSoundBufferSamples;
 	int numSoundBufferAvailableSamples;
 	int numSoundBufferSamplesPerDispatch;

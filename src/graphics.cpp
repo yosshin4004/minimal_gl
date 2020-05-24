@@ -542,7 +542,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	const CaptureScreenShotSettings *captureSettings
 ){
 	/* バッファ容量が不足しているならエラー */
-	if (bufferSizeInBytes < (captureSettings->xReso * captureSettings->yReso * 4)) return false;
+	if (bufferSizeInBytes < (size_t)(captureSettings->xReso * captureSettings->yReso * 4)) return false;
 
 	/* FBO 作成 */
 	GLuint offscreenRenderTargetFbo = 0;
@@ -654,7 +654,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 	const CaptureScreenShotSettings *captureSettings
 ){
 	size_t bytesPerPixel = 4;
-	size_t bufferSizeInBytes = captureSettings->xReso * captureSettings->yReso * bytesPerPixel;
+	size_t bufferSizeInBytes = (size_t)(captureSettings->xReso * captureSettings->yReso) * bytesPerPixel;
 	void *buffer = malloc(bufferSizeInBytes);
 	if (
 		GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(

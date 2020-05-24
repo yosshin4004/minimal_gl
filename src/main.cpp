@@ -219,7 +219,7 @@ static LRESULT CALLBACK MainWndProc(
 
 		/* ファイルのドロップを検出 */
 		case WM_DROPFILES: {
-			static char fileName[FILENAME_MAX];
+			static char fileName[MAX_PATH];
 			/* UINT */ DragQueryFile(
 				/* HDROP hDrop */		/* ファイル名構造体のハンドル */
 										(HDROP)wParam,
@@ -242,9 +242,8 @@ static LRESULT CALLBACK MainWndProc(
 					if (s_fullScreen) {
 						ToggleFullScreen();
 					} else {
-						static char fileName[FILENAME_MAX];
-						OPENFILENAME ofn;
-						ZeroMemory(&ofn, sizeof(ofn));
+						static char fileName[MAX_PATH];
+						OPENFILENAME ofn = {0};
 						ofn.lStructSize = sizeof(OPENFILENAME);
 						ofn.hwndOwner = NULL;
 						ofn.lpstrFilter =
@@ -266,9 +265,8 @@ static LRESULT CALLBACK MainWndProc(
 					if (s_fullScreen) {
 						ToggleFullScreen();
 					} else {
-						static char fileName[FILENAME_MAX];
-						OPENFILENAME ofn;
-						ZeroMemory(&ofn, sizeof(ofn));
+						static char fileName[MAX_PATH];
+						OPENFILENAME ofn = {0};
 						ofn.lStructSize = sizeof(OPENFILENAME);
 						ofn.hwndOwner = NULL;
 						ofn.lpstrFilter =
@@ -340,6 +338,50 @@ static LRESULT CALLBACK MainWndProc(
 					} else {
 						if (DialogRecordImageSequence() == DialogRecordImageSequenceResult_Ok) {
 							AppRecordImageSequence();
+						}
+					}
+					return 0;
+				} break;
+
+				/* プロジェクトファイルのインポート */
+				case IDM_IMPORT_PROJECT: {
+					if (s_fullScreen) {
+						ToggleFullScreen();
+					} else {
+						static char fileName[MAX_PATH];
+						OPENFILENAME ofn = {0};
+						ofn.lStructSize = sizeof(OPENFILENAME);
+						ofn.hwndOwner = NULL;
+						ofn.lpstrFilter =
+							TEXT("Project json file (*.json)\0*.json\0");
+						ofn.lpstrFile = fileName;
+						ofn.nMaxFile = sizeof(fileName);
+						ofn.lpstrTitle = (LPSTR)"Open project json file";
+
+						if (GetOpenFileName(&ofn)) {
+							AppImportProjectFile(fileName);
+						}
+					}
+					return 0;
+				} break;
+
+				/* プロジェクトファイルのエクスポート */
+				case IDM_EXPORT_PROJECT: {
+					if (s_fullScreen) {
+						ToggleFullScreen();
+					} else {
+						static char fileName[MAX_PATH];
+						OPENFILENAME ofn = {0};
+						ofn.lStructSize = sizeof(OPENFILENAME);
+						ofn.hwndOwner = NULL;
+						ofn.lpstrFilter =
+							TEXT("Project json file (*.json)\0*.json\0");
+						ofn.lpstrFile = fileName;
+						ofn.nMaxFile = sizeof(fileName);
+						ofn.lpstrTitle = (LPSTR)"Open project json file";
+
+						if (GetOpenFileName(&ofn)) {
+							AppExportProjectFile(fileName);
 						}
 					}
 					return 0;
@@ -473,12 +515,7 @@ static LRESULT CALLBACK MainWndProc(
 					if (s_fullScreen) {
 						ToggleFullScreen();
 					} else {
-						AppMessageBox(
-							APP_NAME,
-							"Minimal GL\n\n"
-							"Copyright (c)2020 @yosshin4004\n"
-							"https://github.com/yosshin4004/minimal_gl"
-						);
+						AppHelpAbout();
 					}
 					return 0;
 				} break;

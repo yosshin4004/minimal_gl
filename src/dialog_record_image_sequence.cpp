@@ -76,7 +76,7 @@ static LRESULT CALLBACK DialogFunc(
 				/* Browse */
 				case IDD_RECORD_IMAGE_SEQUENCE_BROWSE_OUTPUT_DIRECTORY: {
 					/* 出力先ディレクトリをエディットボックスから取得 */
-					char outputDirectoryName[FILENAME_MAX] = {0};
+					char outputDirectoryName[MAX_PATH] = {0};
 					GetDlgItemText(
 						hDwnd, IDD_RECORD_IMAGE_SEQUENCE_OUTPUT_DIRECTORY,
 						outputDirectoryName, sizeof(outputDirectoryName)
@@ -153,7 +153,7 @@ static LRESULT CALLBACK DialogFunc(
 					}
 
 					/* 現在の出力先ディレクトリをエディットボックスから取得 */
-					char outputDirectoryName[FILENAME_MAX] = {0};
+					char outputDirectoryName[MAX_PATH] = {0};
 					GetDlgItemText(
 						hDwnd, IDD_RECORD_IMAGE_SEQUENCE_OUTPUT_DIRECTORY,
 						outputDirectoryName, sizeof(outputDirectoryName)

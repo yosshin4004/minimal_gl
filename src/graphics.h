@@ -39,14 +39,14 @@ struct RenderSettings {
 };
 
 struct CaptureScreenShotSettings {
-	char fileName[FILENAME_MAX];
+	char fileName[MAX_PATH];
 	int xReso;
 	int yReso;
 	bool replaceAlphaByOne;
 };
 
 struct CaptureCubemapSettings {
-	char fileName[FILENAME_MAX];
+	char fileName[MAX_PATH];
 	int reso;
 };
 

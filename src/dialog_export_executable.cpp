@@ -121,7 +121,7 @@ static LRESULT CALLBACK DialogFunc(
 				/* Browse */
 				case IDD_EXPORT_EXECUTABLE_BROWSE_OUTPUT_FILE: {
 					/* 出力ファイル名をエディットボックスから取得 */
-					char outputFileName[FILENAME_MAX] = {0};
+					char outputFileName[MAX_PATH] = {0};
 					GetDlgItemText(
 						hDwnd,
 						IDD_EXPORT_EXECUTABLE_OUTPUT_FILE,
@@ -180,7 +180,7 @@ static LRESULT CALLBACK DialogFunc(
 					}
 
 					/* 出力ファイル名をエディットボックスから取得 */
-					char outputFileName[FILENAME_MAX] = {0};
+					char outputFileName[MAX_PATH] = {0};
 					GetDlgItemText(
 						hDwnd,
 						IDD_EXPORT_EXECUTABLE_OUTPUT_FILE,

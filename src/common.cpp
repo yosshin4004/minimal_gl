@@ -4,6 +4,31 @@
 #include "glext_util.h"
 
 
+size_t strlcpy(
+			char	*dst,
+	const	char	*src,
+			size_t	siz
+){
+	char *d = dst;
+	const char *s = src;
+	size_t n = siz;
+	if (n != 0) {
+		while (--n != 0) {
+			if ((*d++ = *s++) == '\0') {
+				break;
+			}
+		}
+	}
+	if (n == 0) {
+		if (siz != 0) {
+			*d = '\0';
+		}
+		while (*s++) {}
+	}
+
+	return s - src - 1;
+}
+
 int CeilAlign(
 	int x,
 	int align
@@ -20,12 +45,24 @@ int CalcNumMipmapLevelsFromResolution(
 	return mipmapLevel + 1;
 }
 
+bool IsValidFileName(
+	const char *fileName
+){
+	struct stat fileStat;
+	if (stat(fileName, &fileStat) == 0 /* 成功 */) {
+		if (fileStat.st_mode & S_IFREG /* 通常のファイル */) {
+			return true;
+		}
+	}
+	return false;
+}
+
 bool IsValidDirectoryName(
 	const char *directoryName
 ){
 	struct stat directoryStat;
 	if (stat(directoryName, &directoryStat) == 0 /* 成功 */) {
-		if (directoryStat.st_mode & S_IFDIR) {
+		if (directoryStat.st_mode & S_IFDIR /* ディレクトリ */) {
 			return true;
 		}
 	}

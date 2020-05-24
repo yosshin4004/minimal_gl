@@ -41,7 +41,7 @@ static LRESULT CALLBACK DialogFunc(
 				case IDOK: {
 					for (int userTextureIndex = 0; userTextureIndex < NUM_USER_TEXTURES; userTextureIndex++) {
 						/* ファイル名をエディットボックスから取得 */
-						char textureFileName[FILENAME_MAX] = {0};
+						char textureFileName[MAX_PATH] = {0};
 						GetDlgItemText(
 							hDwnd,
 							IDD_USER_TEXTURES_FILE_0 + userTextureIndex,
@@ -84,7 +84,7 @@ static LRESULT CALLBACK DialogFunc(
 						for (int userTextureIndex = 0; userTextureIndex < NUM_USER_TEXTURES; userTextureIndex++) {
 							if (idd == IDD_USER_TEXTURES_BROWSE_FILE_0 + userTextureIndex) {
 								/* ファイル名をエディットボックスから取得 */
-								char textureFileName[FILENAME_MAX] = {0};
+								char textureFileName[MAX_PATH] = {0};
 								GetDlgItemText(
 									hDwnd, IDD_USER_TEXTURES_FILE_0 + userTextureIndex,
 									textureFileName, sizeof(textureFileName)

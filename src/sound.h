@@ -13,7 +13,7 @@
 
 
 struct CaptureSoundSettings {
-	char fileName[FILENAME_MAX];
+	char fileName[MAX_PATH];
 	float durationInSeconds;
 };
 

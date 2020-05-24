@@ -8,11 +8,11 @@
 
 
 struct RecordImageSequenceSettings {
-	char directoryName[FILENAME_MAX];
+	char directoryName[MAX_PATH];
 	int xReso;
 	int yReso;
-	float startTime;
-	float duration;
+	float startTimeInSeconds;
+	float durationInSeconds;
 	float framesPerSecond;
 	bool replaceAlphaByOne;
 };

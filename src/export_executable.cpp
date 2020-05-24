@@ -117,7 +117,7 @@ ExecuteBat(
 	const char *fileName,
 	const char *currentDirectory
 ){
-	char commandLine[FILENAME_MAX + 100];
+	char commandLine[MAX_PATH + 100];
 	snprintf(
 		commandLine,
 		sizeof(commandLine),
@@ -191,8 +191,7 @@ RemoveAndSaveVersionDirective(
 		/* 現在位置に version ディレクティブが存在するか？ */
 		if (strstr(p, "#version") == p) { 
 			/* 退避（改行コードを含まない）*/
-			strncpy(versionDirectiveBuffer, p, versionDirectiveBufferSizeInBytes);
-			versionDirectiveBuffer[versionDirectiveBufferSizeInBytes - 1] = '\n';
+			strlcpy(versionDirectiveBuffer, p, versionDirectiveBufferSizeInBytes);
 			char *q = StrFindChars(versionDirectiveBuffer, "\r\n");
 			if (q != NULL) *q = '\0';
 
@@ -856,7 +855,7 @@ bool ExportExecutable(
 	const ExecutableExportSettings *executableExportSettings
 ){
 	/* テンポラリディレクトリのパスを取得 */
-	char tempPathName[FILENAME_MAX];
+	char tempPathName[MAX_PATH];
 	{
 		int ret = GetTempPathA(sizeof(tempPathName), tempPathName);
 		if (ret == 0) {
@@ -866,7 +865,7 @@ bool ExportExecutable(
 	}
 
 	/* 作業ディレクトリのパスを生成 */
-	char workDirName[FILENAME_MAX];
+	char workDirName[MAX_PATH];
 	{
 		int ret = GetTempFileName(
 			/* LPCTSTR lpPathName */		tempPathName,
@@ -885,8 +884,8 @@ bool ExportExecutable(
 
 #if USE_MAIN_CPP
 	/* システムヘッダディレクトリの作成 */
-	char glDirName[FILENAME_MAX];
-	char khrDirName[FILENAME_MAX];
+	char glDirName[MAX_PATH];
+	char khrDirName[MAX_PATH];
 	{
 		snprintf(glDirName, sizeof(glDirName), "%s\\GL", workDirName);
 		printf("create directory %s.\n", glDirName);
@@ -904,28 +903,28 @@ bool ExportExecutable(
 
 	/* 各種ファイル名生成 */
 #if USE_MAIN_CPP
-	char mainCppFullPath[FILENAME_MAX] = {0};
-	char glextHeaderFullPath[FILENAME_MAX] = {0};
-	char khrplatformHeaderFullPath[FILENAME_MAX] = {0};
+	char mainCppFullPath[MAX_PATH] = {0};
+	char glextHeaderFullPath[MAX_PATH] = {0};
+	char khrplatformHeaderFullPath[MAX_PATH] = {0};
 #else
-	char mainAsmFullPath[FILENAME_MAX] = {0};
+	char mainAsmFullPath[MAX_PATH] = {0};
 #endif
-	char mainObjFullPath[FILENAME_MAX] = {0};
-	char configHeaderFullPath[FILENAME_MAX] = {0};
-	char resourceCppFullPath[FILENAME_MAX] = {0};
-	char resourceObjFullPath[FILENAME_MAX] = {0};
-	char graphicsFragmentShaderGlslFullPath[FILENAME_MAX] = {0};
-	char graphicsFragmentShaderTmpFullPath[FILENAME_MAX] = {0};
-	char graphicsFragmentShaderInlFullPath[FILENAME_MAX] = {0};
-	char soundComputeShaderGlslFullPath[FILENAME_MAX] = {0};
-	char soundComputeShaderTmpFullPath[FILENAME_MAX] = {0};
-	char soundComputeShaderInlFullPath[FILENAME_MAX] = {0};
-	char crinklerReportFullPath[FILENAME_MAX] = {0};
-	char crinklerReuseFullPath[FILENAME_MAX] = {0};
-	char minifyBatFullPath[FILENAME_MAX] = {0};
-	char buildBatFullPath[FILENAME_MAX] = {0};
-	char outputGraphicsFragmentShaderInlFullPath[FILENAME_MAX] = {0};
-	char outputSoundComputeShaderInlFullPath[FILENAME_MAX] = {0};
+	char mainObjFullPath[MAX_PATH] = {0};
+	char configHeaderFullPath[MAX_PATH] = {0};
+	char resourceCppFullPath[MAX_PATH] = {0};
+	char resourceObjFullPath[MAX_PATH] = {0};
+	char graphicsFragmentShaderGlslFullPath[MAX_PATH] = {0};
+	char graphicsFragmentShaderTmpFullPath[MAX_PATH] = {0};
+	char graphicsFragmentShaderInlFullPath[MAX_PATH] = {0};
+	char soundComputeShaderGlslFullPath[MAX_PATH] = {0};
+	char soundComputeShaderTmpFullPath[MAX_PATH] = {0};
+	char soundComputeShaderInlFullPath[MAX_PATH] = {0};
+	char crinklerReportFullPath[MAX_PATH] = {0};
+	char crinklerReuseFullPath[MAX_PATH] = {0};
+	char minifyBatFullPath[MAX_PATH] = {0};
+	char buildBatFullPath[MAX_PATH] = {0};
+	char outputGraphicsFragmentShaderInlFullPath[MAX_PATH] = {0};
+	char outputSoundComputeShaderInlFullPath[MAX_PATH] = {0};
 #if USE_MAIN_CPP
 	snprintf(mainCppFullPath, sizeof(mainCppFullPath), "%s\\main.cpp", workDirName);
 	snprintf(glextHeaderFullPath, sizeof(glextHeaderFullPath), "%s\\GL\\glext.h", workDirName);

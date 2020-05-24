@@ -106,7 +106,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;winmm.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -139,7 +139,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>opengl32.lib;winmm.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opengl32.lib;winmm.lib;Shlwapi.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
@@ -160,6 +160,8 @@
     <ClCompile Include="src\dialog_snd_uniforms.cpp" />
     <ClCompile Include="src\dialog_user_textures.cpp" />
     <ClCompile Include="src\export_executable.cpp" />
+    <ClCompile Include="src\external\cJSON\cJSON.c" />
+    <ClCompile Include="src\external\cJSON\cJSON_Utils.c" />
     <ClCompile Include="src\glext_util.cpp" />
     <ClCompile Include="src\graphics.cpp" />
     <ClCompile Include="src\high_precision_timer.cpp" />
@@ -188,6 +190,8 @@
     <ClInclude Include="src\dialog_snd_uniforms.h" />
     <ClInclude Include="src\dialog_user_textures.h" />
     <ClInclude Include="src\export_executable.h" />
+    <ClInclude Include="src\external\cJSON\cJSON.h" />
+    <ClInclude Include="src\external\cJSON\cJSON_Utils.h" />
     <ClInclude Include="src\external\stb\stb_image.h" />
     <ClInclude Include="src\external\stb\stb_image_write.h" />
     <ClInclude Include="src\glext.h" />

@@ -24,6 +24,13 @@
 #pragma warning(disable:4996)
 
 
+/* strlcpy 互換 */
+size_t strlcpy(
+			char	*dst,
+	const	char	*src,
+			size_t	siz
+);
+
 /* ceil アライメント */
 int CeilAlign(
 	int x,
@@ -34,6 +41,11 @@ int CeilAlign(
 int CalcNumMipmapLevelsFromResolution(
 	int xReso,
 	int yReso
+);
+
+/* 妥当なファイルパスであるか確認 */
+bool IsValidFileName(
+	const char *fileName
 );
 
 /* 妥当なディレクトリパスであるか確認 */
