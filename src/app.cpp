@@ -992,6 +992,9 @@ bool AppOpenDragAndDroppedFile(const char *fileName){
 	} else
 	if (IsSuffix(fileName, ".snd.glsl")) {
 		AppOpenSoundShaderFile(fileName);
+	} else
+	if (IsSuffix(fileName, ".json")) {
+		AppImportProjectFile(fileName);
 	} else {
 		AppErrorMessageBox(APP_NAME, "Cannot recognize file type.");
 	}
