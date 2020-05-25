@@ -1805,7 +1805,7 @@ bool AppUpdate(){
 	glFlush();
 	CheckGlError("post glFlush");
 
-	s_frameCount++;
+	if (s_paused == false) s_frameCount++;
 	return true;
 }
 
