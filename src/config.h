@@ -31,13 +31,13 @@
 #define NUM_USER_TEXTURES						(4)
 
 /* サウンドのサンプルの型 */
-#define SAMPLE_TYPE								float
+#define SOUND_SAMPLE_TYPE						float
 
 /* サウンドのサンプルの型は float か？ */
-#define SAMPLE_TYPE_IS_FLOAT					1
+#define SOUND_SAMPLE_TYPE_IS_FLOAT				1
 
 /* サウンド再生デバイスの周波数 */
-#define NUM_SAMPLES_PER_SEC						48000
+#define NUM_SOUND_SAMPLES_PER_SEC				48000
 
 /* サウンド再生デバイスのチャンネル数 */
 #define NUM_SOUND_CHANNELS						2
@@ -46,13 +46,10 @@
 #define NUM_SOUND_BUFFER_SAMPLES				0x1000000
 
 /* 1 dispatch で生成するサウンドサンプル数 */
-#define NUM_SAMPLES_PER_DISPATCH				0x8000
+#define NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH	0x8000
 
 /* サウンドバッファパーティション数 */
-#define NUM_SOUND_BUFFER_PARTITIONS				0x400
-
-/* サウンドバッファ 1 パーティションあたりのサンプル数 */
-#define NUM_SAMPLES_PER_SOUND_BUFFER_PARTITION	(NUM_SOUND_BUFFER_SAMPLES / NUM_SOUND_BUFFER_PARTITIONS)
+#define NUM_SOUND_BUFFER_PARTITIONS				(NUM_SOUND_BUFFER_SAMPLES / NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH)
 
 /* 文字列リテラルに変換するマクロ */
 #define TO_STRING_SUB(token) #token

@@ -52,8 +52,8 @@ static void *s_glExtFunctions[NUM_GLEXT_FUNCTIONS];
 static /* const */ WAVEFORMATEX s_waveFormat = {
 	/* WORD  wFormatTag */		WAVE_FORMAT_IEEE_FLOAT,
 	/* WORD  nChannels */		NUM_SOUND_CHANNELS,
-	/* DWORD nSamplesPerSec */	NUM_SAMPLES_PER_SEC,
-	/* DWORD nAvgBytesPerSec */	NUM_SAMPLES_PER_SEC * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS,
+	/* DWORD nSamplesPerSec */	NUM_SOUND_SAMPLES_PER_SEC,
+	/* DWORD nAvgBytesPerSec */	NUM_SOUND_SAMPLES_PER_SEC * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS,
 	/* WORD  nBlockAlign */		sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS,
 	/* WORD  wBitsPerSample */	sizeof(SOUND_SAMPLE_TYPE) * 8,
 	/* WORD  cbSize */			0	/* extension not needed */
@@ -358,12 +358,6 @@ entrypoint(
 		/* GLenum usage */			GL_DYNAMIC_COPY
 	);
 
-	/* サウンドバッファのポインタを waveHeader に設定 */
-	s_waveHeader.lpData = (LPSTR)glExtMapBuffer(
-		/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
-		/* GLenum access */		GL_READ_WRITE
-	);
-
 	/* コンピュートシェーダの作成 */
 	int soundCsProgramId = glExtCreateShaderProgramv(
 		/* (GLenum type */					GL_COMPUTE_SHADER,
@@ -479,6 +473,12 @@ entrypoint(
 #		error
 #	endif
 #endif
+
+	/* サウンドバッファのポインタを waveHeader に設定 */
+	s_waveHeader.lpData = (LPSTR)glExtMapBuffer(
+		/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
+		/* GLenum access */		GL_READ_WRITE
+	);
 
 	/* サウンド再生 */
 	HWAVEOUT hWaveOut;

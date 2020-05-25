@@ -27,6 +27,9 @@ void SoundResumeWaveOut();
 /* 先頭から再生再開 */
 void SoundRestartWaveOut();
 
+/* プリシンセサイズキャッシュの破棄 */
+void SoundDisposePreSynthesizedCache();
+
 /* 再生位置の seek */
 void SoundSeekWaveOut(uint32_t offset);
 
@@ -38,6 +41,7 @@ bool SoundCreateShader(
 	const char *shaderCode
 );
 
+
 /* サウンド用シェーダの削除 */
 bool SoundDeleteShader();
 
@@ -47,7 +51,7 @@ float SoundDetectDurationInSeconds();
 /* サウンド出力バッファのクリア */
 void SoundClearOutputBuffer();
 
-/* サウンド生成先となる SSBO を取得 */
+/* サウンド生成結果を保持する SSBO を取得 */
 GLuint SoundGetOutputSsbo();
 
 /* サウンドを wav ファイルに保存 */

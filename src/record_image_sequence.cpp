@@ -300,7 +300,7 @@ bool RecordImageSequence(
 			float time = startTime + (float)frameCount / framesPerSecond;
 
 			/* サウンド再生位置 */
-			int waveOutPos = (int)(time * NUM_SAMPLES_PER_SEC);
+			int waveOutPos = (int)(time * NUM_SOUND_SAMPLES_PER_SEC);
 
 			/* ジョブ作成 */
 			Job job;

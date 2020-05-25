@@ -10,35 +10,44 @@
 
 #define BUFFER_INDEX_FOR_SOUND_OUTPUT	(0)
 
+#define NUM_SOUND_BUFFERS				(4)
+
 static bool s_paused = false;
 static GLuint s_soundProgramId = 0;
+/*
+	s_soundTempSsbos は、GPU と CPU で同一バッファをアクセスしないよう、複数
+	バッファに分離したもの。使用位置は不連続である。
+	s_soundOutputSsbo はグラフィクスシェーダに見せるためシンセサイズ結果を
+	連続領域に作成するためのもの。
+*/
+static GLuint s_soundTempSsbos[NUM_SOUND_BUFFERS] = {0};
 static GLuint s_soundOutputSsbo = 0;
 static bool s_soundShaderSetupSucceeded = false;
 
 
 static uint8_t s_soundBufferPartitionDirty[NUM_SOUND_BUFFER_PARTITIONS];
-static SAMPLE_TYPE *s_soundBuffer = NULL;
+static SOUND_SAMPLE_TYPE s_soundBuffer[NUM_SOUND_BUFFER_SAMPLES * NUM_SOUND_CHANNELS];
 static HWAVEOUT s_waveOutHandle = 0;
 static uint32_t s_waveOutOffset = 0;
 
 static const WAVEFORMATEX s_waveFormat = {
 	/* WORD  wFormatTag */
-#if SAMPLE_TYPE_IS_FLOAT
+#if SOUND_SAMPLE_TYPE_IS_FLOAT
 								WAVE_FORMAT_IEEE_FLOAT,
 #else
 								WAVE_FORMAT_PCM,
 #endif
 	/* WORD  nChannels */		NUM_SOUND_CHANNELS,
-	/* DWORD nSamplesPerSec */	NUM_SAMPLES_PER_SEC,
-	/* DWORD nAvgBytesPerSec */	NUM_SAMPLES_PER_SEC * sizeof(SAMPLE_TYPE) * NUM_SOUND_CHANNELS,
-	/* WORD  nBlockAlign */		sizeof(SAMPLE_TYPE) * NUM_SOUND_CHANNELS,
-	/* WORD  wBitsPerSample */	sizeof(SAMPLE_TYPE) * 8,
+	/* DWORD nSamplesPerSec */	NUM_SOUND_SAMPLES_PER_SEC,
+	/* DWORD nAvgBytesPerSec */	NUM_SOUND_SAMPLES_PER_SEC * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS,
+	/* WORD  nBlockAlign */		sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS,
+	/* WORD  wBitsPerSample */	sizeof(SOUND_SAMPLE_TYPE) * 8,
 	/* WORD  cbSize */			0	/* extension not needed */
 };
 
 static WAVEHDR s_waveHeader = {
-	/* LPSTR lpData */					NULL,
-	/* DWORD dwBufferLength */			NUM_SOUND_BUFFER_SAMPLES * sizeof(SAMPLE_TYPE) * NUM_SOUND_CHANNELS,
+	/* LPSTR lpData */					(LPSTR)s_soundBuffer,
+	/* DWORD dwBufferLength */			NUM_SOUND_BUFFER_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS,
 	/* DWORD dwBytesRecorded */			0,
 	/* DWORD dwUser */					0,
 	/* DWORD dwFlags */					0,
@@ -72,14 +81,14 @@ static void SoundSynthesizePartition(
 			glExtBindBufferBase(
 				/* GLenum target */	GL_SHADER_STORAGE_BUFFER,
 				/* GLuint index */	BUFFER_INDEX_FOR_SOUND_OUTPUT,
-				/* GLuint buffer */	s_soundOutputSsbo
+				/* GLuint buffer */	s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS]
 			);
 
 			/* ユニフォームパラメータの設定 */
 			if (ExistsShaderUniform(s_soundProgramId, UNIFORM_LOCATION_WAVE_OUT_POS, GL_INT)) {
 				glExtUniform1i(
 					UNIFORM_LOCATION_WAVE_OUT_POS,
-					NUM_SAMPLES_PER_SOUND_BUFFER_PARTITION * partitionIndex
+					NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH * partitionIndex
 				);
 			}
 
@@ -87,7 +96,7 @@ static void SoundSynthesizePartition(
 			CheckGlError("SoundUpdate : pre dispatch");
 
 			/* コンピュートシェーダによるサウンド生成 */
-			glExtDispatchCompute(NUM_SAMPLES_PER_SOUND_BUFFER_PARTITION, 1, 1);
+			glExtDispatchCompute(NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH, 1, 1);
 
 			/* エラーチェック */
 			CheckGlError("SoundUpdate : post dispatch");
@@ -102,6 +111,36 @@ static void SoundSynthesizePartition(
 			/* シェーダをアンバインド */
 			glExtUseProgram(NULL);
 		}
+	}
+}
+
+static void SoundGetSynthesizePartitionResult(
+	int partitionIndex
+){
+	if (0 <= partitionIndex && partitionIndex < NUM_SOUND_BUFFER_PARTITIONS) {
+		size_t partitionSizeInBytes = NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
+
+		/* サウンド生成結果の取り出し */
+		glExtBindBufferBase(
+			/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
+			/* GLuint index */		BUFFER_INDEX_FOR_SOUND_OUTPUT,
+			/* GLuint buffer */		s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS]
+		);
+		glExtGetBufferSubData(
+			/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
+			/* GLintptr OFFSET */	partitionSizeInBytes * partitionIndex,
+			/* GLsizeiptr size */	partitionSizeInBytes,
+			/* GLvoid *data */		(void *)((uintptr_t)s_soundBuffer + partitionSizeInBytes * partitionIndex)
+		);
+
+		/* 生成結果のコピー */
+		glExtCopyNamedBufferSubData(
+			/* GLuint readBuffer */		s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS],
+			/* GLuint writeBuffer */	s_soundOutputSsbo,
+			/* GLintptr readOffset */	partitionSizeInBytes * partitionIndex,
+			/* GLintptr writeOffset */	partitionSizeInBytes * partitionIndex,
+			/* GLsizeiptr size */		partitionSizeInBytes
+		);
 	}
 }
 
@@ -145,54 +184,75 @@ float SoundDetectDurationInSeconds(){
 	}
 
 	/* 秒数に置き換える */
-	return (float)numAvailableSamples / (float)NUM_SAMPLES_PER_SEC;
+	return (float)numAvailableSamples / (float)NUM_SOUND_SAMPLES_PER_SEC;
 }
 
 static bool SoundCreateSoundOutputBuffer(
 ){
-	glExtGenBuffers(
-		/* GLsizei n */				1,
-		/* GLuint * buffers */		&s_soundOutputSsbo
-	);
-	glExtBindBuffer(
-		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
-		/* GLuint buffer */			s_soundOutputSsbo
-	);
-	glExtBufferData(
-		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
-		/* GLsizeiptr size */		NUM_SOUND_BUFFER_SAMPLES * NUM_SOUND_CHANNELS * sizeof(SAMPLE_TYPE),
-		/* const GLvoid * data */	NULL,
-		/* GLenum usage */			GL_DYNAMIC_COPY	/* DYNAMIC_COPY じゃないと GPU 上のデータが直接見えない */
-	);
-	s_soundBuffer = (SAMPLE_TYPE *)glExtMapBuffer(
-		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
-		/* GLenum access */			GL_READ_WRITE
-	);
-	glExtBindBuffer(
-		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
-		/* GLuint buffer */			0	/* unbind */
-	);
-	s_waveHeader.lpData = (LPSTR)s_soundBuffer;
+	size_t bufferSizeInBytes = NUM_SOUND_BUFFER_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
+	for (int i = 0; i < NUM_SOUND_BUFFERS; i++) {
+		glExtGenBuffers(
+			/* GLsizei n */				1,
+			/* GLuint * buffers */		&s_soundTempSsbos[i]
+		);
+		glExtBindBuffer(
+			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+			/* GLuint buffer */			s_soundTempSsbos[i]
+		);
+		glExtBufferData(
+			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+			/* GLsizeiptr size */		bufferSizeInBytes,
+			/* const GLvoid * data */	NULL,
+			/* GLenum usage */			GL_DYNAMIC_COPY
+		);
+		glExtBindBuffer(
+			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+			/* GLuint buffer */			0	/* unbind */
+		);
+	}
+	{
+		glExtGenBuffers(
+			/* GLsizei n */				1,
+			/* GLuint * buffers */		&s_soundOutputSsbo
+		);
+		glExtBindBuffer(
+			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+			/* GLuint buffer */			s_soundOutputSsbo
+		);
+		glExtBufferData(
+			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+			/* GLsizeiptr size */		bufferSizeInBytes,
+			/* const GLvoid * data */	NULL,
+			/* GLenum usage */			GL_DYNAMIC_COPY
+		);
+		glExtBindBuffer(
+			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+			/* GLuint buffer */			0	/* unbind */
+		);
+	}
 	return true;
 }
 
 static bool SoundDeleteSoundOutputBuffer(
 ){
-	if (s_soundOutputSsbo == 0) return false;
-	glExtUnmapBuffer(
-		/* GLenum target */		GL_SHADER_STORAGE_BUFFER
-	);
 	glExtDeleteBuffers(
 		/* GLsizei n */			1,
 		/* GLuint * buffers */	&s_soundOutputSsbo
 	);
 	s_soundOutputSsbo = 0;
+	for (int i = 0; i < NUM_SOUND_BUFFERS; i++) {
+		glExtDeleteBuffers(
+			/* GLsizei n */			1,
+			/* GLuint * buffers */	&s_soundTempSsbos[i]
+		);
+		s_soundTempSsbos[i] = 0;
+	}
 	return true;
 }
 
 void SoundClearOutputBuffer(
 ){
-	size_t sizeInBytes = NUM_SOUND_BUFFER_SAMPLES * sizeof(SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
+	size_t sizeInBytes = NUM_SOUND_BUFFER_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
 	memset(s_soundBuffer, 0, sizeInBytes);
 	memset(s_soundBufferPartitionDirty, 0xFF, sizeof(s_soundBufferPartitionDirty));
 }
@@ -208,7 +268,7 @@ GLuint SoundGetOutputSsbo(
 bool SoundCaptureSound(
 	const CaptureSoundSettings *settings
 ){
-	int numSamples = (int)(settings->durationInSeconds * NUM_SAMPLES_PER_SEC);
+	int numSamples = (int)(settings->durationInSeconds * NUM_SOUND_SAMPLES_PER_SEC);
 	if (numSamples < 0) numSamples = 0;
 	if (numSamples >= NUM_SOUND_BUFFER_SAMPLES) numSamples = NUM_SOUND_BUFFER_SAMPLES - 1;
 	return SerializeAsWav(
@@ -216,14 +276,14 @@ bool SoundCaptureSound(
 		/* const void *buffer */			s_soundBuffer,
 		/* int numChannels */				NUM_SOUND_CHANNELS,
 		/* int numSamples */				numSamples,
-		/* int numSamplesPerSec */			NUM_SAMPLES_PER_SEC,
+		/* int numSamplesPerSec */			NUM_SOUND_SAMPLES_PER_SEC,
 		/* uint16_t formatID */
-#if SAMPLE_TYPE_IS_FLOAT
+#if SOUND_SAMPLE_TYPE_IS_FLOAT
 											WAVE_FORMAT_IEEE_FLOAT,
 #else
 											WAVE_FORMAT_PCM,
 #endif
-		/* int bitsPerSampleComponent */	sizeof(SAMPLE_TYPE) * 8
+		/* int bitsPerSampleComponent */	sizeof(SOUND_SAMPLE_TYPE) * 8
 	);
 }
 
@@ -245,21 +305,31 @@ void SoundRestartWaveOut(){
 	SoundSeekWaveOut(0);
 }
 
+void SoundDisposePreSynthesizedCache(){
+	uint32_t offset = SoundGetWaveOutPos();
+
+	/* 再生位置のサウンド生成（2 パーティション先まで）*/
+	{
+		int partitionIndex = offset / NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH;
+		SoundSynthesizePartition(partitionIndex);
+		SoundSynthesizePartition((partitionIndex + 1) % NUM_SOUND_BUFFER_PARTITIONS);
+		SoundSynthesizePartition((partitionIndex + 2) % NUM_SOUND_BUFFER_PARTITIONS);
+		glFinish();
+		SoundGetSynthesizePartitionResult(partitionIndex);
+		SoundGetSynthesizePartitionResult((partitionIndex + 1) % NUM_SOUND_BUFFER_PARTITIONS);
+	}
+}
+
 void SoundSeekWaveOut(uint32_t offset){
 	s_waveOutOffset = offset;
 
 	MMRESULT ret = waveOutReset(s_waveOutHandle);
 
-	/* 現在と次のパーティションまでサウンド生成 */
-	{
-		int partitionIndex = offset / NUM_SAMPLES_PER_SOUND_BUFFER_PARTITION;
-		SoundSynthesizePartition(partitionIndex);
-		SoundSynthesizePartition((partitionIndex + 1) % NUM_SOUND_BUFFER_PARTITIONS);
-	}
+	SoundDisposePreSynthesizedCache();
 
 	if (offset > NUM_SOUND_BUFFER_SAMPLES) offset = NUM_SOUND_BUFFER_SAMPLES;
 	s_waveHeader.lpData = (LPSTR)&s_soundBuffer[offset * NUM_SOUND_CHANNELS];
-	s_waveHeader.dwBufferLength = (NUM_SOUND_BUFFER_SAMPLES - offset) * sizeof(SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
+	s_waveHeader.dwBufferLength = (NUM_SOUND_BUFFER_SAMPLES - offset) * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
 
 	assert(ret == MMSYSERR_NOERROR);
 	ret = waveOutPrepareHeader(
@@ -299,11 +369,14 @@ int SoundGetWaveOutPos(
 void SoundUpdate(
 ){
 	int waveOutPos = SoundGetWaveOutPos();
-	int partitionIndex = waveOutPos / NUM_SAMPLES_PER_SOUND_BUFFER_PARTITION;
+	int partitionIndex = waveOutPos / NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH;
 
-	/* 現在と次のパーティションまでサウンド生成 */
-	SoundSynthesizePartition(partitionIndex);
-	SoundSynthesizePartition((partitionIndex + 1) % NUM_SOUND_BUFFER_PARTITIONS);
+	/* 3 パーティション先のサウンド生成をリクエスト */
+	SoundSynthesizePartition((partitionIndex + 3) % NUM_SOUND_BUFFER_PARTITIONS);
+
+	/* 現在と次のパーティションのサウンド生成結果を取り出す */
+	SoundGetSynthesizePartitionResult(partitionIndex);
+	SoundGetSynthesizePartitionResult((partitionIndex + 1) % NUM_SOUND_BUFFER_PARTITIONS);
 }
 
 bool SoundInitialize(

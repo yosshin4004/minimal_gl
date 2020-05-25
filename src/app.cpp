@@ -89,7 +89,7 @@ static ExecutableExportSettings s_executableExportSettings = {
 	/* float durationInSeconds; */				120.0f,
 	/* int numSoundBufferSamples; */			NUM_SOUND_BUFFER_SAMPLES,
 	/* int numSoundBufferAvailableSamples; */	NUM_SOUND_BUFFER_SAMPLES,
-	/* int numSoundBufferSamplesPerDispatch; */	NUM_SAMPLES_PER_DISPATCH,
+	/* int numSoundBufferSamplesPerDispatch; */	NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH,
 	/* bool enableFrameCountUniform; */			true,
 	/* bool enableSoundDispatchWait; */			true,
 	/* struct ShaderMinifierOptions { */		{
@@ -164,7 +164,7 @@ static const char s_defaultGraphicsShaderCode[] =
 
 
 	/* 現在時刻 */
-	"float g_time = g_waveOutPos /" TO_STRING(NUM_SAMPLES_PER_SEC) ".;\n"
+	"float g_time = g_waveOutPos /" TO_STRING(NUM_SOUND_SAMPLES_PER_SEC) ".;\n"
 
 	"void main(){\n"
 	"	vec3 vec3Col = vec3(0);\n"
@@ -817,8 +817,8 @@ void AppExportExecutableGetResolution(int *xResoRet, int *yResoRet){
 }
 void AppExportExecutableSetDurationInSeconds(float durationInSeconds){
 	s_executableExportSettings.durationInSeconds = durationInSeconds;
-	int numSamples = (int)(durationInSeconds * NUM_SAMPLES_PER_SEC);
-	int numSamplesPerDispatch = NUM_SAMPLES_PER_DISPATCH;
+	int numSamples = (int)(durationInSeconds * NUM_SOUND_SAMPLES_PER_SEC);
+	int numSamplesPerDispatch = NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH;
 	numSamples = CeilAlign(numSamples, numSamplesPerDispatch);
 	s_executableExportSettings.numSoundBufferSamples = numSamples;
 	s_executableExportSettings.numSoundBufferAvailableSamples = numSamples;
@@ -1534,6 +1534,7 @@ static bool AppReloadSoundShader(){
 	if (s_preferenceSettings.enableAutoRestartBySoundShader) {
 		AppRestart();
 	}
+	SoundDisposePreSynthesizedCache();
 	return s_soundCreateShaderSucceeded;
 }
 
@@ -1671,7 +1672,7 @@ void AppResume(){
 static void AppSeekInSamples(int samples){
 	s_waveOutSampleOffset = SoundGetWaveOutPos() + samples;
 	if (s_waveOutSampleOffset < 0) s_waveOutSampleOffset = 0;
-	double fp64OffsetInSeconds = s_waveOutSampleOffset / (double)NUM_SAMPLES_PER_SEC;
+	double fp64OffsetInSeconds = s_waveOutSampleOffset / (double)NUM_SOUND_SAMPLES_PER_SEC;
 	HighPrecisionTimerReset(fp64OffsetInSeconds);
 	SoundSeekWaveOut(s_waveOutSampleOffset);
 	if (s_paused) {
