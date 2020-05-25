@@ -30,10 +30,15 @@ static LRESULT CALLBACK DialogFunc(
 			);
 
 			/* 出力ファイル名をエディットボックスに設定 */
-			SetDlgItemText(
-				hDwnd, IDD_CAPTURE_SOUND_OUTPUT_FILE,
-				AppCaptureSoundGetCurrentOutputFileName()
-			);
+			{
+				const char *fileName = AppCaptureSoundGetCurrentOutputFileName();
+				if (IsValidFileName(fileName)) {
+					SetDlgItemText(
+						hDwnd, IDD_CAPTURE_SOUND_OUTPUT_FILE,
+						fileName
+					);
+				}
+			}
 
 			/* メッセージは処理された */
 			return 1;

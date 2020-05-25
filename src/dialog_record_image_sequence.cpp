@@ -55,10 +55,15 @@ static LRESULT CALLBACK DialogFunc(
 			);
 
 			/* 現在の出力先ディレクトリをエディットボックスに設定 */
-			SetDlgItemText(
-				hDwnd, IDD_RECORD_IMAGE_SEQUENCE_OUTPUT_DIRECTORY,
-				AppRecordImageSequenceGetCurrentOutputDirectoryName()
-			);
+			{
+				const char *directoryName = AppRecordImageSequenceGetCurrentOutputDirectoryName();
+				if (IsValidDirectoryName(directoryName)) {
+					SetDlgItemText(
+						hDwnd, IDD_RECORD_IMAGE_SEQUENCE_OUTPUT_DIRECTORY,
+						directoryName
+					);
+				}
+			}
 
 			/* αチャンネル 1.0 強制置換フラグをチェックボックスに設定 */
 			SetDlgItemCheck(

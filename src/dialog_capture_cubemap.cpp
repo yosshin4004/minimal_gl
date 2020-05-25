@@ -29,10 +29,15 @@ static LRESULT CALLBACK DialogFunc(
 			);
 
 			/* 出力ファイル名をエディットボックスに設定 */
-			SetDlgItemText(
-				hDwnd, IDD_CAPTURE_CUBEMAP_OUTPUT_FILE,
-				AppCaptureCubemapGetCurrentOutputFileName()
-			);
+			{
+				const char *fileName = AppCaptureCubemapGetCurrentOutputFileName();
+				if (IsValidFileName(fileName)) {
+					SetDlgItemText(
+						hDwnd, IDD_CAPTURE_CUBEMAP_OUTPUT_FILE,
+						fileName
+					);
+				}
+			}
 
 			/* メッセージは処理された */
 			return 1;
