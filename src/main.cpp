@@ -348,7 +348,8 @@ static LRESULT CALLBACK MainWndProc(
 					if (s_fullScreen) {
 						ToggleFullScreen();
 					} else {
-						static char fileName[MAX_PATH];
+						char fileName[MAX_PATH] = {0};
+						strcpy_s(fileName, sizeof(fileName), AppProjectGetCurrentFileName());
 						OPENFILENAME ofn = {0};
 						ofn.lStructSize = sizeof(OPENFILENAME);
 						ofn.hwndOwner = NULL;
@@ -356,10 +357,10 @@ static LRESULT CALLBACK MainWndProc(
 							TEXT("Project json file (*.json)\0*.json\0");
 						ofn.lpstrFile = fileName;
 						ofn.nMaxFile = sizeof(fileName);
-						ofn.lpstrTitle = (LPSTR)"Open project json file";
+						ofn.lpstrTitle = (LPSTR)"Import project from json file";
 
 						if (GetOpenFileName(&ofn)) {
-							AppImportProjectFile(fileName);
+							AppProjectImport(fileName);
 						}
 					}
 					return 0;
@@ -370,7 +371,8 @@ static LRESULT CALLBACK MainWndProc(
 					if (s_fullScreen) {
 						ToggleFullScreen();
 					} else {
-						static char fileName[MAX_PATH];
+						char fileName[MAX_PATH] = {0};
+						strcpy_s(fileName, sizeof(fileName), AppProjectGetCurrentFileName());
 						OPENFILENAME ofn = {0};
 						ofn.lStructSize = sizeof(OPENFILENAME);
 						ofn.hwndOwner = NULL;
@@ -378,10 +380,10 @@ static LRESULT CALLBACK MainWndProc(
 							TEXT("Project json file (*.json)\0*.json\0");
 						ofn.lpstrFile = fileName;
 						ofn.nMaxFile = sizeof(fileName);
-						ofn.lpstrTitle = (LPSTR)"Open project json file";
+						ofn.lpstrTitle = (LPSTR)"Export project to json file";
 
 						if (GetOpenFileName(&ofn)) {
-							AppExportProjectFile(fileName);
+							AppProjectExport(fileName);
 						}
 					}
 					return 0;
@@ -417,9 +419,9 @@ static LRESULT CALLBACK MainWndProc(
 					return 0;
 				} break;
 
-				/* 全テクスチャとフレームバッファをクリア */
-				case IDM_CLEAR_ALL_TEXTURES_AND_FRAME_BUFFERS: {
-					AppClearAllTexturesAndFremeBuffers();
+				/* 全レンダーターゲットをクリア */
+				case IDM_CLEAR_ALL_RENDER_TARGETS: {
+					AppClearAllRenderTargets();
 				} break;
 
 				/* カメラをリセット */
@@ -474,6 +476,16 @@ static LRESULT CALLBACK MainWndProc(
 					return 0;
 				} break;
 
+				/* デフォルトグラフィクスシェーダの読み込み */
+				case IDM_LOAD_DEFAULT_GRAPHICS_SHADER: {
+					AppOpenDefaultGraphicsShader();
+				} break;
+
+				/* デフォルトサウンドシェーダの読み込み */
+				case IDM_LOAD_DEFAULT_SOUND_SHADER: {
+					AppOpenDefaultSoundShader();
+				} break;
+
 				/* 全画面 */
 				case IDM_TOGGLE_FULL_SCREEN: {
 					ToggleFullScreen();
@@ -526,6 +538,7 @@ static LRESULT CALLBACK MainWndProc(
 						ToggleFullScreen();
 					} else {
 						if (AppYesNoMessageBox(APP_NAME, "Quit?") == true) {
+							AppProjectAutoExport(true);
 							PostQuitMessage(0);
 						}
 					}

@@ -50,8 +50,8 @@ struct CaptureCubemapSettings {
 	int reso;
 };
 
-/* テクスチャ及びフレームバッファのクリア */
-void GraphicsClearAllTexturesAndFremeBuffers();
+/* 全レンダーターゲットのクリア */
+void GraphicsClearAllRenderTargets();
 
 /* シェーダが frameCount uniform 変数を要求するか？ */
 bool GraphicsShaderRequiresFrameCountUniform();

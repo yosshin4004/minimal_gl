@@ -191,7 +191,7 @@ RemoveAndSaveVersionDirective(
 		/* 現在位置に version ディレクティブが存在するか？ */
 		if (strstr(p, "#version") == p) { 
 			/* 退避（改行コードを含まない）*/
-			strlcpy(versionDirectiveBuffer, p, versionDirectiveBufferSizeInBytes);
+			strcpy_s(versionDirectiveBuffer, versionDirectiveBufferSizeInBytes, p);
 			char *q = StrFindChars(versionDirectiveBuffer, "\r\n");
 			if (q != NULL) *q = '\0';
 

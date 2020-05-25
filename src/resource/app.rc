@@ -54,34 +54,37 @@ MYMENU MENU
 
 	POPUP	"&Setup (S)"
 	{
-		MENUITEM "&Render Settings...\tCtrl+R"					IDM_RENDER_SETTINGS
-		MENUITEM "&Preference Settings...\tCtrl+F"				IDM_PREFERENCE_SETTINGS
+		MENUITEM "&Render Settings...\tCtrl+R"			IDM_RENDER_SETTINGS
+		MENUITEM "&Preference Settings...\tCtrl+F"		IDM_PREFERENCE_SETTINGS
 	}
 
 	POPUP	"&Control (C)"
 	{
-		MENUITEM "&Clear All Textures && Freme Buffers\tCtrl+A",IDM_CLEAR_ALL_TEXTURES_AND_FRAME_BUFFERS
+		MENUITEM "&Clear All Render Targets\tCtrl+A",	IDM_CLEAR_ALL_RENDER_TARGETS
 		MENUITEM SEPARATOR
-		MENUITEM "&Reset Camera\tCtrl+O",						IDM_RESET_CAMERA
-		MENUITEM "&Edit Camera Params...\tCtrl+V",				IDM_EDIT_CAMERA_PARAMS
+		MENUITEM "&Reset Camera\tCtrl+O",				IDM_RESET_CAMERA
+		MENUITEM "&Edit Camera Params...\tCtrl+V",		IDM_EDIT_CAMERA_PARAMS
 		MENUITEM SEPARATOR
-		MENUITEM "&Restart\tEnter",								IDM_RESTART
-		MENUITEM "&Pause && Resume\tSpace",						IDM_PAUSE_AND_RESUME
-		MENUITEM "&Slow Forward \tRight",						IDM_SLOW_FORWARD
-		MENUITEM "&Slow Backward \tLeft",						IDM_SLOW_BACKWARD
-		MENUITEM "&Fast Forward \tCtrl+Right",					IDM_FAST_FORWARD
-		MENUITEM "&Fast Backward \tCtrl+Left",					IDM_FAST_BACKWARD
+		MENUITEM "&Restart\tEnter",						IDM_RESTART
+		MENUITEM "&Pause && Resume\tSpace",				IDM_PAUSE_AND_RESUME
+		MENUITEM "&Slow Forward \tRight",				IDM_SLOW_FORWARD
+		MENUITEM "&Slow Backward \tLeft",				IDM_SLOW_BACKWARD
+		MENUITEM "&Fast Forward \tCtrl+Right",			IDM_FAST_FORWARD
+		MENUITEM "&Fast Backward \tCtrl+Left",			IDM_FAST_BACKWARD
 		MENUITEM SEPARATOR
-		MENUITEM "&Toggle Full Screen\tAlt+Enter"				IDM_TOGGLE_FULL_SCREEN
+		MENUITEM "&Load Default Graphics Shader",		IDM_LOAD_DEFAULT_GRAPHICS_SHADER
+		MENUITEM "&Load Default Sound Shader",			IDM_LOAD_DEFAULT_SOUND_SHADER
+		MENUITEM SEPARATOR
+		MENUITEM "&Toggle Full Screen\tAlt+Enter"		IDM_TOGGLE_FULL_SCREEN
 	}
 
 	POPUP	"&Help (H)"
 	{
-		MENUITEM "&Graphics Shader Uniforms...",				IDM_HELP_GRAPHICS_SHADER_UNIFORMS
-		MENUITEM "&Sound Shader Uniforms...",					IDM_HELP_SOUND_SHADER_UNIFORMS
-		MENUITEM "&Preprocessor Definitions...",				IDM_HELP_PREPROCESSOR_DEFINITIONS
+		MENUITEM "&Graphics Shader Uniforms...",		IDM_HELP_GRAPHICS_SHADER_UNIFORMS
+		MENUITEM "&Sound Shader Uniforms...",			IDM_HELP_SOUND_SHADER_UNIFORMS
+		MENUITEM "&Preprocessor Definitions...",		IDM_HELP_PREPROCESSOR_DEFINITIONS
 		MENUITEM SEPARATOR
-		MENUITEM "&About...",									IDM_HELP_ABOUT
+		MENUITEM "&About...",							IDM_HELP_ABOUT
 	}
 }
 
@@ -101,7 +104,7 @@ MYMENU ACCELERATORS
 	"^T",		IDM_USER_TEXTURES
 	"^F",		IDM_PREFERENCE_SETTINGS
 
-	"^A",		IDM_CLEAR_ALL_TEXTURES_AND_FRAME_BUFFERS
+	"^A",		IDM_CLEAR_ALL_RENDER_TARGETS
 	"^O",		IDM_RESET_CAMERA
 	"^V",		IDM_EDIT_CAMERA_PARAMS
 	VK_RETURN,	IDM_RESTART, VIRTKEY

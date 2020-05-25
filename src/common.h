@@ -24,13 +24,6 @@
 #pragma warning(disable:4996)
 
 
-/* strlcpy 互換 */
-size_t strlcpy(
-			char	*dst,
-	const	char	*src,
-			size_t	siz
-);
-
 /* ceil アライメント */
 int CeilAlign(
 	int x,
@@ -41,6 +34,13 @@ int CeilAlign(
 int CalcNumMipmapLevelsFromResolution(
 	int xReso,
 	int yReso
+);
+
+/* ファイル名からディレクトリ部分を抽出 */
+void SplitDirectoryFromFileName(
+	char *directoryName,
+	size_t directoryNameSizeInBytes,
+	const char *fileName
 );
 
 /* 妥当なファイルパスであるか確認 */

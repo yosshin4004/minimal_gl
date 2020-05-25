@@ -4,31 +4,6 @@
 #include "glext_util.h"
 
 
-size_t strlcpy(
-			char	*dst,
-	const	char	*src,
-			size_t	siz
-){
-	char *d = dst;
-	const char *s = src;
-	size_t n = siz;
-	if (n != 0) {
-		while (--n != 0) {
-			if ((*d++ = *s++) == '\0') {
-				break;
-			}
-		}
-	}
-	if (n == 0) {
-		if (siz != 0) {
-			*d = '\0';
-		}
-		while (*s++) {}
-	}
-
-	return s - src - 1;
-}
-
 int CeilAlign(
 	int x,
 	int align
@@ -43,6 +18,35 @@ int CalcNumMipmapLevelsFromResolution(
 	int mipmapLevel = 0;
 	while ((1 << mipmapLevel) < xReso && (1 << mipmapLevel) < yReso) mipmapLevel++;
 	return mipmapLevel + 1;
+}
+
+void SplitDirectoryFromFileName(
+	char *directoryName,
+	size_t directoryNameSizeInBytes,
+	const char *fileName
+){
+	char splittedDriveName[MAX_PATH] = {0};
+	char splittedDirectoryName[MAX_PATH] = {0};
+	char splittedFileName[MAX_PATH] = {0};
+	char splittedExtName[MAX_PATH] = {0};
+	_splitpath_s(
+		/* const char * path */				fileName,
+		/* char * drive */					splittedDriveName,
+		/* size_t driveNumberOfElements */	sizeof(splittedDriveName),
+		/* char * dir */					splittedDirectoryName,
+		/* size_t dirNumberOfElements */	sizeof(splittedDirectoryName),
+		/* char * fname */					splittedFileName,
+		/* size_t nameNumberOfElements */	sizeof(splittedFileName),
+		/* char * ext */					splittedExtName,
+		/* size_t extNumberOfElements */	sizeof(splittedExtName)
+	);
+	snprintf(
+		directoryName,
+		directoryNameSizeInBytes,
+		"%s%s",
+		splittedDriveName,
+		splittedDirectoryName
+	);
 }
 
 bool IsValidFileName(

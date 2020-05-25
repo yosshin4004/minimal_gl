@@ -24,6 +24,9 @@ void AppSetMainWindowHandle(HWND hWindow);
 /* 現在のメインウィンドウのハンドルを取得 */
 HWND AppGetMainWindowHandle();
 
+/* メインウィンドウを最前面に出す */
+void AppGetWindowFocus();
+
 
 /* メッセージ BOX の表示 */
 void AppMessageBox(const char *caption, const char *format, ...);
@@ -333,12 +336,31 @@ bool AppRecordImageSequenceGetForceReplaceAlphaByOneFlag();
 void AppRecordImageSequence();
 
 
+/* プロジェクト管理 : 現在のプロジェクトファイル名の取得 */
+const char *AppProjectGetCurrentFileName();
+
+/* プロジェクト管理 : インポート */
+bool AppProjectImport(const char *fileName);
+
+/* プロジェクト管理 : エクスポート */
+bool AppProjectExport(const char *fileName);
+
+/* プロジェクト管理 : 自動エクスポート */
+bool AppProjectAutoExport(bool confirm);
+
+
 /* 強制上書きフラグを設定 */
 void AppSetForceOverWriteFlag(bool flag);
 
 /* 強制上書きフラグを取得 */
 bool AppGetForceOverWriteFlag();
 
+
+/* デフォルトグラフィクスシェーダファイルを開く */
+bool AppOpenDefaultGraphicsShader();
+
+/* デフォルトサウンドシェーダファイルを開く */
+bool AppOpenDefaultSoundShader();
 
 /* グラフィクスシェーダファイルを開く */
 bool AppOpenGraphicsShaderFile(const char *fileName);
@@ -361,8 +383,8 @@ const char *AppGetCurrentGraphicsShaderCode();
 /* 現在のサウンドシェーダコードのポインタを取得 */
 const char *AppGetCurrentSoundShaderCode();
 
-/* 全テクスチャとフレームバッファをクリア */
-void AppClearAllTexturesAndFremeBuffers();
+/* 全レンダーターゲットをクリア */
+void AppClearAllRenderTargets();
 
 /* リスタート */
 void AppRestart();
@@ -393,12 +415,6 @@ void AppFastBackward();
 
 /* アプリケーションの更新（毎フレーム実行）*/
 bool AppUpdate();
-
-/* プロジェクトファイルのインポート */
-bool AppImportProjectFile(const char *fileName);
-
-/* プロジェクトファイルのエクスポート */
-bool AppExportProjectFile(const char *fileName);
 
 /* アプリケーションの説明 */
 bool AppHelpAbout();

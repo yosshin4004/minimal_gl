@@ -263,8 +263,8 @@ bool RecordImageSequence(
 		DialogFunc
 	);
 
-	/* 先だって画像の全クリア */
-	GraphicsClearAllTexturesAndFremeBuffers();
+	/* 先だって全レンダーターゲットをクリア */
+	void AppClearAllRenderTargets();
 
 	/* 連番画像の保存 */
 	{

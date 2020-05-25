@@ -119,6 +119,11 @@ static CaptureSoundSettings s_captureSoundSettings = {
 static bool s_forceOverWrite = false;
 
 /*=============================================================================
+▼	プロジェクトファイル関連
+-----------------------------------------------------------------------------*/
+static char s_projectFileName[MAX_PATH] = "";
+
+/*=============================================================================
 ▼	シェーダソースファイル関連
 -----------------------------------------------------------------------------*/
 static char s_soundShaderFileName[MAX_PATH] = "";
@@ -250,10 +255,16 @@ HWND AppGetMainWindowHandle(){
 	return s_hMainWindow;
 }
 
+void AppGetWindowFocus(){
+	SetWindowPos(AppGetMainWindowHandle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+	SetWindowPos(AppGetMainWindowHandle(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOMOVE | SWP_NOSIZE);
+}
+
 /*=============================================================================
 ▼	メッセージボックス関連
 -----------------------------------------------------------------------------*/
 void AppMessageBox(const char *caption, const char *format, ...){
+	AppGetWindowFocus();
 	va_list arg;
 	va_start(arg, format);
 	char buffer[0x1000];
@@ -264,6 +275,7 @@ void AppMessageBox(const char *caption, const char *format, ...){
 }
 
 bool AppYesNoMessageBox(const char *caption, const char *format, ...){
+	AppGetWindowFocus();
 	va_list arg;
 	va_start(arg, format);
 	char buffer[0x1000];
@@ -275,6 +287,7 @@ bool AppYesNoMessageBox(const char *caption, const char *format, ...){
 }
 
 void AppErrorMessageBox(const char *caption, const char *format, ...){
+	AppGetWindowFocus();
 	va_list arg;
 	va_start(arg, format);
 	char buffer[0x1000];
@@ -285,6 +298,7 @@ void AppErrorMessageBox(const char *caption, const char *format, ...){
 }
 
 void AppLastErrorMessageBox(const char *caption){
+	AppGetWindowFocus();
 	DWORD errorCode = GetLastError();
 	LPVOID lpMsgBuf;
 	int ret = FormatMessage(
@@ -937,6 +951,562 @@ void AppRecordImageSequence(){
 }
 
 /*=============================================================================
+▼	JSON ユーティリティ関連
+-----------------------------------------------------------------------------*/
+static bool JsonGetAsString(
+	cJSON *json,
+	const char *pointer,
+	char *dstString,
+	size_t dstStringSizeInBytes
+){
+	memset(dstString, 0, dstStringSizeInBytes);
+	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
+	if (jsonFound == NULL) return false;
+	if (cJSON_IsString(jsonFound) == false || (jsonFound->valuestring == NULL)) return false;
+	if (strlen(jsonFound->valuestring) + 1 /* 末端 \0 分 */ > dstStringSizeInBytes) return false;
+	strcpy_s(dstString, dstStringSizeInBytes, jsonFound->valuestring);
+	return true;
+}
+
+static bool JsonGetAsInt(
+	cJSON *json,
+	const char *pointer,
+	int *dst
+){
+	*dst = 0;
+	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
+	if (jsonFound == NULL) return false;
+	if (cJSON_IsNumber(jsonFound) == false) return false;
+	*dst = (int)jsonFound->valuedouble;
+	return true;
+}
+
+static bool JsonGetAsFloat(
+	cJSON *json,
+	const char *pointer,
+	float *dst
+){
+	*dst = 0;
+	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
+	if (jsonFound == NULL) return false;
+	if (cJSON_IsNumber(jsonFound) == false) return false;
+	*dst = (float)jsonFound->valuedouble;
+	return true;
+}
+
+static bool JsonGetAsBool(
+	cJSON *json,
+	const char *pointer,
+	bool *dst
+){
+	*dst = false;
+	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
+	if (jsonFound == NULL) return false;
+	if (cJSON_IsBool(jsonFound) == false) return false;
+	*dst = cJSON_IsTrue(jsonFound);
+	return true;
+}
+
+static bool JsonGetAsVec3(
+	cJSON *json,
+	const char *pointer,
+	float vec3Dst[3]
+){
+	vec3Dst[0] = 0;
+	vec3Dst[1] = 0;
+	vec3Dst[2] = 0;
+	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
+	if (jsonFound == NULL) return false;
+
+	if (cJSON_IsArray(jsonFound) == false) return false;
+	if (cJSON_GetArraySize(jsonFound) != 3) return false;
+	cJSON *jsonFoundElement0 = cJSON_GetArrayItem(jsonFound, 0);
+	cJSON *jsonFoundElement1 = cJSON_GetArrayItem(jsonFound, 1);
+	cJSON *jsonFoundElement2 = cJSON_GetArrayItem(jsonFound, 2);
+	if (cJSON_IsNumber(jsonFoundElement0) == false) return false;
+	if (cJSON_IsNumber(jsonFoundElement1) == false) return false;
+	if (cJSON_IsNumber(jsonFoundElement2) == false) return false;
+	vec3Dst[0] = (float)jsonFoundElement0->valuedouble;
+	vec3Dst[1] = (float)jsonFoundElement1->valuedouble;
+	vec3Dst[2] = (float)jsonFoundElement2->valuedouble;
+	return true;
+}
+
+/*=============================================================================
+▼	プロジェクトのシリアライズ/デシリアライズ関連
+-----------------------------------------------------------------------------*/
+static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBasePath){
+	bool result = true;
+
+	{
+		char graphicsShaderRelativeFileName[MAX_PATH] = {0};
+		char soundShaderRelativeFileName[MAX_PATH] = {0};
+
+		if (JsonGetAsString(jsonRoot, "/app/graphicsShaderFileName", graphicsShaderRelativeFileName, sizeof(graphicsShaderRelativeFileName)) == false) result = false;
+		if (JsonGetAsString(jsonRoot, "/app/soundShaderFileName",    soundShaderRelativeFileName, sizeof(soundShaderRelativeFileName)      ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/app/xReso",                 &s_xReso) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/app/yReso",                 &s_yReso) == false) result = false;
+
+		PathCombine(
+			/* LPSTR  pszDest */	s_graphicsShaderFileName,
+			/* LPCSTR pszDir */		projectBasePath,
+			/* LPCSTR pszFile */	graphicsShaderRelativeFileName
+		);
+		PathCombine(
+			/* LPSTR  pszDest */	s_soundShaderFileName,
+			/* LPCSTR pszDir */		projectBasePath,
+			/* LPCSTR pszFile */	soundShaderRelativeFileName
+		);
+	}
+	{
+		if (JsonGetAsVec3  (jsonRoot, "/camera/vec3Pos",       s_camera.vec3Pos     ) == false) result = false;
+		if (JsonGetAsVec3  (jsonRoot, "/camera/vec3Ang",       s_camera.vec3Ang     ) == false) result = false;
+		if (JsonGetAsFloat (jsonRoot, "/camera/fovYAsRadian", &s_camera.fovYAsRadian) == false) result = false;
+	}
+	{
+		char relativeFileName[MAX_PATH] = {0};
+
+		if (JsonGetAsString(jsonRoot, "/captureScreenShotSettings/fileName",          relativeFileName, sizeof(relativeFileName)    ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/xReso",             &s_captureScreenShotSettings.xReso            ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/yReso",             &s_captureScreenShotSettings.yReso            ) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/captureScreenShotSettings/replaceAlphaByOne", &s_captureScreenShotSettings.replaceAlphaByOne) == false) result = false;
+
+		PathCombine(
+			/* LPSTR  pszDest */	s_captureScreenShotSettings.fileName,
+			/* LPCSTR pszDir */		projectBasePath,
+			/* LPCSTR pszFile */	relativeFileName
+		);
+	}
+	{
+		char relativeFileName[MAX_PATH] = {0};
+
+		if (JsonGetAsString(jsonRoot, "/captureCubemapSettings/fileName", relativeFileName, sizeof(relativeFileName)) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/captureCubemapSettings/reso",     &s_captureCubemapSettings.reso            ) == false) result = false;
+
+		PathCombine(
+			/* LPSTR  pszDest */	s_captureCubemapSettings.fileName,
+			/* LPCSTR pszDir */		projectBasePath,
+			/* LPCSTR pszFile */	relativeFileName
+		);
+	}
+	{
+		if (JsonGetAsInt   (jsonRoot, "/renderSettings/pixelFormat",                 (int *)&s_renderSettings.pixelFormat         ) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableMultipleRenderTargets", &s_renderSettings.enableMultipleRenderTargets) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/renderSettings/numEnabledRenderTargets",     &s_renderSettings.numEnabledRenderTargets    ) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableBackBuffer",            &s_renderSettings.enableBackBuffer           ) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableMipmapGeneration",      &s_renderSettings.enableMipmapGeneration     ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/renderSettings/textureFilter",               (int *)&s_renderSettings.textureFilter       ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/renderSettings/textureWrap",                 (int *)&s_renderSettings.textureWrap         ) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableSwapIntervalControl",   &s_renderSettings.enableSwapIntervalControl  ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/renderSettings/swapInterval",                (int *)&s_renderSettings.swapInterval        ) == false) result = false;
+	}
+	{
+		if (JsonGetAsBool  (jsonRoot, "/preferenceSettings/enableAutoRestartByGraphicsShader", &s_preferenceSettings.enableAutoRestartByGraphicsShader) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/preferenceSettings/enableAutoRestartBySoundShader",    &s_preferenceSettings.enableAutoRestartBySoundShader   ) == false) result = false;
+	}
+	{
+		char relativeFileName[MAX_PATH] = {0};
+
+		if (JsonGetAsString(jsonRoot, "/executableExportSettings/fileName",                         relativeFileName, sizeof(relativeFileName)                  ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/xReso",                            &s_executableExportSettings.xReso                           ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/yReso",                            &s_executableExportSettings.yReso                           ) == false) result = false;
+		if (JsonGetAsFloat (jsonRoot, "/executableExportSettings/durationInSeconds",                &s_executableExportSettings.durationInSeconds               ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamples",            &s_executableExportSettings.numSoundBufferSamples           ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferAvailableSamples",   &s_executableExportSettings.numSoundBufferAvailableSamples  ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamplesPerDispatch", &s_executableExportSettings.numSoundBufferSamplesPerDispatch) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableFrameCountUniform",          &s_executableExportSettings.enableFrameCountUniform         ) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableSoundDispatchWait",          &s_executableExportSettings.enableSoundDispatchWait         ) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noRenaming", &s_executableExportSettings.shaderMinifierOptions.noRenaming) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noSequence", &s_executableExportSettings.shaderMinifierOptions.noSequence) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/smoothstep", &s_executableExportSettings.shaderMinifierOptions.smoothstep) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyHeader",    &s_executableExportSettings.crinklerOptions.useTinyHeader   ) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyImport",    &s_executableExportSettings.crinklerOptions.useTinyImport   ) == false) result = false;
+
+		PathCombine(
+			/* LPSTR  pszDest */	s_executableExportSettings.fileName,
+			/* LPCSTR pszDir */		projectBasePath,
+			/* LPCSTR pszFile */	relativeFileName
+		);
+	}
+	{
+		char relativeDirectoryName[MAX_PATH] = {0};
+
+		if (JsonGetAsString(jsonRoot, "/recordImageSequenceSettings/directoryName",      relativeDirectoryName, sizeof(relativeDirectoryName)) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/xReso",              &s_recordImageSequenceSettings.xReso                ) == false) result = false;
+		if (JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/yReso",              &s_recordImageSequenceSettings.yReso                ) == false) result = false;
+		if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/startTimeInSeconds", &s_recordImageSequenceSettings.startTimeInSeconds   ) == false) result = false;
+		if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/durationInSeconds",  &s_recordImageSequenceSettings.durationInSeconds    ) == false) result = false;
+		if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/framesPerSecond",    &s_recordImageSequenceSettings.framesPerSecond      ) == false) result = false;
+		if (JsonGetAsBool  (jsonRoot, "/recordImageSequenceSettings/replaceAlphaByOne",  &s_recordImageSequenceSettings.replaceAlphaByOne    ) == false) result = false;
+
+		PathCombine(
+			/* LPSTR  pszDest */	s_recordImageSequenceSettings.directoryName,
+			/* LPCSTR pszDir */		projectBasePath,
+			/* LPCSTR pszFile */	relativeDirectoryName
+		);
+	}
+	{
+		char relativeFileName[MAX_PATH] = {0};
+
+		if (JsonGetAsString(jsonRoot, "/captureSoundSettings/fileName",          relativeFileName, sizeof(relativeFileName)) == false) result = false;
+		if (JsonGetAsFloat (jsonRoot, "/captureSoundSettings/durationInSeconds", &s_captureSoundSettings.durationInSeconds ) == false) result = false;
+
+		PathCombine(
+			/* LPSTR  pszDest */	s_captureSoundSettings.fileName,
+			/* LPCSTR pszDir */		projectBasePath,
+			/* LPCSTR pszFile */	relativeFileName
+		);
+	}
+	{
+		for (int i = 0; i < NUM_USER_TEXTURES; i++) {
+			AppUserTexturesDelete(i);
+		}
+		for (int i = 0; i < NUM_USER_TEXTURES; i++) {
+			char pointer[0x100];
+			snprintf(pointer, sizeof(pointer), "/userTextures/%d/fileName", i);
+
+			char relativeFileName[MAX_PATH] = {0};
+			if (JsonGetAsString(jsonRoot, pointer, relativeFileName, sizeof(relativeFileName)) == false) result = false;
+			char fileName[MAX_PATH];
+			PathCombine(
+				/* LPSTR  pszDest */	fileName,
+				/* LPCSTR pszDir */		projectBasePath,
+				/* LPCSTR pszFile */	relativeFileName
+			);
+			if (IsValidFileName(fileName)) AppUserTexturesLoad(i, fileName);
+		}
+	}
+
+	return result;
+}
+
+static void AppProjectSerializeToJson(cJSON *jsonRoot, const char *projectBasePath){
+	{
+		cJSON *jsonApp = cJSON_AddObjectToObject(jsonRoot, "app");
+
+		char graphicsShaderRelativeFileName[MAX_PATH] = {0};
+		PathRelativePathTo(
+			/* LPSTR  pszPath */	graphicsShaderRelativeFileName,
+			/* LPCSTR pszFrom */	projectBasePath,
+			/* DWORD  dwAttrFrom */	FILE_ATTRIBUTE_DIRECTORY /* from directory */,
+			/* LPCSTR pszTo */		s_graphicsShaderFileName,
+			/* DWORD  dwAttrTo */	0 /* to file */
+		);
+		char soundShaderRelativeFileName[MAX_PATH] = {0};
+		PathRelativePathTo(
+			/* LPSTR  pszPath */	soundShaderRelativeFileName,
+			/* LPCSTR pszFrom */	projectBasePath,
+			/* DWORD  dwAttrFrom */	FILE_ATTRIBUTE_DIRECTORY /* from directory */,
+			/* LPCSTR pszTo */		s_soundShaderFileName,
+			/* DWORD  dwAttrTo */	0 /* to file */
+		);
+
+		cJSON_AddStringToObject(jsonApp, "graphicsShaderFileName" , graphicsShaderRelativeFileName);
+		cJSON_AddStringToObject(jsonApp, "soundShaderFileName"    , soundShaderRelativeFileName);
+		cJSON_AddNumberToObject(jsonApp, "xReso"                  , s_xReso);
+		cJSON_AddNumberToObject(jsonApp, "yReso"                  , s_yReso);
+	}
+	{
+		cJSON *jsonCamera = cJSON_AddObjectToObject(jsonRoot, "camera");
+
+		cJSON *jsonVec3Pos = cJSON_AddArrayToObject(jsonCamera, "vec3Pos");
+		cJSON_AddItemToArray(jsonVec3Pos, cJSON_CreateNumber(s_camera.vec3Pos[0]));
+		cJSON_AddItemToArray(jsonVec3Pos, cJSON_CreateNumber(s_camera.vec3Pos[1]));
+		cJSON_AddItemToArray(jsonVec3Pos, cJSON_CreateNumber(s_camera.vec3Pos[2]));
+
+		cJSON *jsonVec3Ang = cJSON_AddArrayToObject(jsonCamera, "vec3Ang");
+		cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[0]));
+		cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[1]));
+		cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[2]));
+
+		cJSON_AddNumberToObject(jsonCamera, "fovYAsRadian", s_camera.fovYAsRadian);
+	}
+	{
+		cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureScreenShotSettings");
+
+		char relativeFileName[MAX_PATH] = {0};
+		PathRelativePathTo(
+			/* LPSTR  pszPath */	relativeFileName,
+			/* LPCSTR pszFrom */	projectBasePath,
+			/* DWORD  dwAttrFrom */	FILE_ATTRIBUTE_DIRECTORY /* from directory */,
+			/* LPCSTR pszTo */		s_captureScreenShotSettings.fileName,
+			/* DWORD  dwAttrTo */	0 /* to file */
+		);
+
+		cJSON_AddStringToObject(jsonSettings, "fileName"         , relativeFileName);
+		cJSON_AddNumberToObject(jsonSettings, "xReso"            , s_captureScreenShotSettings.xReso);
+		cJSON_AddNumberToObject(jsonSettings, "yReso"            , s_captureScreenShotSettings.yReso);
+		cJSON_AddBoolToObject  (jsonSettings, "replaceAlphaByOne", s_captureScreenShotSettings.replaceAlphaByOne);
+	}
+	{
+		cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureCubemapSettings");
+
+		char relativeFileName[MAX_PATH] = {0};
+		PathRelativePathTo(
+			/* LPSTR  pszPath */	relativeFileName,
+			/* LPCSTR pszFrom */	projectBasePath,
+			/* DWORD  dwAttrFrom */	FILE_ATTRIBUTE_DIRECTORY /* from directory */,
+			/* LPCSTR pszTo */		s_captureCubemapSettings.fileName,
+			/* DWORD  dwAttrTo */	0 /* to file */
+		);
+
+		cJSON_AddStringToObject(jsonSettings, "fileName", relativeFileName);
+		cJSON_AddNumberToObject(jsonSettings, "reso"    , s_captureCubemapSettings.reso);
+	}
+	{
+		cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "renderSettings");
+		cJSON_AddNumberToObject(jsonSettings, "pixelFormat",                s_renderSettings.pixelFormat);
+		cJSON_AddBoolToObject  (jsonSettings, "enableMultipleRenderTargets",s_renderSettings.enableMultipleRenderTargets);
+		cJSON_AddNumberToObject(jsonSettings, "numEnabledRenderTargets",    s_renderSettings.numEnabledRenderTargets);
+		cJSON_AddBoolToObject  (jsonSettings, "enableBackBuffer",           s_renderSettings.enableBackBuffer);
+		cJSON_AddBoolToObject  (jsonSettings, "enableMipmapGeneration",     s_renderSettings.enableMipmapGeneration);
+		cJSON_AddNumberToObject(jsonSettings, "textureFilter",              s_renderSettings.textureFilter);
+		cJSON_AddNumberToObject(jsonSettings, "textureWrap",                s_renderSettings.textureWrap);
+		cJSON_AddBoolToObject  (jsonSettings, "enableSwapIntervalControl",  s_renderSettings.enableSwapIntervalControl);
+		cJSON_AddNumberToObject(jsonSettings, "swapInterval",               s_renderSettings.swapInterval);
+	}
+	{
+		cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "preferenceSettings");
+		cJSON_AddBoolToObject(jsonSettings, "enableAutoRestartByGraphicsShader", s_preferenceSettings.enableAutoRestartByGraphicsShader);
+		cJSON_AddBoolToObject(jsonSettings, "enableAutoRestartBySoundShader",    s_preferenceSettings.enableAutoRestartBySoundShader);
+	}
+	{
+		cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "executableExportSettings");
+
+		char relativeFileName[MAX_PATH] = {0};
+		PathRelativePathTo(
+			/* LPSTR  pszPath */	relativeFileName,
+			/* LPCSTR pszFrom */	projectBasePath,
+			/* DWORD  dwAttrFrom */	FILE_ATTRIBUTE_DIRECTORY /* from directory */,
+			/* LPCSTR pszTo */		s_executableExportSettings.fileName,
+			/* DWORD  dwAttrTo */	0 /* to file */
+		);
+
+		cJSON_AddStringToObject(jsonSettings, "fileName",                         relativeFileName);
+		cJSON_AddNumberToObject(jsonSettings, "xReso",                            s_executableExportSettings.xReso);
+		cJSON_AddNumberToObject(jsonSettings, "yReso",                            s_executableExportSettings.yReso);
+		cJSON_AddNumberToObject(jsonSettings, "durationInSeconds",                s_executableExportSettings.durationInSeconds);
+		cJSON_AddNumberToObject(jsonSettings, "numSoundBufferSamples",            s_executableExportSettings.numSoundBufferSamples);
+		cJSON_AddNumberToObject(jsonSettings, "numSoundBufferAvailableSamples",   s_executableExportSettings.numSoundBufferAvailableSamples);
+		cJSON_AddNumberToObject(jsonSettings, "numSoundBufferSamplesPerDispatch", s_executableExportSettings.numSoundBufferSamplesPerDispatch);
+		cJSON_AddBoolToObject  (jsonSettings, "enableFrameCountUniform",          s_executableExportSettings.enableFrameCountUniform);
+		cJSON_AddBoolToObject  (jsonSettings, "enableSoundDispatchWait",          s_executableExportSettings.enableSoundDispatchWait);
+		{
+			cJSON *jsonOptions = cJSON_AddObjectToObject(jsonSettings, "shaderMinifierOptions");
+			cJSON_AddBoolToObject(jsonOptions, "noRenaming", s_executableExportSettings.shaderMinifierOptions.noRenaming);
+			cJSON_AddBoolToObject(jsonOptions, "noSequence", s_executableExportSettings.shaderMinifierOptions.noSequence);
+			cJSON_AddBoolToObject(jsonOptions, "smoothstep", s_executableExportSettings.shaderMinifierOptions.smoothstep);
+		}
+		{
+			cJSON *jsonOptions = cJSON_AddObjectToObject(jsonSettings, "crinklerOptions");
+			cJSON_AddBoolToObject(jsonOptions, "useTinyHeader", s_executableExportSettings.crinklerOptions.useTinyHeader);
+			cJSON_AddBoolToObject(jsonOptions, "useTinyImport", s_executableExportSettings.crinklerOptions.useTinyImport);
+		}
+	}
+	{
+		cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "recordImageSequenceSettings");
+
+		char relativeDirectoryName[MAX_PATH] = {0};
+		PathRelativePathTo(
+			/* LPSTR  pszPath */	relativeDirectoryName,
+			/* LPCSTR pszFrom */	projectBasePath,
+			/* DWORD  dwAttrFrom */	FILE_ATTRIBUTE_DIRECTORY /* from directory */,
+			/* LPCSTR pszTo */		s_recordImageSequenceSettings.directoryName,
+			/* DWORD  dwAttrTo */	FILE_ATTRIBUTE_DIRECTORY /* to directory */
+		);
+
+		cJSON_AddStringToObject(jsonSettings, "directoryName",      relativeDirectoryName);
+		cJSON_AddNumberToObject(jsonSettings, "xReso",              s_recordImageSequenceSettings.xReso);
+		cJSON_AddNumberToObject(jsonSettings, "yReso",              s_recordImageSequenceSettings.yReso);
+		cJSON_AddNumberToObject(jsonSettings, "startTimeInSeconds", s_recordImageSequenceSettings.startTimeInSeconds);
+		cJSON_AddNumberToObject(jsonSettings, "durationInSeconds",  s_recordImageSequenceSettings.durationInSeconds);
+		cJSON_AddNumberToObject(jsonSettings, "framesPerSecond",    s_recordImageSequenceSettings.framesPerSecond);
+		cJSON_AddBoolToObject  (jsonSettings, "replaceAlphaByOne",  s_recordImageSequenceSettings.replaceAlphaByOne);
+	}
+	{
+		cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureSoundSettings");
+
+		char relativeFileName[MAX_PATH] = {0};
+		PathRelativePathTo(
+			/* LPSTR  pszPath */	relativeFileName,
+			/* LPCSTR pszFrom */	projectBasePath,
+			/* DWORD  dwAttrFrom */	FILE_ATTRIBUTE_DIRECTORY /* from directory */,
+			/* LPCSTR pszTo */		s_captureSoundSettings.fileName,
+			/* DWORD  dwAttrTo */	0 /* to file */
+		);
+
+		cJSON_AddStringToObject(jsonSettings, "fileName",          relativeFileName);
+		cJSON_AddNumberToObject(jsonSettings, "durationInSeconds", s_captureSoundSettings.durationInSeconds);
+	}
+	{
+		cJSON *jsonUserTextures = cJSON_AddArrayToObject(jsonRoot, "userTextures");
+		for (int i = 0; i < NUM_USER_TEXTURES; i++) {
+			cJSON *jsonUserTexture = cJSON_CreateObject();
+			cJSON_AddItemToArray(jsonUserTextures, jsonUserTexture);
+
+			char relativeFileName[MAX_PATH] = {0};
+			PathRelativePathTo(
+				/* LPSTR  pszPath */	relativeFileName,
+				/* LPCSTR pszFrom */	projectBasePath,
+				/* DWORD  dwAttrFrom */	FILE_ATTRIBUTE_DIRECTORY /* from directory */,
+				/* LPCSTR pszTo */		AppUserTexturesGetCurrentFileName(i),
+				/* DWORD  dwAttrTo */	0 /* to file */
+			);
+
+			cJSON_AddStringToObject(jsonUserTexture, "fileName", relativeFileName);
+		}
+	}
+}
+
+/*=============================================================================
+▼	プロジェクト管理
+-----------------------------------------------------------------------------*/
+const char *AppProjectGetCurrentFileName(){
+	return s_projectFileName;
+}
+
+bool AppProjectImport(const char *fileName){
+	/* プロジェクトのベースパス抽出 */
+	char projectBasePath[MAX_PATH] = {0};
+	SplitDirectoryFromFileName(projectBasePath, sizeof(projectBasePath), fileName);
+
+	/* シリアライズされたプロジェクトの読み込み */
+	char *text = MallocReadTextFile(fileName);
+	if (text == NULL) {
+		AppErrorMessageBox(APP_NAME, "Failed to read %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Failed to import project.");
+		return false;
+	}
+
+	/* プロジェクトのデシリアライズ */
+	cJSON *jsonRoot = cJSON_Parse(text);
+	bool result = AppProjectDeserializeFromJson(jsonRoot, projectBasePath);
+
+	/* デシリアライズ結果をメッセージボックスで通知 */
+	if (result) {
+		/*
+			プロジェクトファイルをとっかえひっかえ閲覧する場合に煩わしいので、
+			インポート成功のメッセージボックスは出さない。
+			下記のコードをコメントアウトした。
+				AppMessageBox(APP_NAME, "Import project successfully.");
+		*/
+
+		/* 現在のプロジェクトファイル名を保存 */
+		strcpy_s(
+			s_projectFileName,
+			sizeof(s_projectFileName),
+			fileName
+		);
+	} else {
+		AppErrorMessageBox(APP_NAME, "Failed to import project.");
+	}
+
+	/* 存在しないシェーダファイルが指定された場合はデフォルトシェーダに置き換え */
+	if (IsValidFileName(s_graphicsShaderFileName) == false) AppOpenDefaultGraphicsShader();
+	if (IsValidFileName(s_soundShaderFileName) == false) AppOpenDefaultSoundShader();
+
+	/* 強制的に再読み込み */
+	s_soundShaderFileStat.st_mtime = 0;
+	s_graphicsShaderFileStat.st_mtime = 0;
+
+	/* リソース解放して終了 */
+	cJSON_Delete(jsonRoot);
+	free(text);
+	return result;
+}
+
+bool AppProjectExport(const char *fileName){
+	/* プロジェクトのベースパス抽出 */
+	char projectBasePath[MAX_PATH] = {0};
+	SplitDirectoryFromFileName(projectBasePath, sizeof(projectBasePath), fileName);
+
+	/* プロジェクトをメモリ上にシリアライズ */
+	cJSON *jsonRoot = cJSON_CreateObject();
+	AppProjectSerializeToJson(jsonRoot, projectBasePath);
+
+	/* ファイルに保存 */
+	bool result;
+	{
+		FILE *file = fopen(fileName, "wb");
+		if (file == NULL) {
+			AppErrorMessageBox(APP_NAME, "Failed to create %s.", fileName);
+			AppErrorMessageBox(APP_NAME, "Failed to export project.");
+			result = false;
+		} else {
+			fputs(cJSON_Print(jsonRoot), file);
+			fclose(file);
+			result = true;
+			AppMessageBox(APP_NAME, "Export project successfully.");
+
+			/* 現在のプロジェクトファイル名を保存 */
+			strcpy_s(
+				s_projectFileName,
+				sizeof(s_projectFileName),
+				fileName
+			);
+		}
+	}
+
+	/* リソース解放して終了 */
+	cJSON_Delete(jsonRoot);
+	return result;
+}
+
+bool AppProjectAutoExport(bool confirm){
+	/* プロジェクトを読み込んでいないならキャンセル */
+	if (strcmp(s_projectFileName, "") == 0) return false;
+
+	/* プロジェクトのベースパス抽出 */
+	char projectBasePath[MAX_PATH] = {0};
+	SplitDirectoryFromFileName(projectBasePath, sizeof(projectBasePath), s_projectFileName);
+
+	/* プロジェクトをメモリ上にシリアライズ */
+	cJSON *jsonRoot = cJSON_CreateObject();
+	AppProjectSerializeToJson(jsonRoot, projectBasePath);
+
+	/* シリアライズ結果が既存のプロジェクトファイルと一致するならキャンセル */
+	{
+		char *text = MallocReadTextFile(s_projectFileName);
+		if (text != NULL) {
+			bool compareResult = strcmp(cJSON_Print(jsonRoot), text);
+			free(text);
+			if (compareResult == 0) {
+				cJSON_Delete(jsonRoot);
+				return true;
+			}
+		}
+	}
+
+	/* エクスポート前に確認 */
+	bool flag = true;
+	if (confirm) {
+		if (AppYesNoMessageBox(APP_NAME, "The project has been updated.\n\nDo you want to overwrite %s?", s_projectFileName) == false) {
+			flag = false;
+		}
+	}
+
+	/* エクスポートを実行するか？ */
+	bool result = true;
+	if (flag) {
+		/* ファイルに保存 */
+		FILE *file = fopen(s_projectFileName, "wb");
+		if (file == NULL) {
+			AppErrorMessageBox(APP_NAME, "Failed to create %s.", s_projectFileName);
+			AppErrorMessageBox(APP_NAME, "Failed to export project.");
+			result = false;
+		} else {
+			fputs(cJSON_Print(jsonRoot), file);
+			fclose(file);
+			result = true;
+		}
+	}
+
+	/* リソース解放して終了 */
+	cJSON_Delete(jsonRoot);
+	return result;
+}
+
+/*=============================================================================
 ▼	上書き確認関連
 -----------------------------------------------------------------------------*/
 void AppSetForceOverWriteFlag(bool flag){
@@ -949,6 +1519,38 @@ bool AppGetForceOverWriteFlag(){
 /*=============================================================================
 ▼	シェーダファイル関連
 -----------------------------------------------------------------------------*/
+static bool AppReloadGraphicsShader(){
+	GraphicsDeleteShader();
+	s_graphicsCreateShaderSucceeded = GraphicsCreateShader(s_graphicsShaderCode);
+	if (s_preferenceSettings.enableAutoRestartByGraphicsShader) {
+		AppRestart();
+	}
+	return s_graphicsCreateShaderSucceeded;
+}
+
+static bool AppReloadSoundShader(){
+	SoundDeleteShader();
+	s_soundCreateShaderSucceeded = SoundCreateShader(s_soundShaderCode);
+	if (s_preferenceSettings.enableAutoRestartBySoundShader) {
+		AppRestart();
+	}
+	return s_soundCreateShaderSucceeded;
+}
+
+bool AppOpenDefaultGraphicsShader(){
+	memset(s_graphicsShaderFileName, 0, sizeof(s_graphicsShaderFileName));
+	if (s_graphicsShaderCode != NULL) free(s_graphicsShaderCode);
+	s_graphicsShaderCode = MallocCopyString(s_defaultGraphicsShaderCode);
+	return AppReloadGraphicsShader();
+}
+
+bool AppOpenDefaultSoundShader(){
+	memset(s_soundShaderFileName, 0, sizeof(s_soundShaderFileName));
+	if (s_soundShaderCode != NULL) free(s_soundShaderCode);
+	s_soundShaderCode = MallocCopyString(s_defaultSoundShaderCode);
+	return AppReloadSoundShader();
+}
+
 bool AppOpenGraphicsShaderFile(const char *fileName){
 	if (IsValidFileName(fileName) == false) {
 		AppErrorMessageBox(APP_NAME, "Invalid file name %s.", fileName);
@@ -981,6 +1583,7 @@ bool AppOpenSoundShaderFile(const char *fileName){
 
 	return true;
 }
+
 bool AppOpenDragAndDroppedFile(const char *fileName){
 	if (IsValidFileName(fileName) == false) {
 		AppErrorMessageBox(APP_NAME, "Invalid file name %s.", fileName);
@@ -994,7 +1597,7 @@ bool AppOpenDragAndDroppedFile(const char *fileName){
 		AppOpenSoundShaderFile(fileName);
 	} else
 	if (IsSuffix(fileName, ".json")) {
-		AppImportProjectFile(fileName);
+		AppProjectImport(fileName);
 	} else {
 		AppErrorMessageBox(APP_NAME, "Cannot recognize file type.");
 	}
@@ -1017,8 +1620,8 @@ const char *AppGetCurrentSoundShaderCode(){
 /*=============================================================================
 ▼	その他
 -----------------------------------------------------------------------------*/
-void AppClearAllTexturesAndFremeBuffers(){
-	GraphicsClearAllTexturesAndFremeBuffers();
+void AppClearAllRenderTargets(){
+	GraphicsClearAllRenderTargets();
 }
 
 void AppRestart(){
@@ -1144,34 +1747,30 @@ bool AppUpdate(){
 	}
 
 	/* サウンドシェーダの更新 */
-	if (IsFileUpdated(s_soundShaderFileName, &s_soundShaderFileStat)) {
-		SoundClearOutputBuffer();
-		printf("\nupdate the sound shader.\n");
-		if (s_soundShaderCode != NULL) free(s_soundShaderCode);
-		s_soundShaderCode = MallocReadTextFile(s_soundShaderFileName);
-		if (s_soundShaderCode == NULL) {
-			AppErrorMessageBox(APP_NAME, "Failed to read %s.\n", s_soundShaderFileName);
-		} else {
-			SoundDeleteShader();
-			s_soundCreateShaderSucceeded = SoundCreateShader(s_soundShaderCode);
-			if (s_preferenceSettings.enableAutoRestartBySoundShader) {
-				AppRestart();
+	if (IsValidFileName(s_soundShaderFileName)) {
+		if (IsFileUpdated(s_soundShaderFileName, &s_soundShaderFileStat)) {
+			SoundClearOutputBuffer();
+			printf("\nupdate the sound shader.\n");
+			if (s_soundShaderCode != NULL) free(s_soundShaderCode);
+			s_soundShaderCode = MallocReadTextFile(s_soundShaderFileName);
+			if (s_soundShaderCode == NULL) {
+				AppErrorMessageBox(APP_NAME, "Failed to read %s.\n", s_soundShaderFileName);
+			} else {
+				AppReloadSoundShader();
 			}
 		}
 	}
 
 	/* グラフィクスシェーダの更新 */
-	if (IsFileUpdated(s_graphicsShaderFileName, &s_graphicsShaderFileStat)) {
-		printf("\nupdate the graphics shader.\n");
-		if (s_graphicsShaderCode != NULL) free(s_graphicsShaderCode);
-		s_graphicsShaderCode = MallocReadTextFile(s_graphicsShaderFileName);
-		if (s_graphicsShaderFileName == NULL) {
-			AppErrorMessageBox(APP_NAME, "Failed to read %s.\n", s_graphicsShaderFileName);
-		} else {
-			GraphicsDeleteShader();
-			s_graphicsCreateShaderSucceeded = GraphicsCreateShader(s_graphicsShaderCode);
-			if (s_preferenceSettings.enableAutoRestartByGraphicsShader) {
-				AppRestart();
+	if (IsValidFileName(s_graphicsShaderFileName)) {
+		if (IsFileUpdated(s_graphicsShaderFileName, &s_graphicsShaderFileStat)) {
+			printf("\nupdate the graphics shader.\n");
+			if (s_graphicsShaderCode != NULL) free(s_graphicsShaderCode);
+			s_graphicsShaderCode = MallocReadTextFile(s_graphicsShaderFileName);
+			if (s_graphicsShaderCode == NULL) {
+				AppErrorMessageBox(APP_NAME, "Failed to read %s.\n", s_graphicsShaderFileName);
+			} else {
+				AppReloadGraphicsShader();
 			}
 		}
 	}
@@ -1207,450 +1806,6 @@ bool AppUpdate(){
 	CheckGlError("post glFlush");
 
 	s_frameCount++;
-	return true;
-}
-
-/*=============================================================================
-▼	設定ファイル関連
------------------------------------------------------------------------------*/
-static bool JsonGetAsString(
-	cJSON *json,
-	const char *pointer,
-	char *dstString,
-	size_t dstStringSizeInBytes
-){
-	memset(dstString, 0, dstStringSizeInBytes);
-	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
-	if (jsonFound == NULL) return false;
-	if (cJSON_IsString(jsonFound) == false || (jsonFound->valuestring == NULL)) return false;
-	if (strlen(jsonFound->valuestring) + 1 /* 末端 \0 分 */ > dstStringSizeInBytes) return false;
-	strlcpy(dstString, jsonFound->valuestring, dstStringSizeInBytes);
-	return true;
-}
-
-static bool JsonGetAsInt(
-	cJSON *json,
-	const char *pointer,
-	int *dst
-){
-	*dst = 0;
-	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
-	if (jsonFound == NULL) return false;
-	if (cJSON_IsNumber(jsonFound) == false) return false;
-	*dst = (int)jsonFound->valuedouble;
-	return true;
-}
-
-static bool JsonGetAsFloat(
-	cJSON *json,
-	const char *pointer,
-	float *dst
-){
-	*dst = 0;
-	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
-	if (jsonFound == NULL) return false;
-	if (cJSON_IsNumber(jsonFound) == false) return false;
-	*dst = (float)jsonFound->valuedouble;
-	return true;
-}
-
-static bool JsonGetAsBool(
-	cJSON *json,
-	const char *pointer,
-	bool *dst
-){
-	*dst = false;
-	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
-	if (jsonFound == NULL) return false;
-	if (cJSON_IsBool(jsonFound) == false) return false;
-	*dst = cJSON_IsTrue(jsonFound);
-	return true;
-}
-
-static bool JsonGetAsVec3(
-	cJSON *json,
-	const char *pointer,
-	float vec3Dst[3]
-){
-	vec3Dst[0] = 0;
-	vec3Dst[1] = 0;
-	vec3Dst[2] = 0;
-	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
-	if (jsonFound == NULL) return false;
-
-	if (cJSON_IsArray(jsonFound) == false) return false;
-	if (cJSON_GetArraySize(jsonFound) != 3) return false;
-	cJSON *jsonFoundElement0 = cJSON_GetArrayItem(jsonFound, 0);
-	cJSON *jsonFoundElement1 = cJSON_GetArrayItem(jsonFound, 1);
-	cJSON *jsonFoundElement2 = cJSON_GetArrayItem(jsonFound, 2);
-	if (cJSON_IsNumber(jsonFoundElement0) == false) return false;
-	if (cJSON_IsNumber(jsonFoundElement1) == false) return false;
-	if (cJSON_IsNumber(jsonFoundElement2) == false) return false;
-	vec3Dst[0] = (float)jsonFoundElement0->valuedouble;
-	vec3Dst[1] = (float)jsonFoundElement1->valuedouble;
-	vec3Dst[2] = (float)jsonFoundElement2->valuedouble;
-	return true;
-}
-
-bool AppImportProjectFile(const char *fileName){
-	char *text = MallocReadTextFile(fileName);
-	if (text == NULL) {
-		AppErrorMessageBox(APP_NAME, "Failed to read %s.", fileName);
-		AppErrorMessageBox(APP_NAME, "Failed to import project.");
-		return false;
-	}
-
-	bool result = false;
-	{
-		cJSON *jsonRoot = cJSON_Parse(text);
-
-		if (jsonRoot == NULL) {
-			const char *errorPtr = cJSON_GetErrorPtr();
-			if (errorPtr != NULL) {
-				AppErrorMessageBox(APP_NAME, "Failed to parse %s.\n\n%s", fileName, errorPtr);
-				goto AppImportProjectFileEnd;
-			}
-		}
-
-		printf("\n");
-
-		char splittedDriveName[MAX_PATH] = {0};
-		char splittedDirectoryName[MAX_PATH] = {0};
-		char splittedFileName[MAX_PATH] = {0};
-		char splittedExtName[MAX_PATH] = {0};
-		_splitpath_s(
-			/* const char * path */				fileName,
-			/* char * drive */					splittedDriveName,
-			/* size_t driveNumberOfElements */	sizeof(splittedDriveName),
-			/* char * dir */					splittedDirectoryName,
-			/* size_t dirNumberOfElements */	sizeof(splittedDirectoryName),
-			/* char * fname */					splittedFileName,
-			/* size_t nameNumberOfElements */	sizeof(splittedFileName),
-			/* char * ext */					splittedExtName,
-			/* size_t extNumberOfElements */	sizeof(splittedExtName)
-		);
-
-		char driveAndDirectoryName[MAX_PATH] = {0};
-		snprintf(
-			driveAndDirectoryName,
-			sizeof(driveAndDirectoryName),
-			"%s%s",
-			splittedDriveName,
-			splittedDirectoryName
-		);
-
-		{
-			char graphicsShaderRelativeFileName[MAX_PATH] = {0};
-			char soundShaderRelativeFileName[MAX_PATH] = {0};
-
-			if (JsonGetAsString(jsonRoot, "/app/graphicsShaderFileName", graphicsShaderRelativeFileName, sizeof(graphicsShaderRelativeFileName)) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsString(jsonRoot, "/app/soundShaderFileName",    soundShaderRelativeFileName, sizeof(soundShaderRelativeFileName)      ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/app/xReso",                 &s_xReso) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/app/yReso",                 &s_yReso) == false) goto AppImportProjectFileEnd;
-
-			PathCombine(
-				/* LPSTR  pszDest */	s_graphicsShaderFileName,
-				/* LPCSTR pszDir */		driveAndDirectoryName,
-				/* LPCSTR pszFile */	graphicsShaderRelativeFileName
-			);
-			PathCombine(
-				/* LPSTR  pszDest */	s_soundShaderFileName,
-				/* LPCSTR pszDir */		driveAndDirectoryName,
-				/* LPCSTR pszFile */	soundShaderRelativeFileName
-			);
-		}
-		{
-			if (JsonGetAsVec3  (jsonRoot, "/camera/vec3Pos",       s_camera.vec3Pos     ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsVec3  (jsonRoot, "/camera/vec3Ang",       s_camera.vec3Ang     ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsFloat (jsonRoot, "/camera/fovYAsRadian", &s_camera.fovYAsRadian) == false) goto AppImportProjectFileEnd;
-		}
-		{
-			char relativeFileName[MAX_PATH] = {0};
-
-			if (JsonGetAsString(jsonRoot, "/captureScreenShotSettings/fileName",          relativeFileName, sizeof(relativeFileName)    ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/xReso",             &s_captureScreenShotSettings.xReso            ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/yReso",             &s_captureScreenShotSettings.yReso            ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/captureScreenShotSettings/replaceAlphaByOne", &s_captureScreenShotSettings.replaceAlphaByOne) == false) goto AppImportProjectFileEnd;
-
-			PathCombine(
-				/* LPSTR  pszDest */	s_captureScreenShotSettings.fileName,
-				/* LPCSTR pszDir */		driveAndDirectoryName,
-				/* LPCSTR pszFile */	relativeFileName
-			);
-		}
-		{
-			char relativeFileName[MAX_PATH] = {0};
-
-			if (JsonGetAsString(jsonRoot, "/captureCubemapSettings/fileName", relativeFileName, sizeof(relativeFileName)) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/captureCubemapSettings/reso",     &s_captureCubemapSettings.reso            ) == false) goto AppImportProjectFileEnd;
-
-			PathCombine(
-				/* LPSTR  pszDest */	s_captureCubemapSettings.fileName,
-				/* LPCSTR pszDir */		driveAndDirectoryName,
-				/* LPCSTR pszFile */	relativeFileName
-			);
-		}
-		{
-			if (JsonGetAsInt   (jsonRoot, "/renderSettings/pixelFormat",                 (int *)&s_renderSettings.pixelFormat         ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableMultipleRenderTargets", &s_renderSettings.enableMultipleRenderTargets) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/renderSettings/numEnabledRenderTargets",     &s_renderSettings.numEnabledRenderTargets    ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableBackBuffer",            &s_renderSettings.enableBackBuffer           ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableMipmapGeneration",      &s_renderSettings.enableMipmapGeneration     ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/renderSettings/textureFilter",               (int *)&s_renderSettings.textureFilter       ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/renderSettings/textureWrap",                 (int *)&s_renderSettings.textureWrap         ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableSwapIntervalControl",   &s_renderSettings.enableSwapIntervalControl  ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/renderSettings/swapInterval",                (int *)&s_renderSettings.swapInterval        ) == false) goto AppImportProjectFileEnd;
-		}
-		{
-			if (JsonGetAsBool  (jsonRoot, "/preferenceSettings/enableAutoRestartByGraphicsShader", &s_preferenceSettings.enableAutoRestartByGraphicsShader) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/preferenceSettings/enableAutoRestartBySoundShader",    &s_preferenceSettings.enableAutoRestartBySoundShader   ) == false) goto AppImportProjectFileEnd;
-		}
-		{
-			char relativeFileName[MAX_PATH] = {0};
-
-			if (JsonGetAsString(jsonRoot, "/executableExportSettings/fileName",                         relativeFileName, sizeof(relativeFileName)                  ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/xReso",                            &s_executableExportSettings.xReso                           ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/yReso",                            &s_executableExportSettings.yReso                           ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsFloat (jsonRoot, "/executableExportSettings/durationInSeconds",                &s_executableExportSettings.durationInSeconds               ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamples",            &s_executableExportSettings.numSoundBufferSamples           ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferAvailableSamples",   &s_executableExportSettings.numSoundBufferAvailableSamples  ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamplesPerDispatch", &s_executableExportSettings.numSoundBufferSamplesPerDispatch) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableFrameCountUniform",          &s_executableExportSettings.enableFrameCountUniform         ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableSoundDispatchWait",          &s_executableExportSettings.enableSoundDispatchWait         ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noRenaming", &s_executableExportSettings.shaderMinifierOptions.noRenaming) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noSequence", &s_executableExportSettings.shaderMinifierOptions.noSequence) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/smoothstep", &s_executableExportSettings.shaderMinifierOptions.smoothstep) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyHeader",    &s_executableExportSettings.crinklerOptions.useTinyHeader   ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyImport",    &s_executableExportSettings.crinklerOptions.useTinyImport   ) == false) goto AppImportProjectFileEnd;
-
-			PathCombine(
-				/* LPSTR  pszDest */	s_executableExportSettings.fileName,
-				/* LPCSTR pszDir */		driveAndDirectoryName,
-				/* LPCSTR pszFile */	relativeFileName
-			);
-		}
-		{
-			char relativeDirectoryName[MAX_PATH] = {0};
-
-			if (JsonGetAsString(jsonRoot, "/recordImageSequenceSettings/directoryName",      relativeDirectoryName, sizeof(relativeDirectoryName)) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/xReso",              &s_recordImageSequenceSettings.xReso                ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/yReso",              &s_recordImageSequenceSettings.yReso                ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/startTimeInSeconds", &s_recordImageSequenceSettings.startTimeInSeconds   ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/durationInSeconds",  &s_recordImageSequenceSettings.durationInSeconds    ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/framesPerSecond",    &s_recordImageSequenceSettings.framesPerSecond      ) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsBool  (jsonRoot, "/recordImageSequenceSettings/replaceAlphaByOne",  &s_recordImageSequenceSettings.replaceAlphaByOne    ) == false) goto AppImportProjectFileEnd;
-
-			PathCombine(
-				/* LPSTR  pszDest */	s_recordImageSequenceSettings.directoryName,
-				/* LPCSTR pszDir */		driveAndDirectoryName,
-				/* LPCSTR pszFile */	relativeDirectoryName
-			);
-		}
-		{
-			char relativeFileName[MAX_PATH] = {0};
-
-			if (JsonGetAsString(jsonRoot, "/captureSoundSettings/fileName",          relativeFileName, sizeof(relativeFileName)) == false) goto AppImportProjectFileEnd;
-			if (JsonGetAsFloat (jsonRoot, "/captureSoundSettings/durationInSeconds", &s_captureSoundSettings.durationInSeconds ) == false) goto AppImportProjectFileEnd;
-
-			PathCombine(
-				/* LPSTR  pszDest */	s_captureSoundSettings.fileName,
-				/* LPCSTR pszDir */		driveAndDirectoryName,
-				/* LPCSTR pszFile */	relativeFileName
-			);
-		}
-
-		result = true;
-	}
-
-AppImportProjectFileEnd:
-	if (result) {
-		AppMessageBox(APP_NAME, "Import project successfully.");
-	} else {
-		AppErrorMessageBox(APP_NAME, "Failed to import project.");
-	}
-
-	free(text);
-
-	return result;
-}
-
-bool AppExportProjectFile(const char *fileName){
-	FILE *file = fopen(fileName, "wb");
-	if (file == NULL) {
-		AppErrorMessageBox(APP_NAME, "Failed to create %s.", fileName);
-		AppErrorMessageBox(APP_NAME, "Failed to export project.");
-		return false;
-	}
-
-	{
-		cJSON *jsonRoot = cJSON_CreateObject();
-
-		{
-			cJSON *jsonApp = cJSON_AddObjectToObject(jsonRoot, "app");
-
-			char graphicsShaderRelativeFileName[MAX_PATH] = {0};
-			PathRelativePathTo(
-				/* LPSTR  pszPath */	graphicsShaderRelativeFileName,
-				/* LPCSTR pszFrom */	fileName,
-				/* DWORD  dwAttrFrom */	0 /* from file */,
-				/* LPCSTR pszTo */		s_graphicsShaderFileName,
-				/* DWORD  dwAttrTo */	0 /* to file */
-			);
-			char soundShaderRelativeFileName[MAX_PATH] = {0};
-			PathRelativePathTo(
-				/* LPSTR  pszPath */	soundShaderRelativeFileName,
-				/* LPCSTR pszFrom */	fileName,
-				/* DWORD  dwAttrFrom */	0 /* from file */,
-				/* LPCSTR pszTo */		s_soundShaderFileName,
-				/* DWORD  dwAttrTo */	0 /* to file */
-			);
-
-			cJSON_AddStringToObject(jsonApp, "graphicsShaderFileName" , graphicsShaderRelativeFileName);
-			cJSON_AddStringToObject(jsonApp, "soundShaderFileName"    , soundShaderRelativeFileName);
-			cJSON_AddNumberToObject(jsonApp, "xReso"                  , s_xReso);
-			cJSON_AddNumberToObject(jsonApp, "yReso"                  , s_yReso);
-		}
-		{
-			cJSON *jsonCamera = cJSON_AddObjectToObject(jsonRoot, "camera");
-
-			cJSON *jsonVec3Pos = cJSON_AddArrayToObject(jsonCamera, "vec3Pos");
-			cJSON_AddItemToArray(jsonVec3Pos, cJSON_CreateNumber(s_camera.vec3Pos[0]));
-			cJSON_AddItemToArray(jsonVec3Pos, cJSON_CreateNumber(s_camera.vec3Pos[1]));
-			cJSON_AddItemToArray(jsonVec3Pos, cJSON_CreateNumber(s_camera.vec3Pos[2]));
-
-			cJSON *jsonVec3Ang = cJSON_AddArrayToObject(jsonCamera, "vec3Ang");
-			cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[0]));
-			cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[1]));
-			cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[2]));
-
-			cJSON_AddNumberToObject(jsonCamera, "fovYAsRadian", s_camera.fovYAsRadian);
-		}
-		{
-			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureScreenShotSettings");
-
-			char relativeFileName[MAX_PATH] = {0};
-			PathRelativePathTo(
-				/* LPSTR  pszPath */	relativeFileName,
-				/* LPCSTR pszFrom */	fileName,
-				/* DWORD  dwAttrFrom */	0 /* from file */,
-				/* LPCSTR pszTo */		s_captureScreenShotSettings.fileName,
-				/* DWORD  dwAttrTo */	0 /* to file */
-			);
-
-			cJSON_AddStringToObject(jsonSettings, "fileName"         , relativeFileName);
-			cJSON_AddNumberToObject(jsonSettings, "xReso"            , s_captureScreenShotSettings.xReso);
-			cJSON_AddNumberToObject(jsonSettings, "yReso"            , s_captureScreenShotSettings.yReso);
-			cJSON_AddBoolToObject  (jsonSettings, "replaceAlphaByOne", s_captureScreenShotSettings.replaceAlphaByOne);
-		}
-		{
-			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureCubemapSettings");
-
-			char relativeFileName[MAX_PATH] = {0};
-			PathRelativePathTo(
-				/* LPSTR  pszPath */	relativeFileName,
-				/* LPCSTR pszFrom */	fileName,
-				/* DWORD  dwAttrFrom */	0 /* from file */,
-				/* LPCSTR pszTo */		s_captureCubemapSettings.fileName,
-				/* DWORD  dwAttrTo */	0 /* to file */
-			);
-
-			cJSON_AddStringToObject(jsonSettings, "fileName", relativeFileName);
-			cJSON_AddNumberToObject(jsonSettings, "reso"    , s_captureCubemapSettings.reso);
-		}
-		{
-			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "renderSettings");
-			cJSON_AddNumberToObject(jsonSettings, "pixelFormat",                s_renderSettings.pixelFormat);
-			cJSON_AddBoolToObject  (jsonSettings, "enableMultipleRenderTargets",s_renderSettings.enableMultipleRenderTargets);
-			cJSON_AddNumberToObject(jsonSettings, "numEnabledRenderTargets",    s_renderSettings.numEnabledRenderTargets);
-			cJSON_AddBoolToObject  (jsonSettings, "enableBackBuffer",           s_renderSettings.enableBackBuffer);
-			cJSON_AddBoolToObject  (jsonSettings, "enableMipmapGeneration",     s_renderSettings.enableMipmapGeneration);
-			cJSON_AddNumberToObject(jsonSettings, "textureFilter",              s_renderSettings.textureFilter);
-			cJSON_AddNumberToObject(jsonSettings, "textureWrap",                s_renderSettings.textureWrap);
-			cJSON_AddBoolToObject  (jsonSettings, "enableSwapIntervalControl",  s_renderSettings.enableSwapIntervalControl);
-			cJSON_AddNumberToObject(jsonSettings, "swapInterval",               s_renderSettings.swapInterval);
-		}
-		{
-			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "preferenceSettings");
-			cJSON_AddBoolToObject(jsonSettings, "enableAutoRestartByGraphicsShader", s_preferenceSettings.enableAutoRestartByGraphicsShader);
-			cJSON_AddBoolToObject(jsonSettings, "enableAutoRestartBySoundShader",    s_preferenceSettings.enableAutoRestartBySoundShader);
-		}
-		{
-			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "executableExportSettings");
-
-			char relativeFileName[MAX_PATH] = {0};
-			PathRelativePathTo(
-				/* LPSTR  pszPath */	relativeFileName,
-				/* LPCSTR pszFrom */	fileName,
-				/* DWORD  dwAttrFrom */	0 /* from file */,
-				/* LPCSTR pszTo */		s_executableExportSettings.fileName,
-				/* DWORD  dwAttrTo */	0 /* to file */
-			);
-
-			cJSON_AddStringToObject(jsonSettings, "fileName",                         relativeFileName);
-			cJSON_AddNumberToObject(jsonSettings, "xReso",                            s_executableExportSettings.xReso);
-			cJSON_AddNumberToObject(jsonSettings, "yReso",                            s_executableExportSettings.yReso);
-			cJSON_AddNumberToObject(jsonSettings, "durationInSeconds",                s_executableExportSettings.durationInSeconds);
-			cJSON_AddNumberToObject(jsonSettings, "numSoundBufferSamples",            s_executableExportSettings.numSoundBufferSamples);
-			cJSON_AddNumberToObject(jsonSettings, "numSoundBufferAvailableSamples",   s_executableExportSettings.numSoundBufferAvailableSamples);
-			cJSON_AddNumberToObject(jsonSettings, "numSoundBufferSamplesPerDispatch", s_executableExportSettings.numSoundBufferSamplesPerDispatch);
-			cJSON_AddBoolToObject  (jsonSettings, "enableFrameCountUniform",          s_executableExportSettings.enableFrameCountUniform);
-			cJSON_AddBoolToObject  (jsonSettings, "enableSoundDispatchWait",          s_executableExportSettings.enableSoundDispatchWait);
-			{
-				cJSON *jsonOptions = cJSON_AddObjectToObject(jsonSettings, "shaderMinifierOptions");
-				cJSON_AddBoolToObject(jsonOptions, "noRenaming", s_executableExportSettings.shaderMinifierOptions.noRenaming);
-				cJSON_AddBoolToObject(jsonOptions, "noSequence", s_executableExportSettings.shaderMinifierOptions.noSequence);
-				cJSON_AddBoolToObject(jsonOptions, "smoothstep", s_executableExportSettings.shaderMinifierOptions.smoothstep);
-			}
-			{
-				cJSON *jsonOptions = cJSON_AddObjectToObject(jsonSettings, "crinklerOptions");
-				cJSON_AddBoolToObject(jsonOptions, "useTinyHeader", s_executableExportSettings.crinklerOptions.useTinyHeader);
-				cJSON_AddBoolToObject(jsonOptions, "useTinyImport", s_executableExportSettings.crinklerOptions.useTinyImport);
-			}
-		}
-		{
-			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "recordImageSequenceSettings");
-
-			char relativeDirectoryName[MAX_PATH] = {0};
-			PathRelativePathTo(
-				/* LPSTR  pszPath */	relativeDirectoryName,
-				/* LPCSTR pszFrom */	fileName,
-				/* DWORD  dwAttrFrom */	0 /* from file */,
-				/* LPCSTR pszTo */		s_recordImageSequenceSettings.directoryName,
-				/* DWORD  dwAttrTo */	FILE_ATTRIBUTE_DIRECTORY /* to directory */
-			);
-
-			cJSON_AddStringToObject(jsonSettings, "directoryName",      relativeDirectoryName);
-			cJSON_AddNumberToObject(jsonSettings, "xReso",              s_recordImageSequenceSettings.xReso);
-			cJSON_AddNumberToObject(jsonSettings, "yReso",              s_recordImageSequenceSettings.yReso);
-			cJSON_AddNumberToObject(jsonSettings, "startTimeInSeconds", s_recordImageSequenceSettings.startTimeInSeconds);
-			cJSON_AddNumberToObject(jsonSettings, "durationInSeconds",  s_recordImageSequenceSettings.durationInSeconds);
-			cJSON_AddNumberToObject(jsonSettings, "framesPerSecond",    s_recordImageSequenceSettings.framesPerSecond);
-			cJSON_AddBoolToObject  (jsonSettings, "replaceAlphaByOne",  s_recordImageSequenceSettings.replaceAlphaByOne);
-		}
-		{
-			cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureSoundSettings");
-
-			char relativeFileName[MAX_PATH] = {0};
-			PathRelativePathTo(
-				/* LPSTR  pszPath */	relativeFileName,
-				/* LPCSTR pszFrom */	fileName,
-				/* DWORD  dwAttrFrom */	0 /* from file */,
-				/* LPCSTR pszTo */		s_captureSoundSettings.fileName,
-				/* DWORD  dwAttrTo */	0 /* to file */
-			);
-
-			cJSON_AddStringToObject(jsonSettings, "fileName",          relativeFileName);
-			cJSON_AddNumberToObject(jsonSettings, "durationInSeconds", s_captureSoundSettings.durationInSeconds);
-		}
-
-		fputs(cJSON_Print(jsonRoot), file);
-
-		cJSON_Delete(jsonRoot);
-	}
-
-	fclose(file);
-
-	AppMessageBox(APP_NAME, "Export project successfully.");
 	return true;
 }
 
@@ -1691,14 +1846,12 @@ bool AppInitialize(){
 		AppErrorMessageBox(APP_NAME, "SoundInitialize() failed.");
 		return false;
 	}
-	s_soundShaderCode = MallocCopyString(s_defaultSoundShaderCode);
-	s_soundCreateShaderSucceeded = SoundCreateShader(s_soundShaderCode);
+	AppOpenDefaultSoundShader();
 	if (GraphicsInitialize() == false) {
 		AppErrorMessageBox(APP_NAME, "GraphicsInitialize() failed.");
 		return false;
 	}
-	s_graphicsShaderCode = MallocCopyString(s_defaultGraphicsShaderCode);
-	s_graphicsCreateShaderSucceeded = GraphicsCreateShader(s_graphicsShaderCode);
+	AppOpenDefaultGraphicsShader();
 	SoundRestartWaveOut();
 	return true;
 }

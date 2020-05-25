@@ -119,7 +119,7 @@ static void GraphicsDeleteFrameBuffer(
 	}
 }
 
-void GraphicsClearAllTexturesAndFremeBuffers(){
+void GraphicsClearAllRenderTargets(){
 	GraphicsDeleteFrameBuffer();
 	GraphicsCreateFrameBuffer(s_xReso, s_yReso, &s_currentRenderSettings);
 }
@@ -686,8 +686,8 @@ bool GraphicsCaptureCubemap(
 	const RenderSettings *renderSettings,
 	const CaptureCubemapSettings *captureSettings
 ){
-	/* 先だって画像の全クリア */
-	GraphicsClearAllTexturesAndFremeBuffers();
+	/* 先だって全レンダーターゲットのクリア */
+	GraphicsClearAllRenderTargets();
 
 	/* FBO 作成 */
 	GLuint offscreenRenderTargetFbo = 0;

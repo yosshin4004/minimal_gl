@@ -92,6 +92,10 @@ MinimalGL を使った PC 4K Intro 作成の簡単な流れは以下のように
 	shader_minifier (https://github.com/laurentlb/Shader_Minifier) によるシェーダコード短縮化、
 	および crinkler (http://www.crinkler.net/) による実行ファイル圧縮が適用されます。
 
+- プロジェクトファイルエクスポート/インポート  
+	現在の状態をプロジェクトファイルにエクスポートします。
+	プロジェクトファイルをインポートすることで状態を復元できます。
+
 - スクリーンショットキャプチャ  
 	Unorm8 RGBA フォーマットの png ファイルとしてスクリーンショットをキャプチャします。
 
