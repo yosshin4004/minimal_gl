@@ -242,7 +242,7 @@ static LRESULT CALLBACK MainWndProc(
 					if (s_fullScreen) {
 						ToggleFullScreen();
 					} else {
-						static char fileName[MAX_PATH];
+						char fileName[MAX_PATH] = {0};
 						OPENFILENAME ofn = {0};
 						ofn.lStructSize = sizeof(OPENFILENAME);
 						ofn.hwndOwner = NULL;
@@ -265,7 +265,7 @@ static LRESULT CALLBACK MainWndProc(
 					if (s_fullScreen) {
 						ToggleFullScreen();
 					} else {
-						static char fileName[MAX_PATH];
+						char fileName[MAX_PATH] = {0};
 						OPENFILENAME ofn = {0};
 						ofn.lStructSize = sizeof(OPENFILENAME);
 						ofn.hwndOwner = NULL;
@@ -382,7 +382,7 @@ static LRESULT CALLBACK MainWndProc(
 						ofn.nMaxFile = sizeof(fileName);
 						ofn.lpstrTitle = (LPSTR)"Export project to json file";
 
-						if (GetOpenFileName(&ofn)) {
+						if (GetSaveFileName(&ofn)) {
 							AppProjectExport(fileName);
 						}
 					}
