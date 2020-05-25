@@ -39,6 +39,7 @@ typedef enum {
 	GlExtBufferData,
 	GlExtBufferSubData,
 	GlExtGetBufferSubData,
+	GlExtCopyNamedBufferSubData,
 	GlExtMapBuffer,
 	GlExtUnmapBuffer,
 	GlExtTransformFeedbackVaryings,
@@ -94,6 +95,7 @@ extern void *g_glExtFunctions[NUM_GLEXT_FUNCTIONS];
 #define glExtBufferData					((PFNGLBUFFERDATAPROC)g_glExtFunctions[GlExtBufferData])
 #define glExtBufferSubData				((PFNGLBUFFERSUBDATAPROC)g_glExtFunctions[GlExtBufferSubData])
 #define glExtGetBufferSubData			((PFNGLGETBUFFERSUBDATAPROC)g_glExtFunctions[GlExtGetBufferSubData])
+#define glExtCopyNamedBufferSubData		((PFNGLCOPYNAMEDBUFFERSUBDATAPROC)g_glExtFunctions[GlExtCopyNamedBufferSubData])
 #define glExtMapBuffer					((PFNGLMAPBUFFERPROC)g_glExtFunctions[GlExtMapBuffer])
 #define glExtUnmapBuffer				((PFNGLUNMAPBUFFERPROC)g_glExtFunctions[GlExtUnmapBuffer])
 #define glExtTransformFeedbackVaryings	((PFNGLTRANSFORMFEEDBACKVARYINGSPROC)g_glExtFunctions[GlExtTransformFeedbackVaryings])

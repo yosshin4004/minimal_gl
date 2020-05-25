@@ -32,6 +32,7 @@ static const char s_margedFunctionName[] =
 	"glBufferData\0"
 	"glBufferSubData\0"
 	"glGetBufferSubData\0"
+	"glCopyNamedBufferSubData\0"
 	"glMapBuffer\0"
 	"glUnmapBuffer\0"
 	"glTransformFeedbackVaryings\0"
