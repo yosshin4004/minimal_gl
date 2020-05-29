@@ -163,7 +163,7 @@ static const char s_defaultGraphicsShaderCode[] =
 	"#endif\n"
 
 
-	/* 現在時刻 */
+	/* 経過時間 */
 	"float g_time = g_waveOutPos /" TO_STRING(NUM_SOUND_SAMPLES_PER_SEC) ".;\n"
 
 	"void main(){\n"
@@ -1700,7 +1700,7 @@ void AppFastBackward(){
 
 
 bool AppUpdate(){
-	/* 現在時刻を取得 */
+	/* 経過時間を取得 */
 	double fp64CurrentTime;
 	if (s_paused) {
 		fp64CurrentTime = s_fp64PausedTime;

@@ -296,7 +296,7 @@ bool RecordImageSequence(
 			SendMessage(hDwnd, WM_APP, frameCount, numFrameCount);
 			UpdateWindow(hDwnd);
 
-			/* 現在時刻 */
+			/* 経過時間 */
 			float time = startTime + (float)frameCount / framesPerSecond;
 
 			/* サウンド再生位置 */
