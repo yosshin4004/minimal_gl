@@ -159,19 +159,24 @@ MinimalGL には以下の制限事項があります。
 
 	- src/external/cJSON 以下
 
-		cJSON のライセンスに従います。
+		cJSON のライセンスに従います。  
+		入手元 : https://github.com/DaveGamble/cJSON
 
 	- src/external/stb 以下
 
-		stb のライセンスに従います。
+		stb のライセンスに従います。  
+		入手元 : https://github.com/nothings/stb
 
-	- src/GL src/KHR 以下
+	- src/GL 及び src/KHR 以下
 
-		ソースコード中に書かれているライセンスに従います。
+		ソースコード中に書かれているライセンスに従います。  
+		入手元 : https://github.com/KhronosGroup/OpenGL-Registry
 
 	- examples/ 以下
 
 		twigl 互換サンプルコードに含まれる main 関数は twigl のデフォルトシェーダを流用しています。
+		twigl のライセンスに従います。  
+		入手元 : https://github.com/doxas/twigl
 
 
 - 上記以外
