@@ -55,9 +55,9 @@ MinimalGL を使った PC 4K Intro 作成の簡単な流れは以下のように
 	メインウィンドウに \*.snd.glsl ファイルをドラッグ＆ドロップするか、
 	メニューから [File]→[Open Sound Shader] を選択し \*.snd.glsl ファイルを読み込みます。
 
-4. シェーダの修正  
-	本ツールは、シェーダのエディット機能は持ちません。
-	シェーダの修正は、ユーザーお手持ちのテキストエディタ等で行ってください。
+4. シェーダのエディット  
+	MinimalGL は、シェーダのエディット機能を持ちません。
+	シェーダのエディットは、ユーザーお手持ちのテキストエディタ等で行ってください。
 	現在描画中（再生中）の glsl ファイルのタイムスタンプが更新されると、
 	直ちにリコンパイルされ描画結果（再生中）に反映されます。
 
@@ -68,7 +68,8 @@ MinimalGL を使った PC 4K Intro 作成の簡単な流れは以下のように
 
 6. minify  
 	ファイルサイズが 4096 バイト未満になっていない場合、ファイルサイズ削減作業（minify）を行います。
-	実行ファイルエクスポート時に同時に生成される \*.inl ファイル、\*.crinkler_report.html を参考にしつつ、シェーダコードを短くしていきます。
+	実行ファイルエクスポート時に同時に生成される minify されたシェーダコード（\*.inl ファイル）、
+	圧縮結果のレポート（\*.crinkler_report.html）を参考にしつつ、シェーダコードを短くしていきます。
 	実行ファイルエクスポート時の設定を調整したり、
 	描画設定（[Setup]→[Render Settings]）から無駄な機能を off にすることでもファイルサイズを削減できます。
 
@@ -85,7 +86,7 @@ MinimalGL を使った PC 4K Intro 作成の簡単な流れは以下のように
 
 - シェーダホットリロード  
 	シェーダファイルが更新されると直ちに自動リロードを行います。
-	現在時刻をリセットせずにリロードする機能も提供されています（ライブコーディング用途を想定）。
+	現在時刻（uniform float time）をリセットせずにリロードする機能も提供されています（ライブコーディング用途を想定）。
 
 - 実行ファイルエクスポート  
 	現在のグラフィクス及びサウンドの内容を実行ファイルにエクスポートします。
@@ -93,7 +94,7 @@ MinimalGL を使った PC 4K Intro 作成の簡単な流れは以下のように
 	および crinkler (http://www.crinkler.net/) による実行ファイル圧縮が適用されます。
 
 - プロジェクトファイルエクスポート/インポート  
-	現在の状態をプロジェクトファイルにエクスポートします。
+	現在の状態（現在のシェーダファイル名、カメラの位置、描画設定、エクスポート設定等々）をプロジェクトファイルにエクスポートします。
 	プロジェクトファイルをインポートすることで状態を復元できます。
 
 - スクリーンショットキャプチャ  
@@ -142,7 +143,40 @@ MinimalGL には以下の制限事項があります。
 
 # ライセンス
 
-Apache License Version 2.0 が適用されます。
+- 外部由来のもの
 
-This software includes the work that is distributed in the Apache License 2.0
+	- src/external/cJSON 以下
+
+		cJSON のライセンスに従います。
+
+	- src/external/stb 以下
+
+		stb のライセンスに従います。
+
+	- src/GL src/KHR 以下
+
+		ソースコード中に書かれたライセンスに従います。
+
+	- examples/ 以下
+
+		twigl 互換サンプルコードに含まれる main 関数は twigl のデフォルトシェーダを流用しています。
+
+
+- 上記以外
+
+	(C) Yosshin (aka 0x4015)  
+	Apache License Version 2.0 が適用されます。  
+	This software includes the work that is distributed in the Apache License 2.0
+
+
+# 謝辞 Special Thanks
+
+- Mentor/TBC and Blueberry/Loonies
+
+	The creators of Crinkler, a great compression tool.
+
+
+- LLB/Ctrl-Alt-Test
+
+	The creator of Shader Minifier, a great minify tool.
 
