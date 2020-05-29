@@ -29,15 +29,18 @@ MinimalGL は、このうち PC 4K Intro の作成に特化したツールです
 
 # 準備
 
-MinimalGL を利用するには、
-事前に以下のツールをパスの通ったディレクトリにインストールする必要があります。
+MinimalGL を利用するには、以下のツールが必要です。
 
-1. shader_minifier.exe  
-	https://github.com/laurentlb/Shader_Minifier/releases
+- Microsoft Visual Studio  
+	2019 以降を推奨。
 
+- shader_minifier.exe  
+	https://github.com/laurentlb/Shader_Minifier/releases  
+	パスの通ったディレクトリにコピーしておきます。
 
-2. crinkler.exe  
-	http://www.crinkler.net/
+- crinkler.exe  
+	http://www.crinkler.net/  
+	パスの通ったディレクトリにコピーしておきます。
 
 
 # 簡易チュートリアル
