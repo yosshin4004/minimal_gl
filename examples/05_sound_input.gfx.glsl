@@ -4,7 +4,7 @@
 /*
 	サウンド入力サンプルコード。
 
-	03_sound_output.snd.glsl と組み合わせることでサウンドが可視化される。
+	04_sound_output.snd.glsl と組み合わせることでサウンドが可視化される。
 */
 
 layout(location = 0) uniform int waveOutPosition;
