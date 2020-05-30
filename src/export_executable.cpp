@@ -388,8 +388,7 @@ bool ExportExecutableSub(
 		存在しないならパスの通ったディレクトリの crinkler.exe を選択。
 	*/
 	char crinklerPath[MAX_PATH] = {0};
-	strcpy_s(crinklerPath, sizeof(crinklerPath), selfDir);
-	strncat(crinklerPath, "crinkler.exe", sizeof(crinklerPath));
+	snprintf(crinklerPath, sizeof(crinklerPath), "%s%s", selfDir, "crinkler.exe");
 	bool enableWhereCrinklerPath = false;
 	if (IsValidFileName(crinklerPath) == false) {
 		enableWhereCrinklerPath = true;
@@ -402,8 +401,7 @@ bool ExportExecutableSub(
 		存在しないならパスの通ったディレクトリの shader_minifier.exe を選択。
 	*/
 	char shaderMinifierPath[MAX_PATH] = {0};
-	strcpy_s(shaderMinifierPath, sizeof(shaderMinifierPath), selfDir);
-	strncat(shaderMinifierPath, "shader_minifier.exe", sizeof(shaderMinifierPath));
+	snprintf(shaderMinifierPath, sizeof(shaderMinifierPath), "%s%s", selfDir, "shader_minifier.exe");
 	bool enableWhereShaderMinifier = false;
 	if (IsValidFileName(shaderMinifierPath) == false) {
 		enableWhereShaderMinifier = true;
