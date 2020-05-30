@@ -670,7 +670,7 @@ bool ExportExecutableSub(
 				"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 16 */
 				"/DARG_USE_TINYHEADER=%d "							/* arg 17 */
 				"/DARG_USE_TINYIMPORT=%d "							/* arg 18 */
-				"/I%s "												/* arg 19 */
+				"/I\"%s\" "											/* arg 19 */
 				"main.cpp || exit /b 2\n"
 #else
 			/* main.asm -> main.obj */
@@ -732,15 +732,15 @@ bool ExportExecutableSub(
 				"/PRINT:LABELS "
 				"/PRINT:IMPORTS "
 				"/PRINT:MODELS "
-				"/REPORT:%s "			/* crinkler arg 1 */
+				"/REPORT:\"%s\" "		/* crinkler arg 1 */
 				"/PROGRESSGUI "
 				"/NOINITIALIZERS "
 				"/HASHSIZE:300 "
 				"/OVERRIDEALIGNMENTS "
-				"/REUSE:%s "			/* crinkler arg 2 */
+				"/REUSE:\"%s\" "		/* crinkler arg 2 */
 				"/REUSEMODE:IMPROVE "
 				"%s"					/* crinkler arg 3 */
-				"/OUT:%s "				/* crinkler arg 4 */
+				"/OUT:\"%s\" "			/* crinkler arg 4 */
 #if USE_MAIN_CPP == 0
 				"resource.obj "
 #endif
@@ -748,8 +748,8 @@ bool ExportExecutableSub(
 			"|| exit /b 5\n"
 
 			/* 生成結果は exe のディレクトリにもコピーされる */
-			"copy graphics_fragment_shader.inl %s || exit /b 6\n"	/* crinkler arg 5 */
-			"copy sound_compute_shader.inl %s || exit /b 7\n"		/* crinkler arg 6 */
+			"copy graphics_fragment_shader.inl \"%s\" || exit /b 6\n"	/* crinkler arg 5 */
+			"copy sound_compute_shader.inl \"%s\" || exit /b 7\n"		/* crinkler arg 6 */
 			,
 			executableExportSettings->xReso,								/* arg 1 */
 			executableExportSettings->yReso,								/* arg 2 */
