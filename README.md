@@ -155,32 +155,26 @@ MinimalGL には以下の制限事項があります。
 
 # ライセンス
 
-- 外部由来のもの
-
-	- src/external/cJSON 以下
-
+- 外部由来のもの  
+	- src/external/cJSON 以下  
 		cJSON のライセンスに従います。  
 		入手元 : https://github.com/DaveGamble/cJSON
 
-	- src/external/stb 以下
-
+	- src/external/stb 以下  
 		stb のライセンスに従います。  
 		入手元 : https://github.com/nothings/stb
 
-	- src/GL 及び src/KHR 以下
-
+	- src/GL 及び src/KHR 以下  
 		ソースコード中に書かれているライセンスに従います。  
 		入手元 : https://github.com/KhronosGroup/OpenGL-Registry
 
-	- examples/ 以下
-
+	- examples/ 以下  
 		twigl 互換サンプルコードに含まれる main 関数は twigl のデフォルトシェーダを流用しています。
 		twigl のライセンスに従います。  
 		入手元 : https://github.com/doxas/twigl
 
 
-- 上記以外
-
+- 上記以外  
 	(C) Yosshin (aka 0x4015)  
 	Apache License Version 2.0 が適用されます。  
 	This software includes the work that is distributed in the Apache License 2.0
@@ -188,12 +182,10 @@ MinimalGL には以下の制限事項があります。
 
 # 謝辞 Special Thanks
 
-- Mentor/TBC and Blueberry/Loonies
-
+- Mentor/TBC and Blueberry/Loonies  
 	The creators of Crinkler, a great compression tool.
 
 
-- LLB/Ctrl-Alt-Test
-
+- LLB/Ctrl-Alt-Test  
 	The creator of Shader Minifier, a great minify tool.
 
