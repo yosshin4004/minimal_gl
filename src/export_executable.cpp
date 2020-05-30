@@ -375,6 +375,42 @@ bool ExportExecutableSub(
 	const RenderSettings *renderSettings,
 	const ExecutableExportSettings *executableExportSettings
 ){
+	/* 実行ファイルのパスを取得 */
+	char selfPath[MAX_PATH] = {0};
+	GetModuleFileName(NULL, selfPath, sizeof(selfPath));
+
+	/* 実行ファイルのディレクトリを取得 */
+	char selfDir[MAX_PATH] = {0};
+	SplitDirectoryFromFileName(selfDir, sizeof(selfDir), selfPath);
+
+	/*
+		実行ファイルのディレクトリに crinkler.exe が存在するならそのパスを、
+		存在しないならパスの通ったディレクトリの crinkler.exe を選択。
+	*/
+	char crinklerPath[MAX_PATH] = {0};
+	strcpy_s(crinklerPath, sizeof(crinklerPath), selfDir);
+	strncat(crinklerPath, "crinkler.exe", sizeof(crinklerPath));
+	bool enableWhereCrinklerPath = false;
+	if (IsValidFileName(crinklerPath) == false) {
+		enableWhereCrinklerPath = true;
+		strcpy_s(crinklerPath, sizeof(crinklerPath), "crinkler.exe");
+	}
+	printf("crinklerPath = %s\n", crinklerPath);
+
+	/*
+		実行ファイルのディレクトリに shader_minifier.exe が存在するならそのパスを、
+		存在しないならパスの通ったディレクトリの shader_minifier.exe を選択。
+	*/
+	char shaderMinifierPath[MAX_PATH] = {0};
+	strcpy_s(shaderMinifierPath, sizeof(shaderMinifierPath), selfDir);
+	strncat(shaderMinifierPath, "shader_minifier.exe", sizeof(shaderMinifierPath));
+	bool enableWhereShaderMinifier = false;
+	if (IsValidFileName(shaderMinifierPath) == false) {
+		enableWhereShaderMinifier = true;
+		strcpy_s(shaderMinifierPath, sizeof(shaderMinifierPath), "shader_minifier.exe");
+	}
+	printf("shaderMinifierPath = %s\n", shaderMinifierPath);
+
 	/* main.asm/main.cpp 生成 */
 #if USE_MAIN_CPP
 	CopyFileFromResource("IDR_MAIN_CPP", "MY_EMBEDDED_RESOURCE", mainCppFullPath);
@@ -503,14 +539,14 @@ bool ExportExecutableSub(
 					/EP	stdout に前処理します。#line なし
 					/D<name>{=|#}<text> マクロを定義します
 			*/
-			"cl /P /EP /DEXPORT_EXECUTABLE=1 /DSCREEN_XRESO=%d /DSCREEN_YRESO=%d graphics_fragment_shader.glsl || exit /b 2\n"
-			"cl /P /EP /DEXPORT_EXECUTABLE=1 /DSCREEN_XRESO=%d /DSCREEN_YRESO=%d sound_compute_shader.glsl || exit /b 3\n"
+			"cl /P /EP /DEXPORT_EXECUTABLE=1 /DSCREEN_XRESO=%d /DSCREEN_YRESO=%d graphics_fragment_shader.glsl || exit /b 2\n"		/* arg 1,2 */
+			"cl /P /EP /DEXPORT_EXECUTABLE=1 /DSCREEN_XRESO=%d /DSCREEN_YRESO=%d sound_compute_shader.glsl || exit /b 3\n"			/* arg 3,4 */
 
 			/*
 				version ディレクティブの復元
 			*/
-			"echo %s > graphics_fragment_shader.version\n"
-			"echo %s > sound_compute_shader.version\n"
+			"echo %s > graphics_fragment_shader.version\n"																/* arg 5 */
+			"echo %s > sound_compute_shader.version\n"																	/* arg 6 */
 			"copy /b graphics_fragment_shader.version + graphics_fragment_shader.i graphics_fragment_shader.tmp\n"
 			"copy /b sound_compute_shader.version + sound_compute_shader.i sound_compute_shader.tmp\n"
 			"del graphics_fragment_shader.version\n"
@@ -521,23 +557,24 @@ bool ExportExecutableSub(
 			"rename sound_compute_shader.tmp sound_compute_shader.i\n"
 
 			/*
-				shader_minifier の存在チェック
+				shader_minifier.exe の存在チェック
 			*/
-			"where shader_minifier.exe || exit /b 4\n"
+			"%swhere shader_minifier.exe || exit /b 4\n"																/* arg 7 = enableWhereShaderMinifier? "" : "rem " */
 
 			/*
 				graphics_fragment_shader.i -> graphics_fragment_shader.inl
 				sound_compute_shader.i -> sound_compute_shader.inl
 			*/
-			"shader_minifier %s graphics_fragment_shader.i -o graphics_fragment_shader.inl --format c-array || exit /b 5\n"
-			"shader_minifier %s sound_compute_shader.i -o sound_compute_shader.inl --format c-array || exit /b 6\n"
+			"\"%s\" %s graphics_fragment_shader.i -o graphics_fragment_shader.inl --format c-array || exit /b 5\n"		/* arg 8,9 = shader_minifier.exe のパスと引数 */
+			"\"%s\" %s sound_compute_shader.i -o sound_compute_shader.inl --format c-array || exit /b 6\n"				/* arg 10,11 = shader_minifier.exe のパスと引数 */
 			,
-			executableExportSettings->xReso, executableExportSettings->yReso,
-			executableExportSettings->xReso, executableExportSettings->yReso,
-			graphicsFragmentShaderVersionDirectiveBuffer,
-			soundComputeShaderVersionDirectiveBuffer,
-			shaderMinifierOptions,
-			shaderMinifierOptions
+			executableExportSettings->xReso, executableExportSettings->yReso,		/* arg 1,2 */
+			executableExportSettings->xReso, executableExportSettings->yReso,		/* arg 3,4 */
+			graphicsFragmentShaderVersionDirectiveBuffer,							/* arg 5 */
+			soundComputeShaderVersionDirectiveBuffer,								/* arg 6 */
+			enableWhereShaderMinifier? "" : "rem ",									/* arg 7 */
+			shaderMinifierPath, shaderMinifierOptions,								/* arg 8,9 */
+			shaderMinifierPath, shaderMinifierOptions								/* arg 10,11 */
 		);
 		fclose(file);
 	}
@@ -560,7 +597,9 @@ bool ExportExecutableSub(
 					AppErrorMessageBox(
 						APP_NAME,
 						"Failed to execute shader_minifier.exe.\n"
-						"Please install it and edit your PATH to include the installed directory.\n"
+						"\n"
+						"Please install shader_minifier.exe to the directory where the minimal_gl.exe is installed, "
+						"or edit your PATH to include the installed directory of the shader_minifier.exe.\n"
 						"\n"
 						"https://github.com/laurentlb/Shader_Minifier"
 					);
@@ -716,11 +755,11 @@ bool ExportExecutableSub(
 				"resource.cpp || exit /b 3\n"
 #endif
 
-			/* crinkler の存在チェック */
-			"where crinkler.exe || exit /b 4\n"
+			/* crinkler.exe の存在チェック */
+			"%swhere crinkler.exe || exit /b 4\n"					/* crinkler arg 1 = enableWhereCrinklerPath? "": "rem " */
 
 			/* main.obj -> main.exe */
-			"crinkler.exe "
+			"\"%s\" "												/* crinkler arg 2 = crinkler.exe のパス */
 				"OPENGL32.LIB WINMM.LIB KERNEL32.LIB USER32.LIB GDI32.LIB "
 				"/SUBSYSTEM:WINDOWS "
 				"/ENTRY:entrypoint "
@@ -732,15 +771,15 @@ bool ExportExecutableSub(
 				"/PRINT:LABELS "
 				"/PRINT:IMPORTS "
 				"/PRINT:MODELS "
-				"/REPORT:\"%s\" "		/* crinkler arg 1 */
+				"/REPORT:\"%s\" "		/* crinkler arg 3 = REPORT ファイル名 */
 				"/PROGRESSGUI "
 				"/NOINITIALIZERS "
 				"/HASHSIZE:300 "
 				"/OVERRIDEALIGNMENTS "
-				"/REUSE:\"%s\" "		/* crinkler arg 2 */
+				"/REUSE:\"%s\" "		/* crinkler arg 4 = REUSE ファイル名 */
 				"/REUSEMODE:IMPROVE "
-				"%s"					/* crinkler arg 3 */
-				"/OUT:\"%s\" "			/* crinkler arg 4 */
+				"%s"					/* crinkler arg 5 = 追加引数 */
+				"/OUT:\"%s\" "			/* crinkler arg 6 = 出力 exe ファイル名 */
 #if USE_MAIN_CPP == 0
 				"resource.obj "
 #endif
@@ -748,8 +787,8 @@ bool ExportExecutableSub(
 			"|| exit /b 5\n"
 
 			/* 生成結果は exe のディレクトリにもコピーされる */
-			"copy graphics_fragment_shader.inl \"%s\" || exit /b 6\n"	/* crinkler arg 5 */
-			"copy sound_compute_shader.inl \"%s\" || exit /b 7\n"		/* crinkler arg 6 */
+			"copy graphics_fragment_shader.inl \"%s\" || exit /b 6\n"	/* crinkler arg 7 = graphics_fragment_shader.inl コピー先 */
+			"copy sound_compute_shader.inl \"%s\" || exit /b 7\n"		/* crinkler arg 8 = sound_compute_shader.inl コピー先 */
 			,
 			executableExportSettings->xReso,								/* arg 1 */
 			executableExportSettings->yReso,								/* arg 2 */
@@ -787,12 +826,14 @@ bool ExportExecutableSub(
 			executableExportSettings->crinklerOptions.useTinyImport? 1:0,	/* arg 30 */
 #endif
 
-			crinklerReportFullPath,											/* crinkler arg 1 */
-			crinklerReuseFullPath,											/* crinkler arg 2 */
-			crinklerOptions,												/* crinkler arg 3 */
-			executableExportSettings->fileName,								/* crinkler arg 4 */
-			outputGraphicsFragmentShaderInlFullPath,						/* crinkler arg 5 */
-			outputSoundComputeShaderInlFullPath								/* crinkler arg 6 */
+			enableWhereCrinklerPath? "": "rem ",							/* crinkler arg 1 */
+			crinklerPath,													/* crinkler arg 2 */
+			crinklerReportFullPath,											/* crinkler arg 3 */
+			crinklerReuseFullPath,											/* crinkler arg 4 */
+			crinklerOptions,												/* crinkler arg 5 */
+			executableExportSettings->fileName,								/* crinkler arg 6 */
+			outputGraphicsFragmentShaderInlFullPath,						/* crinkler arg 7 */
+			outputSoundComputeShaderInlFullPath								/* crinkler arg 8 */
 		);
 		fclose(file);
 	}
@@ -819,7 +860,9 @@ bool ExportExecutableSub(
 					AppErrorMessageBox(
 						APP_NAME,
 						"Failed to execute crinkler.exe.\n"
-						"Please install it and edit your PATH to include the installed directory.\n"
+						"\n"
+						"Please install crinkler.exe to the directory where the minimal_gl.exe is installed, "
+						"or edit your PATH to include the installed directory of the crinkler.exe.\n"
 						"\n"
 						"http://www.crinkler.net/"
 					);

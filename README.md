@@ -34,13 +34,11 @@ MinimalGL を利用するには、以下のツールが必要です。
 - Microsoft Visual Studio  
 	2019 以降を推奨。
 
-- shader_minifier.exe  
+- shader_minifier.exe と crinkler.exe  
 	https://github.com/laurentlb/Shader_Minifier/releases  
-	パスの通ったディレクトリにコピーしておきます。
-
-- crinkler.exe  
 	http://www.crinkler.net/  
-	パスの通ったディレクトリにコピーしておきます。
+	minimal_gl.exe と同じディレクトリ、もしくはパスの通ったディレクトリにコピーしておきます
+	（minimal_gl.exe と同じディレクトリに置かれた方が優先されます）。
 
 
 # 簡易チュートリアル
