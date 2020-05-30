@@ -1538,6 +1538,28 @@ static bool AppReloadSoundShader(){
 	return s_soundCreateShaderSucceeded;
 }
 
+void AppGetDefaultDirectoryName(char *directoryName, size_t directoryNameSizeInBytes){
+	/*
+		デフォルトディレクトリとして妥当なパスを現在のプロジェクトファイルや
+		シェーダのパスなどから作成する。
+	*/
+	if (strcmp(s_projectFileName, "") != 0) {
+		SplitDirectoryFromFileName(directoryName, directoryNameSizeInBytes, s_projectFileName);
+		return;
+	}
+	if (strcmp(s_graphicsShaderFileName, "") != 0) {
+		SplitDirectoryFromFileName(directoryName, directoryNameSizeInBytes, s_graphicsShaderFileName);
+		return;
+	}
+	if (strcmp(s_soundShaderFileName, "") != 0) {
+		SplitDirectoryFromFileName(directoryName, directoryNameSizeInBytes, s_soundShaderFileName);
+		return;
+	}
+	char selfPath[MAX_PATH] = {0};
+	GetModuleFileName(NULL, selfPath, sizeof(selfPath));
+	SplitDirectoryFromFileName(directoryName, directoryNameSizeInBytes, selfPath);
+}
+
 bool AppOpenDefaultGraphicsShader(){
 	memset(s_graphicsShaderFileName, 0, sizeof(s_graphicsShaderFileName));
 	if (s_graphicsShaderCode != NULL) free(s_graphicsShaderCode);

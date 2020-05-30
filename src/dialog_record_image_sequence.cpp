@@ -87,18 +87,25 @@ static LRESULT CALLBACK DialogFunc(
 						outputDirectoryName, sizeof(outputDirectoryName)
 					);
 
-					/* ディレクトリ選択 UI */
-					SelectDirectory(
-						APP_NAME " : Select output directory",
-						outputDirectoryName,
-						outputDirectoryName, sizeof(outputDirectoryName)
-					);
+					/* 妥当なディレクトリでない場合はデフォルトディレクトリに置き換え */
+					if (IsValidDirectoryName(outputDirectoryName) == false) {
+						AppGetDefaultDirectoryName(outputDirectoryName, sizeof(outputDirectoryName));
+					}
 
-					/* 出力先ディレクトリをエディットボックスに設定 */
-					SetDlgItemText(
-						hDwnd, IDD_RECORD_IMAGE_SEQUENCE_OUTPUT_DIRECTORY,
-						outputDirectoryName
-					);
+					/* ディレクトリ選択 UI */
+					if (
+						SelectDirectory(
+							APP_NAME " : Select output directory",
+							outputDirectoryName,
+							outputDirectoryName, sizeof(outputDirectoryName)
+						)
+					) {
+						/* 出力先ディレクトリをエディットボックスに設定 */
+						SetDlgItemText(
+							hDwnd, IDD_RECORD_IMAGE_SEQUENCE_OUTPUT_DIRECTORY,
+							outputDirectoryName
+						);
+					}
 				} break;
 
 				/* OK */

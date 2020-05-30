@@ -356,6 +356,9 @@ void AppSetForceOverWriteFlag(bool flag);
 bool AppGetForceOverWriteFlag();
 
 
+/* デフォルトディレクトリの取得 */
+void AppGetDefaultDirectoryName(char *directoryName, size_t directoryNameSizeInBytes);
+
 /* デフォルトグラフィクスシェーダファイルを開く */
 bool AppOpenDefaultGraphicsShader();
 
