@@ -139,7 +139,8 @@ static LRESULT CALLBACK DialogFunc(
 					ofn.lStructSize = sizeof(OPENFILENAME);
 					ofn.hwndOwner = NULL;
 					ofn.lpstrFilter =
-						TEXT("EXE file (*.exe)\0*.exe\0");
+						"EXE file (*.exe)\0*.exe\0"
+						"\0";
 					ofn.lpstrFile = outputFileName;
 					ofn.nMaxFile = sizeof(outputFileName);
 					ofn.lpstrTitle = (LPSTR)"Select output executable file";

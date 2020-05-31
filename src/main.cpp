@@ -247,8 +247,9 @@ static LRESULT CALLBACK MainWndProc(
 						ofn.lStructSize = sizeof(OPENFILENAME);
 						ofn.hwndOwner = NULL;
 						ofn.lpstrFilter =
-							TEXT("Graphics shader file (*.gfx.glsl)\0*.gfx.glsl\0")
-							TEXT("All files (*.*)\0*.*\0\0");
+							"Graphics shader file (*.gfx.glsl)\0*.gfx.glsl\0"
+							"All files (*.*)\0*.*\0"
+							"\0";
 						ofn.lpstrFile = fileName;
 						ofn.nMaxFile = sizeof(fileName);
 						ofn.lpstrTitle = (LPSTR)"Open graphics shader file";
@@ -270,8 +271,9 @@ static LRESULT CALLBACK MainWndProc(
 						ofn.lStructSize = sizeof(OPENFILENAME);
 						ofn.hwndOwner = NULL;
 						ofn.lpstrFilter =
-							TEXT("Sound shader file (*.snd.glsl)\0*.snd.glsl\0")
-							TEXT("All files (*.*)\0*.*\0\0");
+							"Sound shader file (*.snd.glsl)\0*.snd.glsl\0"
+							"All files (*.*)\0*.*\0"
+							"\0";
 						ofn.lpstrFile = fileName;
 						ofn.nMaxFile = sizeof(fileName);
 						ofn.lpstrTitle = (LPSTR)"Open sound shader file";
@@ -354,7 +356,8 @@ static LRESULT CALLBACK MainWndProc(
 						ofn.lStructSize = sizeof(OPENFILENAME);
 						ofn.hwndOwner = NULL;
 						ofn.lpstrFilter =
-							TEXT("Project json file (*.json)\0*.json\0");
+							"Project json file (*.json)\0*.json\0"
+							"\0";
 						ofn.lpstrFile = fileName;
 						ofn.nMaxFile = sizeof(fileName);
 						ofn.lpstrTitle = (LPSTR)"Import project from json file";
@@ -377,7 +380,8 @@ static LRESULT CALLBACK MainWndProc(
 						ofn.lStructSize = sizeof(OPENFILENAME);
 						ofn.hwndOwner = NULL;
 						ofn.lpstrFilter =
-							TEXT("Project json file (*.json)\0*.json\0");
+							"Project json file (*.json)\0*.json\0"
+							"\0";
 						ofn.lpstrFile = fileName;
 						ofn.nMaxFile = sizeof(fileName);
 						ofn.lpstrTitle = (LPSTR)"Export project to json file";

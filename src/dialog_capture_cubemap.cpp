@@ -60,7 +60,8 @@ static LRESULT CALLBACK DialogFunc(
 					ofn.lStructSize = sizeof(OPENFILENAME);
 					ofn.hwndOwner = NULL;
 					ofn.lpstrFilter =
-						TEXT("DDS file (*.dds)\0*.dds\0");
+						"DDS file (*.dds)\0*.dds\0"
+						"\0";
 					ofn.lpstrFile = outputFileName;
 					ofn.nMaxFile = sizeof(outputFileName);
 					ofn.lpstrTitle = (LPSTR)"Select output cubemap file";

@@ -95,12 +95,13 @@ static LRESULT CALLBACK DialogFunc(
 								ofn.lStructSize = sizeof(OPENFILENAME);
 								ofn.hwndOwner = NULL;
 								ofn.lpstrFilter =
-									TEXT("PNG file (*.png)\0*.png\0");
+									"PNG file (*.png)\0*.png\0"
+									"\0";
 								ofn.lpstrFile = textureFileName;
 								ofn.nMaxFile = sizeof(textureFileName);
 								ofn.lpstrTitle = (LPSTR)"Select user texture file";
-								if (GetSaveFileName(&ofn)) {
-									/* 出力ファイル名をエディットボックスに設定 */
+								if (GetOpenFileName(&ofn)) {
+									/* ファイル名をエディットボックスに設定 */
 									SetDlgItemText(hDwnd, IDD_USER_TEXTURES_FILE_0 + userTextureIndex, textureFileName);
 								}
 							}

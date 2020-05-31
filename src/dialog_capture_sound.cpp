@@ -77,7 +77,8 @@ static LRESULT CALLBACK DialogFunc(
 					ofn.lStructSize = sizeof(OPENFILENAME);
 					ofn.hwndOwner = NULL;
 					ofn.lpstrFilter =
-						TEXT("WAV file (*.wav)\0*.wav\0");
+						"WAV file (*.wav)\0*.wav\0"
+						"\0";
 					ofn.lpstrFile = outputFileName;
 					ofn.nMaxFile = sizeof(outputFileName);
 					ofn.lpstrTitle = (LPSTR)"Select output sound file";
