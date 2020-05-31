@@ -23,6 +23,12 @@
 /* レガシー API に対する警告の抑制 */
 #pragma warning(disable:4996)
 
+/* BSD 系に存在する strlcpy 関数の互換実装 */
+size_t strlcpy(
+			char	*dst,
+	const	char	*src,
+			size_t	siz
+);
 
 /* ceil アライメント */
 int CeilAlign(

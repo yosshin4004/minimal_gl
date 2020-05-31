@@ -191,7 +191,12 @@ RemoveAndSaveVersionDirective(
 		/* 現在位置に version ディレクティブが存在するか？ */
 		if (strstr(p, "#version") == p) { 
 			/* 退避（改行コードを含まない）*/
-			strcpy_s(versionDirectiveBuffer, versionDirectiveBufferSizeInBytes, p);
+			/*
+				ここの文字列コピーは version ディレクティブ部のみコピーできれば良い。
+				strcpy_s だとバッファオーバーランしたときに警告されてしまうので、
+				strlcpy を使う。
+			*/
+			strlcpy(versionDirectiveBuffer, p, versionDirectiveBufferSizeInBytes);
 			char *q = StrFindChars(versionDirectiveBuffer, "\r\n");
 			if (q != NULL) *q = '\0';
 
