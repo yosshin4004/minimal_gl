@@ -67,6 +67,8 @@ static MMTIME s_mmTime = {
 static void SoundSynthesizePartition(
 	int partitionIndex
 ){
+	if (s_soundProgramId == 0) return;
+
 	if (0 <= partitionIndex && partitionIndex < NUM_SOUND_BUFFER_PARTITIONS) {
 		/* 指定のパーティションが dirty なら処理 */
 		if (s_soundBufferPartitionDirty[partitionIndex] != 0) {
