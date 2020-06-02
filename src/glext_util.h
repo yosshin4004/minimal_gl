@@ -63,6 +63,7 @@ typedef enum {
 	GlExtGetProgramInterfaceiv,
 	GlExtGetProgramResourceiv,
 	GlExtGetProgramResourceName,
+	GlExtCompressedTexImage2D,
 	WglSwapIntervalEXT,
 	NUM_GLEXT_FUNCTIONS
 } GlExt;
@@ -119,6 +120,7 @@ extern void *g_glExtFunctions[NUM_GLEXT_FUNCTIONS];
 #define glExtGetProgramInterfaceiv		((PFNGLGETPROGRAMINTERFACEIVPROC)g_glExtFunctions[GlExtGetProgramInterfaceiv])
 #define glExtGetProgramResourceiv		((PFNGLGETPROGRAMRESOURCEIVPROC)g_glExtFunctions[GlExtGetProgramResourceiv])
 #define glExtGetProgramResourceName		((PFNGLGETPROGRAMRESOURCENAMEPROC)g_glExtFunctions[GlExtGetProgramResourceName])
+#define glExtCompressedTexImage2D		((PFNGLCOMPRESSEDTEXIMAGE2DPROC)g_glExtFunctions[GlExtCompressedTexImage2D])
 #define wglSwapIntervalEXT				((BOOL(WINAPI*)(int))g_glExtFunctions[WglSwapIntervalEXT])
 
 

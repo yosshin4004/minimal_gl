@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClCompile Include="src\app.cpp" />
     <ClCompile Include="src\common.cpp" />
+    <ClCompile Include="src\dds_parser.cpp" />
     <ClCompile Include="src\dds_util.cpp" />
     <ClCompile Include="src\dialog_capture_cubemap.cpp" />
     <ClCompile Include="src\dialog_capture_screen_shot.cpp" />
@@ -153,12 +154,12 @@
     <ClCompile Include="src\dialog_edit_camera_params.cpp" />
     <ClCompile Include="src\dialog_export_executable.cpp" />
     <ClCompile Include="src\dialog_gfx_uniforms.cpp" />
+    <ClCompile Include="src\dialog_load_user_textures.cpp" />
     <ClCompile Include="src\dialog_preference_settings.cpp" />
     <ClCompile Include="src\dialog_preprocessor_definitions.cpp" />
     <ClCompile Include="src\dialog_record_image_sequence.cpp" />
     <ClCompile Include="src\dialog_render_settings.cpp" />
     <ClCompile Include="src\dialog_snd_uniforms.cpp" />
-    <ClCompile Include="src\dialog_user_textures.cpp" />
     <ClCompile Include="src\export_executable.cpp" />
     <ClCompile Include="src\external\cJSON\cJSON.c" />
     <ClCompile Include="src\external\cJSON\cJSON_Utils.c" />
@@ -175,6 +176,7 @@
     <ClInclude Include="src\app.h" />
     <ClInclude Include="src\common.h" />
     <ClInclude Include="src\config.h" />
+    <ClInclude Include="src\dds_parser.h" />
     <ClInclude Include="src\dds_util.h" />
     <ClInclude Include="src\dialog_capture_cubemap.h" />
     <ClInclude Include="src\dialog_capture_screen_shot.h" />
@@ -183,12 +185,12 @@
     <ClInclude Include="src\dialog_edit_camera_params.h" />
     <ClInclude Include="src\dialog_export_executable.h" />
     <ClInclude Include="src\dialog_gfx_uniforms.h" />
+    <ClInclude Include="src\dialog_load_user_textures.h" />
     <ClInclude Include="src\dialog_preference_settings.h" />
     <ClInclude Include="src\dialog_preprocessor_definitions.h" />
     <ClInclude Include="src\dialog_record_image_sequence.h" />
     <ClInclude Include="src\dialog_render_settings.h" />
     <ClInclude Include="src\dialog_snd_uniforms.h" />
-    <ClInclude Include="src\dialog_user_textures.h" />
     <ClInclude Include="src\export_executable.h" />
     <ClInclude Include="src\external\cJSON\cJSON.h" />
     <ClInclude Include="src\external\cJSON\cJSON_Utils.h" />

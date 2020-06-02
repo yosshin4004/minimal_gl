@@ -347,15 +347,36 @@ size_t GetFileSize(
 }
 
 
-char *MallocCopyString(
-	const char *string
+char *MallocReadFile(
+	const char *fileName,
+	size_t *sizeRet
 ){
-	size_t sizeInBytes = strlen(string) + 1;	/* 末端 \0 分余分に確保 */
-	char *p = (char *)malloc(sizeInBytes);
-	memcpy(p, string, sizeInBytes);
-	return p;
-}
+	char *buff = NULL;
+	if (sizeRet) *sizeRet = 0;
 
+	FILE *file = fopen(fileName, "rb");
+	if (file == NULL) return NULL;
+
+	struct stat fileStat;
+	if (fstat(_fileno(file), &fileStat) == -1) {
+		fclose(file);
+		return NULL;
+	}
+	size_t size = fileStat.st_size;
+	if (sizeRet) *sizeRet = size;
+
+	buff = (char *)malloc(size);
+	if (buff == NULL) {
+		fclose(file);
+		return NULL;
+	}
+
+	fread(buff, 1, size, file);
+
+	fclose(file);
+
+	return buff;
+}
 
 char *MallocReadTextFile(
 	const char *fileName
@@ -377,8 +398,7 @@ char *MallocReadTextFile(
 		fclose(file);
 		return NULL;
 	}
-	assert(fileStat.st_size < 0x100000000LL);
-	uint32_t size = (uint32_t)fileStat.st_size;
+	size_t size = fileStat.st_size;
 
 	buff = (char *)malloc(size + 1 /* 終点 \0 分 */);
 	if (buff == NULL) {
@@ -393,6 +413,16 @@ char *MallocReadTextFile(
 
 	return buff;
 }
+
+char *MallocCopyString(
+	const char *string
+){
+	size_t sizeInBytes = strlen(string) + 1;	/* 末端 \0 分余分に確保 */
+	char *p = (char *)malloc(sizeInBytes);
+	memcpy(p, string, sizeInBytes);
+	return p;
+}
+
 
 char *StrFindChars(
 	char *string,

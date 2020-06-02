@@ -5,101 +5,159 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "common.h"
+#include "dds_parser.h"
 #include "dds_util.h"
 
-typedef struct {
-	uint32_t	dwSize;
-	uint32_t	dwFlags;
-	uint32_t	dwFourCC;
-	uint32_t	dwRGBBitCount;
-	uint32_t	dwRBitMask;
-	uint32_t	dwGBitMask;
-	uint32_t	dwBBitMask;
-	uint32_t	dwABitMask;
-} DdsPixelFormat;
 
-typedef struct {
-	uint32_t		dwMagic;
-	uint32_t		dwSize;
-	uint32_t		dwFlags;
-	uint32_t		dwHeight;
-	uint32_t		dwWidth;
-	uint32_t		dwPitchOrLinearSize;
-	uint32_t		dwDepth;
-	uint32_t		dwMipMapCount;
-	uint32_t		dwReserved1[11];
-	DdsPixelFormat	ddspf;
-	uint32_t		dwCaps;
-	uint32_t		dwCaps2;
-	uint32_t		dwCaps3;
-	uint32_t		dwCaps4;
-	uint32_t		dwReserved2;
-} DdsHeader;
+static const DdsGlFormat s_tblGlFormats[] = {
+	/* DxgiFormat_Unknown */				{0,0,0},
+	/* DxgiFormat_R32G32B32A32Typeless */	{0,0,0},
+	/* DxgiFormat_R32G32B32A32Float */		{GL_RGBA32F,		GL_RGBA,			GL_FLOAT},
+	/* DxgiFormat_R32G32B32A32Uint */		{GL_RGBA32UI,		GL_RGBA_INTEGER,	GL_UNSIGNED_INT},
+	/* DxgiFormat_R32G32B32A32Sint */		{GL_RGBA32I,		GL_RGBA_INTEGER,	GL_INT},
 
-typedef enum {
-	Ddsd_Caps			= 0x00000001,
-	Ddsd_Height			= 0x00000002,
-	Ddsd_Width			= 0x00000004,
-	Ddsd_Pitch			= 0x00000008,
-	Ddsd_PixelFormat	= 0x00001000,
-	Ddsd_MipmapCount	= 0x00020000,
-	Ddsd_LinearSize		= 0x00080000,
-	Ddsd_Depth			= 0x00800000
-} Ddsd;
+	/* DxgiFormat_R32G32B32Typeless */		{0,0,0},
+	/* DxgiFormat_R32G32B32Float */			{GL_RGB32F,			GL_RGB,				GL_FLOAT},
+	/* DxgiFormat_R32G32B32Uint */			{GL_RGB32UI,		GL_RGB_INTEGER,		GL_UNSIGNED_INT},
+	/* DxgiFormat_R32G32B32Sint */			{GL_RGB32I,			GL_RGB_INTEGER,		GL_INT},
 
-typedef enum {
-	DdsdFourCC_Dx10				= 'D' | ((int)'X' << 8) | ((int)'1' << 16) | ((int)'0' << 24),
-	DdsdFourCC_Dxt1				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'1' << 24),
-	DdsdFourCC_Dxt2				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'2' << 24),
-	DdsdFourCC_Dxt3				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'3' << 24),
-	DdsdFourCC_Dxt4				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'4' << 24),
-	DdsdFourCC_Dxt5				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'5' << 24),
+	/* DxgiFormat_R16G16B16A16Typeless */	{0,0,0},
+	/* DxgiFormat_R16G16B16A16Float */		{GL_RGBA16F,		GL_RGBA,			GL_HALF_FLOAT},
+	/* DxgiFormat_R16G16B16A16Unorm */		{GL_RGBA16,			GL_RGBA,			GL_UNSIGNED_SHORT},
+	/* DxgiFormat_R16G16B16A16Uint */		{GL_RGBA16UI,		GL_RGBA_INTEGER,	GL_UNSIGNED_SHORT},
+	/* DxgiFormat_R16G16B16A16Snorm */		{GL_RGBA16_SNORM,	GL_RGBA,			GL_SHORT},
+	/* DxgiFormat_R16G16B16A16Sint */		{GL_RGBA16I,		GL_RGBA_INTEGER,	GL_SHORT},
 
-	DdsdFourCC_Bc4Unorm			= 'B' | ((int)'C' << 8) | ((int)'4' << 16) | ((int)'U' << 24),
-	DdsdFourCC_Bc4Snorm			= 'B' | ((int)'C' << 8) | ((int)'4' << 16) | ((int)'S' << 24),
-	DdsdFourCC_Bc5Unorm			= 'B' | ((int)'C' << 8) | ((int)'5' << 16) | ((int)'U' << 24),
-	DdsdFourCC_Bc5Snorm			= 'B' | ((int)'C' << 8) | ((int)'5' << 16) | ((int)'S' << 24),
+	/* DxgiFormat_R32G32Typeless */			{0,0,0},
+	/* DxgiFormat_R32G32Float */			{GL_RG32F,			GL_RG,				GL_FLOAT},
+	/* DxgiFormat_R32G32Uint */				{GL_RG32UI,			GL_RG_INTEGER,		GL_UNSIGNED_INT},
+	/* DxgiFormat_R32G32Sint */				{GL_RG32I,			GL_RG_INTEGER,		GL_INT},
 
-	DdsdFourCC_A16B16G16R16		= 0x00000024,
-	DdsdFourCC_Q16W16V16U16		= 0x0000006e,
-	DdsdFourCC_R16F				= 0x0000006f,
-	DdsdFourCC_G16R16F			= 0x00000070,
-	DdsdFourCC_A16B16G16R16F	= 0x00000071,
-	DdsdFourCC_R32F				= 0x00000072,
-	DdsdFourCC_G32R32F			= 0x00000073,
-	DdsdFourCC_A32B32G32R32F	= 0x00000074,
-	DdsdFourCC_CxV8U8			= 0x00000075,
-	DdsdFourCC_Q8W8V8U8			= 0x0000003f,
+	/* DxgiFormat_R32G8X24Typeless */		{0,0,0},
+	/* DxgiFormat_D32FloatS8X24Uint */		{0,0,0},
+	/* DxgiFormat_R32FloatX8X24Typeless */	{0,0,0},
+	/* DxgiFormat_X32TypelessG8X24Uint */	{0,0,0},
 
-	DdsdFourCC_3dcAti2			= 'A' | ((int)'T' << 8) | ((int)'I' << 16) | ((int)'2' << 24)
-} DdsdFourCC;
+	/* DxgiFormat_R10G10B10A2Typeless */	{0,0,0},
+	/* DxgiFormat_R10G10B10A2Unorm */		{GL_RGB10_A2,		GL_RGBA,			GL_UNSIGNED_INT_2_10_10_10_REV},
+	/* DxgiFormat_R10G10B10A2Uint */		{GL_RGB10_A2UI,		GL_RGBA_INTEGER,	GL_UNSIGNED_INT_2_10_10_10_REV},
 
-typedef enum {
-	Ddpf_AlphaPixels	= 0x00000001,
-	Ddpf_Alpha			= 0x00000002,
-	Ddpf_FourCC			= 0x00000004,
-	Ddpf_Rgb			= 0x00000040,
-	Ddpf_Yuv			= 0x00000200,
-	Ddpf_Luminance		= 0x00020000,
-	Ddpf_BumpDuDy		= 0x00080000
-} Ddpf;
+	/* DxgiFormat_R11G11B10Float */			{GL_R11F_G11F_B10F,	GL_RGB,				GL_UNSIGNED_INT_10F_11F_11F_REV},
 
-typedef enum {
-	DdsCaps_Complex	= 0x00000008,
-	DdsCaps_Texture	= 0x00001000,
-	DdsCaps_Mipmap	= 0x00400000
-} DdsCaps;
+	/* DxgiFormat_R8G8B8A8Typeless */		{0,0,0},
+	/* DxgiFormat_R8G8B8A8Unorm */			{GL_RGBA8,			GL_RGBA,			GL_UNSIGNED_BYTE},
+	/* DxgiFormat_R8G8B8A8UnormSrgb */		{GL_SRGB8_ALPHA8,	GL_RGBA,			GL_UNSIGNED_BYTE},
+	/* DxgiFormat_R8G8B8A8Uint */			{GL_RGBA8UI,		GL_RGBA_INTEGER,	GL_UNSIGNED_BYTE},
+	/* DxgiFormat_R8G8B8A8Snorm */			{GL_RGBA8_SNORM,	GL_RGBA,			GL_BYTE},
+	/* DxgiFormat_R8G8B8A8Sint */			{GL_RGBA8I,			GL_RGBA_INTEGER,	GL_BYTE},
 
-typedef enum {
-	DdsCaps2_Cubemap			= 0x00000200,
-	DdsCaps2_CubemapPositiveX	= 0x00000400,
-	DdsCaps2_CubemapNegativeX	= 0x00000800,
-	DdsCaps2_CubemapPositiveY	= 0x00001000,
-	DdsCaps2_CubemapNegativeY	= 0x00002000,
-	DdsCaps2_CubemapPositiveZ	= 0x00004000,
-	DdsCaps2_CubemapNegativeZ	= 0x00008000,
-	DdsCaps2_Volume				= 0x00200000
-} DdsCaps2;
+	/* DxgiFormat_R16G16Typeless */			{0,0,0},
+	/* DxgiFormat_R16G16Float */			{GL_RG16F,			GL_RG,				GL_HALF_FLOAT},
+	/* DxgiFormat_R16G16Unorm */			{GL_RG16,			GL_RG,				GL_UNSIGNED_SHORT},
+	/* DxgiFormat_R16G16Uint */				{GL_RG16UI,			GL_RG_INTEGER,		GL_UNSIGNED_SHORT},
+	/* DxgiFormat_R16G16Snorm */			{GL_RG16_SNORM,		GL_RG,				GL_SHORT},
+	/* DxgiFormat_R16G16Sint */				{GL_RG16I,			GL_RG_INTEGER,		GL_SHORT},
+
+	/* DxgiFormat_R32Typeless */			{0,0,0},
+	/* DxgiFormat_D32Float */				{0,0,0},
+	/* DxgiFormat_R32Float */				{GL_R32F,			GL_RED,				GL_FLOAT},
+	/* DxgiFormat_R32Uint */				{GL_R32UI,			GL_RED_INTEGER,		GL_UNSIGNED_INT},
+	/* DxgiFormat_R32Sint */				{GL_R32I,			GL_RED_INTEGER,		GL_INT},
+
+	/* DxgiFormat_R24G8Typeless */			{0,0,0},
+	/* DxgiFormat_D24UnormS8Uint */			{0,0,0},
+	/* DxgiFormat_R24UnormX8Typeless */		{0,0,0},
+	/* DxgiFormat_X24TypelessG8Uint */		{0,0,0},
+
+	/* DxgiFormat_R8G8Typeless */			{0,0,0},
+	/* DxgiFormat_R8G8Unorm */				{GL_RG8,			GL_RG,				GL_UNSIGNED_BYTE},
+	/* DxgiFormat_R8G8Uint */				{GL_RG8UI,			GL_RG_INTEGER,		GL_UNSIGNED_BYTE},
+	/* DxgiFormat_R8G8Snorm */				{GL_RG8_SNORM,		GL_RG,				GL_BYTE},
+	/* DxgiFormat_R8G8Sint */				{GL_RG8I,			GL_RG_INTEGER,		GL_BYTE},
+
+	/* DxgiFormat_R16Typeless */			{0,0,0},
+	/* DxgiFormat_R16Float */				{GL_R16F,			GL_RED,				GL_HALF_FLOAT},
+	/* DxgiFormat_D16Unorm */				{0,0,0},
+	/* DxgiFormat_R16Unorm */				{GL_R16,			GL_RED,				GL_UNSIGNED_SHORT},
+	/* DxgiFormat_R16Uint */				{GL_R16UI,			GL_RED_INTEGER,		GL_UNSIGNED_SHORT},
+	/* DxgiFormat_R16Snorm */				{GL_R16_SNORM,		GL_RED,				GL_UNSIGNED_SHORT},
+	/* DxgiFormat_R16Sint */				{GL_R16I,			GL_RED_INTEGER,		GL_SHORT},
+
+	/* DxgiFormat_R8Typeless */				{0,0,0},
+	/* DxgiFormat_R8Unorm */				{GL_R8,				GL_RED,				GL_UNSIGNED_BYTE},
+	/* DxgiFormat_R8Uint */					{GL_R8UI,			GL_RED_INTEGER,		GL_UNSIGNED_BYTE},
+	/* DxgiFormat_R8Snorm */				{GL_R8_SNORM,		GL_RED,				GL_BYTE},
+	/* DxgiFormat_R8Sint */					{GL_R8I,			GL_RED_INTEGER,		GL_BYTE},
+	/* DxgiFormat_A8Unorm */				{GL_ALPHA8,			GL_RED,				GL_UNSIGNED_BYTE},
+	/* DxgiFormat_R1Unorm */				{0,0,0},
+
+	/* DxgiFormat_R9G9B9E5SharedExp */		{GL_RGB9_E5,		GL_RGB,				GL_UNSIGNED_INT_5_9_9_9_REV},
+
+	/* DxgiFormat_R8G8B8G8Unorm */			{0,0,0},
+	/* DxgiFormat_G8R8G8B8Unorm */			{0,0,0},
+
+	/* DxgiFormat_Bc1Typeless */			{0,0,0},
+	/* DxgiFormat_Bc1Unorm */				{GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 0, 0},
+	/* DxgiFormat_Bc1UnormSrgb */			{GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT, 0, 0},
+
+	/* DxgiFormat_Bc2Typeless */			{0,0,0},
+	/* DxgiFormat_Bc2Unorm */				{GL_COMPRESSED_RGBA_S3TC_DXT3_EXT, 0, 0},
+	/* DxgiFormat_Bc2UnormSrgb */			{GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT, 0, 0},
+
+	/* DxgiFormat_Bc3Typeless */			{0,0,0},
+	/* DxgiFormat_Bc3Unorm */				{GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, 0, 0},
+	/* DxgiFormat_Bc3UnormSrgb */			{GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT, 0, 0},
+
+	/* DxgiFormat_Bc4Typeless */			{0,0,0},
+	/* DxgiFormat_Bc4Unorm */				{GL_COMPRESSED_LUMINANCE_LATC1_EXT, 0, 0},
+	/* DxgiFormat_Bc4Snorm */				{GL_COMPRESSED_SIGNED_LUMINANCE_LATC1_EXT, 0, 0},
+
+	/* DxgiFormat_Bc5Typeless */			{0,0,0},
+	/* DxgiFormat_Bc5Unorm */				{GL_COMPRESSED_LUMINANCE_ALPHA_LATC2_EXT, 0, 0},
+	/* DxgiFormat_Bc5Snorm */				{GL_COMPRESSED_SIGNED_LUMINANCE_ALPHA_LATC2_EXT, 0, 0},
+
+	/* DxgiFormat_B5G6R5Unorm */			{GL_RGB565,			GL_RGB,				GL_UNSIGNED_SHORT_5_6_5},
+	/* DxgiFormat_B5G5R5A1Unorm */			{GL_RGB5_A1,		GL_BGRA,			GL_UNSIGNED_SHORT_1_5_5_5_REV},
+	/* DxgiFormat_B8G8R8A8Unorm */			{GL_RGBA8,			GL_BGRA,			GL_UNSIGNED_BYTE},
+	/* DxgiFormat_B8G8R8X8Unorm */			{GL_RGBA8,			GL_BGRA,			GL_UNSIGNED_BYTE},
+	/* DxgiFormat_R10G10B10XrBiasA2Unorm */	{0,0,0},
+	/* DxgiFormat_B8G8R8A8Typeless */		{0,0,0},
+	/* DxgiFormat_B8G8R8A8UnormSrgb */		{GL_SRGB8_ALPHA8,	GL_BGRA,			GL_UNSIGNED_BYTE},
+	/* DxgiFormat_B8G8R8X8Typeless */		{0,0,0},
+	/* DxgiFormat_B8G8R8X8UnormSrgb */		{GL_SRGB8_ALPHA8,	GL_BGRA,			GL_UNSIGNED_BYTE},
+
+	/* DxgiFormat_Bc6hTypeless */			{0,0,0},
+	/* DxgiFormat_Bc6hUf16 */				{GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT, 0, 0},
+	/* DxgiFormat_Bc6hSf16 */				{GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT, 0, 0},
+
+	/* DxgiFormat_Bc7Typeless */			{0,0,0},
+	/* DxgiFormat_Bc7Unorm */				{GL_COMPRESSED_RGBA_BPTC_UNORM, 0, 0},
+	/* DxgiFormat_Bc7UnormSrgb */			{GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM, 0, 0},
+
+	/* DxgiFormat_Ayuv */					{0,0,0},
+	/* DxgiFormat_Y410 */					{0,0,0},
+	/* DxgiFormat_Y416 */					{0,0,0},
+	/* DxgiFormat_Nv12 */					{0,0,0},
+	/* DxgiFormat_P010 */					{0,0,0},
+	/* DxgiFormat_P016 */					{0,0,0},
+	/* DxgiFormat_420Opaque */				{0,0,0},
+	/* DxgiFormat_Yuy2 */					{0,0,0},
+	/* DxgiFormat_Y210 */					{0,0,0},
+	/* DxgiFormat_Y216 */					{0,0,0},
+	/* DxgiFormat_Nv11 */					{0,0,0},
+	/* DxgiFormat_Ai44 */					{0,0,0},
+	/* DxgiFormat_Ia44 */					{0,0,0},
+	/* DxgiFormat_P8 */						{0,0,0},
+	/* DxgiFormat_A8P8 */					{0,0,0},
+	/* DxgiFormat_B4G4R4A4Unorm */			{GL_RGBA4,			GL_BGRA,			GL_UNSIGNED_SHORT_4_4_4_4_REV},
+};
+DdsGlFormat
+DdsDxgiFormatToGlFormat(
+	DxgiFormat format
+){
+	assert(format < SIZE_OF_ARRAY(s_tblGlFormats));
+	return s_tblGlFormats[format];
+}
 
 
 bool SerializeAsFp32RgbaCubemapDds(

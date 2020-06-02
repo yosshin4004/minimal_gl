@@ -17,7 +17,7 @@
 #include "dialog_record_image_sequence.h"
 #include "dialog_preference_settings.h"
 #include "dialog_render_settings.h"
-#include "dialog_user_textures.h"
+#include "dialog_load_user_textures.h"
 #include "dialog_gfx_uniforms.h"
 #include "dialog_snd_uniforms.h"
 #include "dialog_preprocessor_definitions.h"
@@ -393,6 +393,16 @@ static LRESULT CALLBACK MainWndProc(
 					return 0;
 				} break;
 
+				/* ユーザーテクスチャ読み込み */
+				case IDM_LOAD_USER_TEXTURES: {
+					if (s_fullScreen) {
+						ToggleFullScreen();
+					} else {
+						DialogLoadUserTextures();
+					}
+					return 0;
+				} break;
+
 				/* プリファレンス設定 */
 				case IDM_PREFERENCE_SETTINGS: {
 					if (s_fullScreen) {
@@ -409,16 +419,6 @@ static LRESULT CALLBACK MainWndProc(
 						ToggleFullScreen();
 					} else {
 						DialogRenderSettings();
-					}
-					return 0;
-				} break;
-
-				/* ユーザーテクスチャ設定 */
-				case IDM_USER_TEXTURES: {
-					if (s_fullScreen) {
-						ToggleFullScreen();
-					} else {
-						DialogUserTextures();
 					}
 					return 0;
 				} break;

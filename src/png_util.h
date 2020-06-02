@@ -12,8 +12,8 @@ bool SerializeAsUnorm8RgbaPng(
 	int height
 );
 
-/* Unorm8 RGBA 形式画像ファイルの読み込み */
-bool ReadImageFileAsUnorm8Rgba(
+/* Unorm8 RGBA 形式 png ファイルの読み込み */
+bool ReadImageFileAsUnorm8RgbaPng(
 	const char *fileName,
 	void **dataRet,
 	int *numComponentsRet,

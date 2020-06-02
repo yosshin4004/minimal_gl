@@ -105,14 +105,20 @@ size_t GetFileSize(
 	const char *fileName
 );
 
-/* メモリ確保して文字列をコピーする */
-char *MallocCopyString(
-	const char *string
+/* メモリ確保してファイル読み込み */
+char *MallocReadFile(
+	const char *fileName,
+	size_t *sizeRet
 );
 
 /* メモリ確保してファイル読み込み（文字列終端の \0 が付加される）*/
 char *MallocReadTextFile(
 	const char *fileName
+);
+
+/* メモリ確保して文字列をコピーする */
+char *MallocCopyString(
+	const char *string
 );
 
 /* 指定文字のいずれかが見つかるまで読み飛ばす */

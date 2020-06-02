@@ -1614,18 +1614,31 @@ bool AppOpenDragAndDroppedFile(const char *fileName){
 	}
 
 	if (IsSuffix(fileName, ".gfx.glsl")) {
-		AppOpenGraphicsShaderFile(fileName);
+		return AppOpenGraphicsShaderFile(fileName);
 	} else
 	if (IsSuffix(fileName, ".snd.glsl")) {
-		AppOpenSoundShaderFile(fileName);
+		return AppOpenSoundShaderFile(fileName);
 	} else
 	if (IsSuffix(fileName, ".json")) {
-		AppProjectImport(fileName);
+		return AppProjectImport(fileName);
+	} else
+	if (IsSuffix(fileName, ".png")
+	||	IsSuffix(fileName, ".dds")
+	) {
+		if (AppUserTexturesLoad(0, fileName) == false) {
+			AppErrorMessageBox(
+				APP_NAME,
+				"Load texture failed.\n\n"
+				"file : %s",
+				fileName
+			);
+			return false;
+		}
+		return true;
 	} else {
 		AppErrorMessageBox(APP_NAME, "Cannot recognize file type.");
+		return false;
 	}
-
-	return true;
 }
 const char *AppGetCurrentGraphicsShaderFileName(){
 	return s_graphicsShaderFileName;
@@ -1839,7 +1852,7 @@ bool AppHelpAbout(
 ){
 	AppMessageBox(
 		APP_NAME,
-		"Minimal GL\n\n"
+		"MinimalGL\n\n"
 		"Copyright (c)2020 @yosshin4004\n"
 		"https://github.com/yosshin4004/minimal_gl"
 	);

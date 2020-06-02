@@ -9,8 +9,7 @@
 #include "dds_util.h"
 #include "png_util.h"
 #include "sound.h"
-#include <vector>
-#include <string>
+#include "dds_parser.h"
 
 
 #define USER_TEXTURE_START_INDEX				(8)
@@ -18,7 +17,10 @@
 
 static GLuint s_mrtTextures[2 /* 裏表 */][NUM_RENDER_TARGETS] = {0};
 static GLuint s_mrtFrameBuffer = 0;
-static GLuint s_userTextures[NUM_USER_TEXTURES] = {0};
+static struct {
+	GLenum target;
+	GLuint id;
+} s_userTextures[NUM_USER_TEXTURES] = {0};
 static GLuint s_graphicsProgramId = 0;
 static RenderSettings s_currentRenderSettings = {0};
 static int s_xReso = SCREEN_XRESO;
@@ -131,40 +133,17 @@ bool GraphicsShaderRequiresFrameCountUniform(){
 	return false;
 }
 
-bool GraphicsLoadUserTexture(
+
+static bool GraphicsLoadUserTextureSubAsPng(
 	const char *fileName,
 	int userTextureIndex
 ){
-	/* エラーチェック */
-	if (userTextureIndex < 0 || NUM_USER_TEXTURES <= userTextureIndex) return false;
-
-	/* 既存のテクスチャがあるなら破棄 */
-	if (s_userTextures[userTextureIndex] != 0) {
-		glDeleteTextures(
-			/* GLsizei n */					1,
-			/* const GLuint * textures */	&s_userTextures[userTextureIndex]
-		);
-		s_userTextures[userTextureIndex] = 0;
-	}
-
-	/* テクスチャ作成 */
-	glGenTextures(
-		/* GLsizei n */				1,
-		/* GLuint * textures */		&s_userTextures[userTextureIndex]
-	);
-
-	/* テクスチャのバインド */
-	glBindTexture(
-		/* GLenum target */			GL_TEXTURE_2D,
-		/* GLuint texture */		s_userTextures[userTextureIndex]
-	);
-
-	/* 画像ファイルの読み込み */
+	/* png ファイルの読み込み */
 	void *data = NULL;
 	int numComponents = 0;
 	int width = 0;
 	int height = 0;
-	bool ret = ReadImageFileAsUnorm8Rgba(
+	bool ret = ReadImageFileAsUnorm8RgbaPng(
 		/* const char *fileName */	fileName,
 		/* void **dataRet */		&data,
 		/* int *numComponentsRet */	&numComponents,
@@ -172,6 +151,15 @@ bool GraphicsLoadUserTexture(
 		/* int *heightRet */		&height
 	);
 	if (ret == false) return false;
+
+	/* target を決定 */
+	s_userTextures[userTextureIndex].target = GL_TEXTURE_2D;
+
+	/* テクスチャのバインド */
+	glBindTexture(
+		/* GLenum target */			GL_TEXTURE_2D,
+		/* GLuint texture */		s_userTextures[userTextureIndex].id
+	);
 
 	/* テクスチャの設定 */
 	GLint internalformat = 0;
@@ -218,6 +206,172 @@ bool GraphicsLoadUserTexture(
 	return true;
 }
 
+
+static bool GraphicsLoadUserTextureSubAsDds(
+	const char *fileName,
+	int userTextureIndex
+){
+	/* dds ファイルの読み込み */
+	size_t ddsFileSizeInBytes;
+	void *ddsFileImage = MallocReadFile(fileName, &ddsFileSizeInBytes);
+
+	/* dds ファイルのパース */
+	DdsParser parser;
+	if (DdsParser_Initialize(&parser, ddsFileImage, (int)ddsFileSizeInBytes) == false) {
+		free(ddsFileImage);
+		return false;
+	}
+
+	/* DxgiFormat から OpenGL のフォーマット情報に変換 */
+	DdsGlFormat glFormat = DdsDxgiFormatToGlFormat(parser.info.dxgiFormat);
+	if (glFormat.internalformat == 0) {
+		free(ddsFileImage);
+		return false;
+	}
+
+	/* パース結果の確認 */
+	printf(
+		"\n"
+		"DdsParser\n"
+		"	dxgiFormat      %d\n"
+		"	numBitsPerPixel %d\n"
+		"	width           %d\n"
+		"	height          %d\n"
+		"	depth           %d\n"
+		"	arraySize       %d\n"
+		"	hasCubemap      %d\n"
+		"	numMips         %d\n"
+		"	blockCompressed %d\n",
+		parser.info.dxgiFormat,
+		parser.info.numBitsPerPixel,
+		parser.info.width,
+		parser.info.height,
+		parser.info.depth,
+		parser.info.arraySize,
+		parser.info.hasCubemap,
+		parser.info.numMips,
+		parser.info.blockCompressed
+	);
+
+	/* 対応していない形式ならエラー */
+	if (
+		parser.info.depth != 1
+	||	parser.info.arraySize != 1
+	) {
+		free(ddsFileImage);
+		return false;
+	}
+
+	/* face 数を決定（デフォルトで 1、キューブマップで 6）*/
+	int numFace = 1;
+	GLenum targetFace = GL_TEXTURE_2D;
+	s_userTextures[userTextureIndex].target = GL_TEXTURE_2D;
+	if (parser.info.hasCubemap) {
+		numFace = 6;
+		targetFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
+		s_userTextures[userTextureIndex].target = GL_TEXTURE_CUBE_MAP;
+	}
+
+	/* テクスチャのバインド */
+	glBindTexture(
+		/* GLenum target */			s_userTextures[userTextureIndex].target,
+		/* GLuint texture */		s_userTextures[userTextureIndex].id
+	);
+
+	/* ミップレベルの巡回 */
+	for (int faceIndex = 0; faceIndex < numFace; faceIndex++) {
+		for (int mipLevel = 0; mipLevel < parser.info.numMips; mipLevel++) {
+			DdsSubData subData;
+			DdsParser_GetSubData(&parser, 0, faceIndex, mipLevel, &subData);
+
+			if (parser.info.blockCompressed) {
+				CheckGlError("pre glExtCompressedTexImage2D");
+				glExtCompressedTexImage2D(
+					/* GLenum target */			targetFace + faceIndex,
+					/* GLint level */			mipLevel,
+					/* GLenum internalformat */	glFormat.internalformat,
+					/* GLsizei width */			subData.width,
+					/* GLsizei height */		subData.height,
+					/* GLint border */			false,
+					/* GLsizei imageSize */		(GLsizei)subData.sizeInBytes,
+					/* const void * data */		subData.buff
+				);
+				CheckGlError("post glExtCompressedTexImage2D");
+			} else {
+				CheckGlError("pre glTexImage2D");
+				glTexImage2D(
+					/* GLenum target */			targetFace + faceIndex,
+					/* GLint level */			mipLevel,
+					/* GLint internalformat */	glFormat.internalformat,
+					/* GLsizei width */			subData.width,
+					/* GLsizei height */		subData.height,
+					/* GLint border */			false,
+					/* GLenum format */			glFormat.format,
+					/* GLenum type */			glFormat.type,
+					/* const void * data */		subData.buff
+				);
+				CheckGlError("post glTexImage2D");
+			}
+		}
+	}
+
+	/* ミップ数上限の設定（これによりミップマップが有効化される）*/
+	glTexParameteri(
+		/* GLenum target */	s_userTextures[userTextureIndex].target,
+		/* GLenum pname */	GL_TEXTURE_MAX_LEVEL,
+		/* GLint param */	parser.info.numMips - 1
+	);
+
+	/* ミップマップ生成 */
+//	glExtGenerateMipmap(s_userTextures[userTextureIndex].target);
+
+	/* テクスチャのアンバインド */
+	glBindTexture(
+		/* GLenum target */			s_userTextures[userTextureIndex].target,
+		/* GLuint texture */		0
+	);
+
+	/* dds ファイルイメージの破棄 */
+	free(ddsFileImage);
+
+	return true;
+}
+
+
+bool GraphicsLoadUserTexture(
+	const char *fileName,
+	int userTextureIndex
+){
+	/* エラーチェック */
+	if (userTextureIndex < 0 || NUM_USER_TEXTURES <= userTextureIndex) return false;
+
+	/* 既存のテクスチャがあるなら破棄 */
+	if (s_userTextures[userTextureIndex].id != 0) {
+		glDeleteTextures(
+			/* GLsizei n */					1,
+			/* const GLuint * textures */	&s_userTextures[userTextureIndex].id
+		);
+		s_userTextures[userTextureIndex].id = 0;
+	}
+
+	/* テクスチャ作成 */
+	glGenTextures(
+		/* GLsizei n */				1,
+		/* GLuint * textures */		&s_userTextures[userTextureIndex].id
+	);
+
+	/* 画像ファイルの読み込み */
+	bool succeeded = false;
+	if (GraphicsLoadUserTextureSubAsPng(fileName, userTextureIndex)) {
+		succeeded = true;
+	} else
+	if (GraphicsLoadUserTextureSubAsDds(fileName, userTextureIndex)) {
+		succeeded = true;
+	}
+
+	return succeeded;
+}
+
 bool GraphicsDeleteUserTexture(
 	int userTextureIndex
 ){
@@ -225,12 +379,12 @@ bool GraphicsDeleteUserTexture(
 	if (userTextureIndex < 0 || NUM_USER_TEXTURES <= userTextureIndex) return false;
 
 	/* 既存のテクスチャがあるなら破棄 */
-	if (s_userTextures[userTextureIndex] != 0) {
+	if (s_userTextures[userTextureIndex].id != 0) {
 		glDeleteTextures(
 			/* GLsizei n */					1,
-			/* const GLuint * textures */	&s_userTextures[userTextureIndex]
+			/* const GLuint * textures */	&s_userTextures[userTextureIndex].id
 		);
-		s_userTextures[userTextureIndex] = 0;
+		s_userTextures[userTextureIndex].id = 0;
 	}
 
 	return true;
@@ -264,6 +418,7 @@ bool GraphicsDeleteShader(
 }
 
 static void GraphicsSetTextureSampler(
+	GLenum target,
 	TextureFilter textureFilter,
 	TextureWrap textureWrap,
 	bool useMipmap
@@ -292,8 +447,8 @@ static void GraphicsSetTextureSampler(
 				assert(false);
 			} break;
 		}
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, minFilter);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, magFilter);
+		glTexParameteri(target, GL_TEXTURE_MIN_FILTER, minFilter);
+		glTexParameteri(target, GL_TEXTURE_MAG_FILTER, magFilter);
 	}
 
 	{
@@ -312,8 +467,12 @@ static void GraphicsSetTextureSampler(
 				assert(false);
 			} break;
 		}
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, param);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, param);
+		if (target == GL_TEXTURE_CUBE_MAP) {
+			param = GL_CLAMP_TO_EDGE;
+		}
+		glTexParameteri(target, GL_TEXTURE_WRAP_S, param);
+		glTexParameteri(target, GL_TEXTURE_WRAP_T, param);
+		glTexParameteri(target, GL_TEXTURE_WRAP_R, param);
 	}
 }
 
@@ -361,7 +520,7 @@ static void GraphicsDrawFullScreenQuad(
 			);
 
 			/* サンプラの設定 */
-			GraphicsSetTextureSampler(settings->textureFilter, settings->textureWrap, settings->enableMipmapGeneration);
+			GraphicsSetTextureSampler(GL_TEXTURE_2D, settings->textureFilter, settings->textureWrap, settings->enableMipmapGeneration);
 
 			/* ミップマップ生成 */
 			if (settings->enableMipmapGeneration) {
@@ -372,15 +531,17 @@ static void GraphicsDrawFullScreenQuad(
 
 	/* ユーザーテクスチャの設定 */
 	for (int userTextureIndex = 0; userTextureIndex < NUM_USER_TEXTURES; userTextureIndex++) {
-		/* テクスチャのバインド */
-		glExtActiveTexture(GL_TEXTURE0 + USER_TEXTURE_START_INDEX + userTextureIndex);
-		glBindTexture(
-			/* GLenum target */		GL_TEXTURE_2D,
-			/* GLuint texture */	s_userTextures[userTextureIndex]
-		);
+		if (s_userTextures[userTextureIndex].id) {
+			/* テクスチャのバインド */
+			glExtActiveTexture(GL_TEXTURE0 + USER_TEXTURE_START_INDEX + userTextureIndex);
+			glBindTexture(
+				/* GLenum target */		s_userTextures[userTextureIndex].target,
+				/* GLuint texture */	s_userTextures[userTextureIndex].id
+			);
 
-		/* サンプラの設定 */
-		GraphicsSetTextureSampler(settings->textureFilter, settings->textureWrap, true);
+			/* サンプラの設定 */
+			GraphicsSetTextureSampler(s_userTextures[userTextureIndex].target, settings->textureFilter, settings->textureWrap, true);
+		}
 	}
 
 	/* サウンドバッファのバインド */
@@ -510,11 +671,13 @@ static void GraphicsDrawFullScreenQuad(
 
 	/* ユーザーテクスチャのアンバインド */
 	for (int userTextureIndex = 0; userTextureIndex < NUM_USER_TEXTURES; userTextureIndex++) {
-		glExtActiveTexture(GL_TEXTURE0 + USER_TEXTURE_START_INDEX + userTextureIndex);
-		glBindTexture(
-			/* GLenum target */		GL_TEXTURE_2D,
-			/* GLuint texture */	0	/* unbind */
-		);
+		if (s_userTextures[userTextureIndex].id) {
+			glExtActiveTexture(GL_TEXTURE0 + USER_TEXTURE_START_INDEX + userTextureIndex);
+			glBindTexture(
+				/* GLenum target */		s_userTextures[userTextureIndex].target,
+				/* GLuint texture */	0	/* unbind */
+			);
+		}
 	}
 
 	/* MRT テクスチャのアンバインド */

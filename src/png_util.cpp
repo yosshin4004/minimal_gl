@@ -30,7 +30,7 @@ bool SerializeAsUnorm8RgbaPng(
 	return ret? true: false;
 }
 
-bool ReadImageFileAsUnorm8Rgba(
+bool ReadImageFileAsUnorm8RgbaPng(
 	const char *fileName,
 	void **dataRet,
 	int *numComponentsRet,

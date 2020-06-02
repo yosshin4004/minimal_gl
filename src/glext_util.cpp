@@ -56,6 +56,7 @@ static const char s_margedFunctionName[] =
 	"glGetProgramInterfaceiv\0"
 	"glGetProgramResourceiv\0"
 	"glGetProgramResourceName\0"
+	"glCompressedTexImage2D\0"
 	"wglSwapIntervalEXT\0"
 ;
 void *g_glExtFunctions[NUM_GLEXT_FUNCTIONS];
