@@ -1620,6 +1620,7 @@ bool AppOpenDragAndDroppedFile(const char *fileName){
 		return AppOpenSoundShaderFile(fileName);
 	} else
 	if (IsSuffix(fileName, ".json")) {
+		AppProjectAutoExport(true);
 		return AppProjectImport(fileName);
 	} else
 	if (IsSuffix(fileName, ".png")

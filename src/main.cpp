@@ -350,6 +350,8 @@ static LRESULT CALLBACK MainWndProc(
 					if (s_fullScreen) {
 						ToggleFullScreen();
 					} else {
+						AppProjectAutoExport(true);
+
 						char fileName[MAX_PATH] = {0};
 						strcpy_s(fileName, sizeof(fileName), AppProjectGetCurrentFileName());
 						OPENFILENAME ofn = {0};
