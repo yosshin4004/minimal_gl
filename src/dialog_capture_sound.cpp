@@ -50,8 +50,7 @@ static LRESULT CALLBACK DialogFunc(
 				/* 継続時間の自動検出 */
 				case IDD_CAPTURE_SOUND_AUTO_DETECT_DURATION: {
 					/* 継続時間の検出 */
-					float margin = 1.0f;
-					float duration = SoundDetectDurationInSeconds() + margin;
+					float duration = SoundDetectDurationInSeconds();
 
 					/* 継続時間（秒）をエディットボックスに設定 */
 					SetDlgItemFloat(

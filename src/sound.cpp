@@ -12,6 +12,14 @@
 
 #define NUM_SOUND_BUFFERS				(4)
 
+/*
+	原因は不明だが、再生開始時に冒頭 256 サンプルほどが正しく音声出力されない
+	場合がある。この問題を回避するため、以下の定数で指定したサンプル数を
+	スキップした位置からサウンド生成を行う。
+	サウンド保存時には、このサンプルスキップはキャンセルされる。
+*/
+#define NUM_SOUND_MARGIN_SAMPLES		(0x100)
+
 static bool s_paused = false;
 static GLuint s_soundProgramId = 0;
 /*
@@ -35,7 +43,7 @@ typedef enum {
 } PartitionState;
 static PartitionState s_soundBufferPartitionStates[NUM_SOUND_BUFFER_PARTITIONS] = {0};
 static uint32_t s_soundBufferPartitionSynthesizedFrameCount[NUM_SOUND_BUFFER_PARTITIONS] = {0};
-static SOUND_SAMPLE_TYPE s_soundBuffer[NUM_SOUND_BUFFER_SAMPLES * NUM_SOUND_CHANNELS];
+static SOUND_SAMPLE_TYPE s_soundBuffer[(NUM_SOUND_BUFFER_SAMPLES + NUM_SOUND_MARGIN_SAMPLES) * NUM_SOUND_CHANNELS];
 static HWAVEOUT s_waveOutHandle = 0;
 static uint32_t s_waveOutOffset = 0;
 
@@ -158,7 +166,11 @@ static void SoundGetSynthesizedPartitionResult(
 				/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
 				/* GLintptr OFFSET */	partitionSizeInBytes * partitionIndex,
 				/* GLsizeiptr size */	partitionSizeInBytes,
-				/* GLvoid *data */		(void *)((uintptr_t)s_soundBuffer + partitionSizeInBytes * partitionIndex)
+				/* GLvoid *data */		(void *)(
+					(uintptr_t)s_soundBuffer + partitionSizeInBytes * partitionIndex
+					/* マージンをスキップ */
+				+	NUM_SOUND_MARGIN_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS
+				)
 			);
 
 			/* 生成結果のコピー */
@@ -205,7 +217,7 @@ float SoundDetectDurationInSeconds(){
 	{
 		for (int iSample = 0; iSample < NUM_SOUND_BUFFER_SAMPLES; iSample++) {
 			for (int iChannel = 0; iChannel < NUM_SOUND_CHANNELS; iChannel++) {
-				if (s_soundBuffer[iSample * NUM_SOUND_CHANNELS + iChannel] != 0) {
+				if (s_soundBuffer[(iSample + NUM_SOUND_MARGIN_SAMPLES) * NUM_SOUND_CHANNELS + iChannel] != 0) {
 					numAvailableSamples = iSample + 1;
 				}
 			}
@@ -281,14 +293,13 @@ static bool SoundDeleteSoundOutputBuffer(
 
 void SoundClearOutputBuffer(
 ){
-	size_t sizeInBytes = NUM_SOUND_BUFFER_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
 	/*
 		サウンドシェーダ更新によるリスタートが無効の場合は、バッファクリアしない。
 		副作用として、メッセージループ停止時（ウィドウドラッグ移動中）や、
 		サウンド生成が間に合わない場合に、バッファ上の古いサウンドが再生されてしまう。
 	*/
 	if (AppPreferenceSettingsGetEnableAutoRestartBySoundShader()) {
-		memset(s_soundBuffer, 0, sizeInBytes);
+		memset(s_soundBuffer, 0, sizeof(s_soundBuffer));
 	}
 
 	for (int i = 0; i < NUM_SOUND_BUFFER_PARTITIONS; i++) {
@@ -313,7 +324,11 @@ bool SoundCaptureSound(
 	if (numSamples >= NUM_SOUND_BUFFER_SAMPLES) numSamples = NUM_SOUND_BUFFER_SAMPLES - 1;
 	return SerializeAsWav(
 		/* const char *fileName */			settings->fileName,
-		/* const void *buffer */			s_soundBuffer,
+		/* const void *buffer */			(const void *)(
+												(uintptr_t)s_soundBuffer
+												/* マージンをスキップ */
+											+	NUM_SOUND_MARGIN_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS
+											),
 		/* int numChannels */				NUM_SOUND_CHANNELS,
 		/* int numSamples */				numSamples,
 		/* int numSamplesPerSec */			NUM_SOUND_SAMPLES_PER_SEC,
