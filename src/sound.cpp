@@ -148,7 +148,7 @@ static void SoundGetSynthesizedPartitionResult(
 	if (0 <= partitionIndex && partitionIndex < NUM_SOUND_BUFFER_PARTITIONS) {
 		if (s_soundBufferPartitionStates[partitionIndex] == PartitionState_Synthesized) {
 			s_soundBufferPartitionStates[partitionIndex] = PartitionState_Copied;
-			printf("SoundCopyPartition #%d\n", partitionIndex);
+//			printf("SoundCopyPartition #%d\n", partitionIndex);
 
 			/* サウンド生成リクエストから十分なフレーム数が経過していないなら dispatch 完了待ち */
 			if (s_soundBufferPartitionSynthesizedFrameCount[partitionIndex] + (NUM_SOUND_BUFFERS - 1) >= frameCount) {

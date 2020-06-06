@@ -37,21 +37,21 @@ MYMENU MENU
 {
 	POPUP	"&File (F)"
 	{
-		MENUITEM "&Open Graphics Shader...",					IDM_OPEN_GRAPHICS_SHADER
-		MENUITEM "&Open Sound Shader...",						IDM_OPEN_SOUND_SHADER
+		MENUITEM "&Open Graphics Shader...",			IDM_OPEN_GRAPHICS_SHADER
+		MENUITEM "&Open Sound Shader...",				IDM_OPEN_SOUND_SHADER
 		MENUITEM SEPARATOR
-		MENUITEM "&Capture Screen Shot...\tCtrl+P",				IDM_CAPTURE_SCREEN_SHOT
-		MENUITEM "&Capture Cubemap...\tCtrl+C",					IDM_CAPTURE_CUBEMAP
-		MENUITEM "&Capture Sound...\tCtrl+S",					IDM_CAPTURE_SOUND
-		MENUITEM "&Export Executable...\tCtrl+E",				IDM_EXPORT_EXECUTABLE
-		MENUITEM "&Record Image Sequence...\tCtrl+I",			IDM_RECORD_IMAGE_SEQUENCE
+		MENUITEM "&Capture Screen Shot...\tCtrl+P",		IDM_CAPTURE_SCREEN_SHOT
+		MENUITEM "&Capture Cubemap...\tCtrl+C",			IDM_CAPTURE_CUBEMAP
+		MENUITEM "&Capture Sound...\tCtrl+S",			IDM_CAPTURE_SOUND
+		MENUITEM "&Export Executable...\tCtrl+E",		IDM_EXPORT_EXECUTABLE
+		MENUITEM "&Record Image Sequence...\tCtrl+I",	IDM_RECORD_IMAGE_SEQUENCE
 		MENUITEM SEPARATOR
-		MENUITEM "&Import Project...\tCtrl+M",					IDM_IMPORT_PROJECT
-		MENUITEM "&Export Project...\tCtrl+X",					IDM_EXPORT_PROJECT
+		MENUITEM "&Import Project...\tCtrl+M",			IDM_IMPORT_PROJECT
+		MENUITEM "&Export Project...\tCtrl+X",			IDM_EXPORT_PROJECT
 		MENUITEM SEPARATOR
-		MENUITEM "&Load User Textures...\tCtrl+T",				IDM_LOAD_USER_TEXTURES
+		MENUITEM "&Load User Textures...\tCtrl+T",		IDM_LOAD_USER_TEXTURES
 		MENUITEM SEPARATOR
-		MENUITEM "&Quit\tEsc",									IDM_QUIT
+		MENUITEM "&Quit\tEsc",							IDM_QUIT
 	}
 
 	POPUP	"&Setup (S)"
@@ -960,16 +960,16 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 
 	EDITTEXT
 		IDD_GRAPHICS_SHADER_UNIFORMS_AVAILABLE_ON_EXE,
-			UI_X, UI_Y + 0x10, UI_W, 0xD8,
+			UI_X, UI_Y + 0x10, UI_W, 0xA8,
 			ES_MULTILINE | ES_READONLY
 
 	LTEXT "Not available in exported executables.",
 		IDC_DUMMY,
-			UI_X, UI_Y + 0xF8, UI_W, FONT_H
+			UI_X, UI_Y + 0xC8, UI_W, FONT_H
 
 	EDITTEXT
 		IDD_GRAPHICS_SHADER_UNIFORMS_NOT_AVAILABLE_ON_EXE,
-			UI_X, UI_Y + 0x108, UI_W, 0xB8,
+			UI_X, UI_Y + 0xD8, UI_W, 0xE8,
 			ES_MULTILINE | ES_READONLY
 }
 
