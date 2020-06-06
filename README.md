@@ -28,6 +28,11 @@ MinimalGL は、このうち PC 4K Intro の作成に特化したツールです
 シェーダで生成したサウンドを、波形を可視化しながら再生している様子。
 ![screen_shot_snd](https://user-images.githubusercontent.com/11882108/82468262-8fe87100-9afd-11ea-8f94-ebf531cb53be.png)
 
+ユーザーテクスチャを読み込み、skybox として利用している様子。  
+※ユーザーテクスチャはエクスポートされた実行ファイルからは利用できません。
+![screen_shot_user_texture](https://user-images.githubusercontent.com/11882108/83782228-7c770180-a6ca-11ea-8ab6-a051cbe10515.png)
+
+
 
 # 準備
 
@@ -139,16 +144,23 @@ MinimalGL を使った PC 4K Intro 作成の簡単な流れは以下のように
 	LDR (Unorm8 RGBA) および HDR (FP16 FP32 RGBA) でのレンダリングに対応します。
 
 
-# 制限事項
+# twigl.app のシェーダを実行ファイル化
 
-MinimalGL には以下の制限事項があります。
+https://twigl.app/ の geeker_300_es もしくは geeker_MRT で作成したシェーダは、MinimalGL 上に移植することで、実行ファイルにエクスポートできます。  
+詳細は examples 以下の、twigl 互換サンプルを参照してください。  
 
-- windows exe 専用です。
+互換動作にならない場合は、以下の項目に該当しないか確認してください。
 
-- バーテクスシェーダは利用できません。
+- uniform float s  
+	twigl.app の uniform float s はサウンド再生位置付近のサンプルの平均ですが、
+	MinialGL の twigl 互換サンプルでは（シェーダ上でオンザフライで実行する都合上、処理負荷の問題から）平均を取っていません。
+	そのため uniform float s に依存したエフェクトの動作は互換になりません。
 
-- サウンドはコンピュートシェーダによる生成のみに対応します。
+- 未定義の動作が含まれる  
+	pow 関数の第一引数が負になっているコード等。
 
+- 未初期化変数が存在する  
+	
 
 # 既知の問題
 
@@ -182,6 +194,17 @@ MinimalGL には以下の制限事項があります。
 		```
 		float a[4] = float[](0.0, 1.0, 2.0, 3.0);
 		```
+
+# 制限事項
+
+MinimalGL には以下の制限事項があります。
+
+- windows exe 専用です。
+
+- バーテクスシェーダは利用できません。
+
+- サウンドはコンピュートシェーダによる生成のみに対応します。
+
 
 # ライセンス
 

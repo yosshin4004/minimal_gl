@@ -27,9 +27,6 @@ void SoundResumeWaveOut();
 /* 先頭から再生再開 */
 void SoundRestartWaveOut();
 
-/* プリシンセサイズキャッシュの破棄 */
-void SoundDisposePreSynthesizedCache();
-
 /* 再生位置の seek */
 void SoundSeekWaveOut(uint32_t offset);
 
@@ -60,7 +57,9 @@ bool SoundCaptureSound(
 );
 
 /* サウンドの更新 */
-void SoundUpdate();
+void SoundUpdate(
+	uint32_t frameCount
+);
 
 /* サウンドの初期化 */
 bool SoundInitialize();

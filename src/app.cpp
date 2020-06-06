@@ -28,6 +28,8 @@
 #include "dialog_confirm_over_write.h"
 #include "app.h"
 
+#include "resource/resource.h"
+
 #define PI 3.14159265359f
 #define WAVEOUT_SEEKSTEP_IN_SAMPLES	(0x4000)
 
@@ -256,8 +258,7 @@ HWND AppGetMainWindowHandle(){
 }
 
 void AppGetWindowFocus(){
-	SetWindowPos(AppGetMainWindowHandle(), HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-	SetWindowPos(AppGetMainWindowHandle(), HWND_NOTOPMOST, 0, 0, 0, 0, SWP_SHOWWINDOW | SWP_NOMOVE | SWP_NOSIZE);
+	SetForegroundWindow(AppGetMainWindowHandle());
 }
 
 /*=============================================================================
@@ -1529,12 +1530,23 @@ static bool AppReloadGraphicsShader(){
 }
 
 static bool AppReloadSoundShader(){
+	/*
+		シェーダリロード時のサウンド周りのリセットは厄介な問題。
+		シェーダコンパイル中にも再生位置は進んでしまう。
+		一時停止して先頭にシーク、サウンド生成が完了したのち再生する。
+	*/
+
 	SoundDeleteShader();
 	s_soundCreateShaderSucceeded = SoundCreateShader(s_soundShaderCode);
 	if (s_preferenceSettings.enableAutoRestartBySoundShader) {
+		SoundPauseWaveOut();
+		SoundSeekWaveOut(0);
+	}
+	SoundClearOutputBuffer();
+	SoundUpdate(s_frameCount);
+	if (s_preferenceSettings.enableAutoRestartBySoundShader) {
 		AppRestart();
 	}
-	SoundDisposePreSynthesizedCache();
 	return s_soundCreateShaderSucceeded;
 }
 
@@ -1786,7 +1798,6 @@ bool AppUpdate(){
 	/* サウンドシェーダの更新 */
 	if (IsValidFileName(s_soundShaderFileName)) {
 		if (IsFileUpdated(s_soundShaderFileName, &s_soundShaderFileStat)) {
-			SoundClearOutputBuffer();
 			printf("\nupdate the sound shader.\n");
 			if (s_soundShaderCode != NULL) free(s_soundShaderCode);
 			s_soundShaderCode = MallocReadTextFile(s_soundShaderFileName);
@@ -1818,7 +1829,7 @@ bool AppUpdate(){
 	/* サウンドの更新 */
 	CheckGlError("pre SoundUpdate");
 	if (s_soundCreateShaderSucceeded) {
-		SoundUpdate();
+		SoundUpdate(s_frameCount);
 	}
 	CheckGlError("post SoundUpdate");
 

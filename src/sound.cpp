@@ -25,7 +25,16 @@ static GLuint s_soundOutputSsbo = 0;
 static bool s_soundShaderSetupSucceeded = false;
 
 
-static uint8_t s_soundBufferPartitionDirty[NUM_SOUND_BUFFER_PARTITIONS];
+
+static int s_soundCurrentPartitionIndex = 0;
+static int s_soundSynthesizePartitionIndex = 0;
+typedef enum {
+	PartitionState_ZeroCleared,
+	PartitionState_Copied,
+	PartitionState_Synthesized,
+} PartitionState;
+static PartitionState s_soundBufferPartitionStates[NUM_SOUND_BUFFER_PARTITIONS] = {0};
+static uint32_t s_soundBufferPartitionSynthesizedFrameCount[NUM_SOUND_BUFFER_PARTITIONS] = {0};
 static SOUND_SAMPLE_TYPE s_soundBuffer[NUM_SOUND_BUFFER_SAMPLES * NUM_SOUND_CHANNELS];
 static HWAVEOUT s_waveOutHandle = 0;
 static uint32_t s_waveOutOffset = 0;
@@ -64,16 +73,24 @@ static MMTIME s_mmTime = {
 /*=============================================================================
 ▼	サウンド合成関連
 -----------------------------------------------------------------------------*/
+static void SoundDisposePreSynthesizedCache(){
+	s_soundSynthesizePartitionIndex = s_soundCurrentPartitionIndex;
+}
+
 static void SoundSynthesizePartition(
-	int partitionIndex
+	int partitionIndex,
+	uint32_t frameCount
 ){
 	if (s_soundProgramId == 0) return;
 
 	if (0 <= partitionIndex && partitionIndex < NUM_SOUND_BUFFER_PARTITIONS) {
-		/* 指定のパーティションが dirty なら処理 */
-		if (s_soundBufferPartitionDirty[partitionIndex] != 0) {
-			s_soundBufferPartitionDirty[partitionIndex] = 0;
-//			printf("SoundSynthesizePartition #%d dirty\n", partitionIndex);
+		/* サウンド合成したフレームカウントの保存 */
+		s_soundBufferPartitionSynthesizedFrameCount[partitionIndex] = frameCount;
+
+		/* 指定のパーティションが ZeroCleared なら処理 */
+		if (s_soundBufferPartitionStates[partitionIndex] == PartitionState_ZeroCleared) {
+			s_soundBufferPartitionStates[partitionIndex] = PartitionState_Synthesized;
+//			printf("SoundSynthesizePartition #%d\n", partitionIndex);
 
 			/* シェーダをバインド */
 			assert(s_soundProgramId != 0);
@@ -116,33 +133,43 @@ static void SoundSynthesizePartition(
 	}
 }
 
-static void SoundGetSynthesizePartitionResult(
-	int partitionIndex
+static void SoundGetSynthesizedPartitionResult(
+	int partitionIndex,
+	uint32_t frameCount
 ){
 	if (0 <= partitionIndex && partitionIndex < NUM_SOUND_BUFFER_PARTITIONS) {
-		size_t partitionSizeInBytes = NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
+		if (s_soundBufferPartitionStates[partitionIndex] == PartitionState_Synthesized) {
+			s_soundBufferPartitionStates[partitionIndex] = PartitionState_Copied;
+			printf("SoundCopyPartition #%d\n", partitionIndex);
 
-		/* サウンド生成結果の取り出し */
-		glExtBindBufferBase(
-			/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
-			/* GLuint index */		BUFFER_INDEX_FOR_SOUND_OUTPUT,
-			/* GLuint buffer */		s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS]
-		);
-		glExtGetBufferSubData(
-			/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
-			/* GLintptr OFFSET */	partitionSizeInBytes * partitionIndex,
-			/* GLsizeiptr size */	partitionSizeInBytes,
-			/* GLvoid *data */		(void *)((uintptr_t)s_soundBuffer + partitionSizeInBytes * partitionIndex)
-		);
+			/* サウンド生成リクエストから十分なフレーム数が経過していないなら dispatch 完了待ち */
+			if (s_soundBufferPartitionSynthesizedFrameCount[partitionIndex] + (NUM_SOUND_BUFFERS - 1) >= frameCount) {
+				glFinish();
+			}
 
-		/* 生成結果のコピー */
-		glExtCopyNamedBufferSubData(
-			/* GLuint readBuffer */		s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS],
-			/* GLuint writeBuffer */	s_soundOutputSsbo,
-			/* GLintptr readOffset */	partitionSizeInBytes * partitionIndex,
-			/* GLintptr writeOffset */	partitionSizeInBytes * partitionIndex,
-			/* GLsizeiptr size */		partitionSizeInBytes
-		);
+			/* サウンド生成結果の取り出し */
+			size_t partitionSizeInBytes = NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
+			glExtBindBufferBase(
+				/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
+				/* GLuint index */		BUFFER_INDEX_FOR_SOUND_OUTPUT,
+				/* GLuint buffer */		s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS]
+			);
+			glExtGetBufferSubData(
+				/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
+				/* GLintptr OFFSET */	partitionSizeInBytes * partitionIndex,
+				/* GLsizeiptr size */	partitionSizeInBytes,
+				/* GLvoid *data */		(void *)((uintptr_t)s_soundBuffer + partitionSizeInBytes * partitionIndex)
+			);
+
+			/* 生成結果のコピー */
+			glExtCopyNamedBufferSubData(
+				/* GLuint readBuffer */		s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS],
+				/* GLuint writeBuffer */	s_soundOutputSsbo,
+				/* GLintptr readOffset */	partitionSizeInBytes * partitionIndex,
+				/* GLintptr writeOffset */	partitionSizeInBytes * partitionIndex,
+				/* GLsizeiptr size */		partitionSizeInBytes
+			);
+		}
 	}
 }
 
@@ -161,12 +188,12 @@ bool SoundCreateShader(
 	}
 	DumpShaderInterfaces(s_soundProgramId);
 	printf("setup sound shader ... done.\n");
-	SoundClearOutputBuffer();
 	return true;
 }
 
 bool SoundDeleteShader(){
 	if (s_soundProgramId == 0) return false;
+	glFinish();
 	glExtDeleteProgram(s_soundProgramId);
 	s_soundProgramId = 0;
 	return true;
@@ -255,8 +282,19 @@ static bool SoundDeleteSoundOutputBuffer(
 void SoundClearOutputBuffer(
 ){
 	size_t sizeInBytes = NUM_SOUND_BUFFER_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
-	memset(s_soundBuffer, 0, sizeInBytes);
-	memset(s_soundBufferPartitionDirty, 0xFF, sizeof(s_soundBufferPartitionDirty));
+	/*
+		サウンドシェーダ更新によるリスタートが無効の場合は、バッファクリアしない。
+		副作用として、メッセージループ停止時（ウィドウドラッグ移動中）や、
+		サウンド生成が間に合わない場合に、バッファ上の古いサウンドが再生されてしまう。
+	*/
+	if (AppPreferenceSettingsGetEnableAutoRestartBySoundShader()) {
+		memset(s_soundBuffer, 0, sizeInBytes);
+	}
+
+	for (int i = 0; i < NUM_SOUND_BUFFER_PARTITIONS; i++) {
+		s_soundBufferPartitionStates[i] = PartitionState_ZeroCleared;
+	}
+	SoundDisposePreSynthesizedCache();
 }
 
 GLuint SoundGetOutputSsbo(
@@ -307,26 +345,12 @@ void SoundRestartWaveOut(){
 	SoundSeekWaveOut(0);
 }
 
-void SoundDisposePreSynthesizedCache(){
-	uint32_t offset = SoundGetWaveOutPos();
-
-	/* 再生位置のサウンド生成（2 パーティション先まで）*/
-	{
-		int partitionIndex = offset / NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH;
-		SoundSynthesizePartition(partitionIndex);
-		SoundSynthesizePartition((partitionIndex + 1) % NUM_SOUND_BUFFER_PARTITIONS);
-		SoundSynthesizePartition((partitionIndex + 2) % NUM_SOUND_BUFFER_PARTITIONS);
-		glFinish();
-		SoundGetSynthesizePartitionResult(partitionIndex);
-		SoundGetSynthesizePartitionResult((partitionIndex + 1) % NUM_SOUND_BUFFER_PARTITIONS);
-	}
-}
-
 void SoundSeekWaveOut(uint32_t offset){
 	s_waveOutOffset = offset;
 
 	MMRESULT ret = waveOutReset(s_waveOutHandle);
 
+	s_soundCurrentPartitionIndex = offset / NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH;
 	SoundDisposePreSynthesizedCache();
 
 	if (offset > NUM_SOUND_BUFFER_SAMPLES) offset = NUM_SOUND_BUFFER_SAMPLES;
@@ -369,16 +393,25 @@ int SoundGetWaveOutPos(
 ▼	サウンド関連
 -----------------------------------------------------------------------------*/
 void SoundUpdate(
+	uint32_t frameCount
 ){
 	int waveOutPos = SoundGetWaveOutPos();
-	int partitionIndex = waveOutPos / NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH;
+	s_soundCurrentPartitionIndex = waveOutPos / NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH;
 
-	/* 3 パーティション先のサウンド生成をリクエスト */
-	SoundSynthesizePartition((partitionIndex + 3) % NUM_SOUND_BUFFER_PARTITIONS);
+	/* 先行してシンセサイズするパーティションの終点 */
+	int preSynthesizeEndPartitionIndex =
+		(s_soundCurrentPartitionIndex + (NUM_SOUND_BUFFERS - 1)) % NUM_SOUND_BUFFER_PARTITIONS;
+
+	/* 先行してシンセサイズするパーティションの終点までサウンド生成をリクエスト */
+	while (s_soundSynthesizePartitionIndex != preSynthesizeEndPartitionIndex) {
+		SoundSynthesizePartition(s_soundSynthesizePartitionIndex, frameCount);
+		s_soundSynthesizePartitionIndex++;
+		s_soundSynthesizePartitionIndex %= NUM_SOUND_BUFFER_PARTITIONS;
+	}
 
 	/* 現在と次のパーティションのサウンド生成結果を取り出す */
-	SoundGetSynthesizePartitionResult(partitionIndex);
-	SoundGetSynthesizePartitionResult((partitionIndex + 1) % NUM_SOUND_BUFFER_PARTITIONS);
+	SoundGetSynthesizedPartitionResult(s_soundCurrentPartitionIndex, frameCount);
+	SoundGetSynthesizedPartitionResult((s_soundCurrentPartitionIndex + 1) % NUM_SOUND_BUFFER_PARTITIONS, frameCount);
 }
 
 bool SoundInitialize(

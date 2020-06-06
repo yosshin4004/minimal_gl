@@ -230,6 +230,7 @@ static LRESULT CALLBACK MainWndProc(
 				/* UINT cch */			/* 取得したファイル名を格納するバッファのサイズ */
 										sizeof(fileName)
 			);
+			AppGetWindowFocus();
 			AppOpenDragAndDroppedFile(fileName);
 			return 0;
 		} break;

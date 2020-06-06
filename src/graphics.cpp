@@ -412,6 +412,7 @@ bool GraphicsCreateShader(
 bool GraphicsDeleteShader(
 ){
 	if (s_graphicsProgramId == 0) return false;
+	glFinish();
 	glExtDeleteProgram(s_graphicsProgramId);
 	s_graphicsProgramId = 0;
 	return true;
