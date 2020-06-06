@@ -33,7 +33,6 @@ MinimalGL は、このうち PC 4K Intro の作成に特化したツールです
 ![screen_shot_user_texture](https://user-images.githubusercontent.com/11882108/83782228-7c770180-a6ca-11ea-8ab6-a051cbe10515.png)
 
 
-
 # 準備
 
 MinimalGL を利用するには、以下のツールが必要です。
@@ -144,27 +143,31 @@ MinimalGL を使った PC 4K Intro 作成の簡単な流れは以下のように
 	LDR (Unorm8 RGBA) および HDR (FP16 FP32 RGBA) でのレンダリングに対応します。
 
 
-# twigl.app のシェーダを実行ファイル化
+# twigl のシェーダの実行ファイル化
 
 https://twigl.app/ の geeker_300_es もしくは geeker_MRT で作成したシェーダは、MinimalGL 上に移植することで、実行ファイルにエクスポートできます。  
 詳細は examples 以下の、twigl 互換サンプルを参照してください。  
 
-互換動作にならない場合は、以下の項目に該当しないか確認してください。
 
-- uniform float s  
-	twigl.app の uniform float s はサウンド再生位置付近のサンプルの平均ですが、
-	MinialGL の twigl 互換サンプルでは（シェーダ上でオンザフライで実行する都合上、処理負荷の問題から）平均を取っていません。
-	そのため uniform float s に依存したエフェクトの動作は互換になりません。
+# トラブルシューティング
 
-- 未定義の動作が含まれる  
-	pow 関数の第一引数が負になっているコード等。
+- twigl と動作が異なる  
+	以下の項目に該当しないか確認してください。
 
-- 未初期化変数が存在する  
-	
+	- uniform float s  
+		twigl.app の uniform float s はサウンド再生位置付近のサンプルの平均ですが、
+		MinialGL の twigl 互換サンプルでは（シェーダ上でオンザフライで実行する都合上、処理負荷の問題から）平均を取っていません。
+		そのため uniform float s に依存したエフェクトの動作は互換になりません。
 
-# 既知の問題
+	- 未定義の動作が含まれる  
+		pow 関数の第一引数が負になっているコード等。
 
-- Shader Minifier の制限  
+	- 未初期化変数が存在する  
+
+
+- Shader Minifier に失敗する  
+	Shader Minifier には以下の制限事項があります。
+
 	- 三項演算子内でカンマが利用できない  
 		以下のコードはパースに失敗します。
 		```
@@ -194,6 +197,7 @@ https://twigl.app/ の geeker_300_es もしくは geeker_MRT で作成したシ�
 		```
 		float a[4] = float[](0.0, 1.0, 2.0, 3.0);
 		```
+
 
 # 制限事項
 
