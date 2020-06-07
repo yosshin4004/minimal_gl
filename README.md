@@ -154,7 +154,7 @@ https://twigl.app/ の geeker_300_es もしくは geeker_MRT で作成したシ�
 - twigl と動作が異なる  
 	以下の項目に該当しないか確認してください。
 
-	- uniform float s  
+	- uniform float s を利用している  
 		twigl.app の uniform float s はサウンド再生位置付近のサンプルの平均ですが、
 		MinialGL の twigl 互換サンプルでは（シェーダ上でオンザフライで実行する都合上、処理負荷の問題から）平均を取っていません。
 		そのため uniform float s に依存したエフェクトの動作は互換になりません。
