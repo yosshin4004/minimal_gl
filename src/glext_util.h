@@ -39,9 +39,12 @@ typedef enum {
 	GlExtBufferData,
 	GlExtBufferSubData,
 	GlExtGetBufferSubData,
+	GlExtGetNamedBufferSubData,
 	GlExtCopyNamedBufferSubData,
 	GlExtMapBuffer,
+	GlExtMapNamedBuffer,
 	GlExtUnmapBuffer,
+	GlExtUnmapNamedBuffer,
 	GlExtTransformFeedbackVaryings,
 	GlExtBeginTransformFeedback,
 	GlExtEndTransformFeedback,
@@ -96,9 +99,12 @@ extern void *g_glExtFunctions[NUM_GLEXT_FUNCTIONS];
 #define glExtBufferData					((PFNGLBUFFERDATAPROC)g_glExtFunctions[GlExtBufferData])
 #define glExtBufferSubData				((PFNGLBUFFERSUBDATAPROC)g_glExtFunctions[GlExtBufferSubData])
 #define glExtGetBufferSubData			((PFNGLGETBUFFERSUBDATAPROC)g_glExtFunctions[GlExtGetBufferSubData])
+#define glExtGetNamedBufferSubData		((PFNGLGETNAMEDBUFFERSUBDATAPROC)g_glExtFunctions[GlExtGetNamedBufferSubData])
 #define glExtCopyNamedBufferSubData		((PFNGLCOPYNAMEDBUFFERSUBDATAPROC)g_glExtFunctions[GlExtCopyNamedBufferSubData])
 #define glExtMapBuffer					((PFNGLMAPBUFFERPROC)g_glExtFunctions[GlExtMapBuffer])
+#define glExtMapNamedBuffer				((PFNGLMAPNAMEDBUFFERPROC)g_glExtFunctions[GlExtMapNamedBuffer])
 #define glExtUnmapBuffer				((PFNGLUNMAPBUFFERPROC)g_glExtFunctions[GlExtUnmapBuffer])
+#define glExtUnmapNamedBuffer			((PFNGLUNMAPNAMEDBUFFERPROC)g_glExtFunctions[GlExtUnmapNamedBuffer])
 #define glExtTransformFeedbackVaryings	((PFNGLTRANSFORMFEEDBACKVARYINGSPROC)g_glExtFunctions[GlExtTransformFeedbackVaryings])
 #define glExtBeginTransformFeedback		((PFNGLBEGINTRANSFORMFEEDBACKPROC)g_glExtFunctions[GlExtBeginTransformFeedback])
 #define glExtEndTransformFeedback		((PFNGLENDTRANSFORMFEEDBACKPROC)g_glExtFunctions[GlExtEndTransformFeedback])

@@ -148,7 +148,7 @@ static void SoundGetSynthesizedPartitionResult(
 	if (0 <= partitionIndex && partitionIndex < NUM_SOUND_BUFFER_PARTITIONS) {
 		if (s_soundBufferPartitionStates[partitionIndex] == PartitionState_Synthesized) {
 			s_soundBufferPartitionStates[partitionIndex] = PartitionState_Copied;
-//			printf("SoundCopyPartition #%d\n", partitionIndex);
+//			printf("SoundCopyPartition #%d (synthesized %d frames ago.) \n", partitionIndex, frameCount - s_soundBufferPartitionSynthesizedFrameCount[partitionIndex]);
 
 			/* サウンド生成リクエストから十分なフレーム数が経過していないなら dispatch 完了待ち */
 			if (s_soundBufferPartitionSynthesizedFrameCount[partitionIndex] + (NUM_SOUND_BUFFERS - 1) >= frameCount) {
@@ -156,6 +156,41 @@ static void SoundGetSynthesizedPartitionResult(
 			}
 
 			/* サウンド生成結果の取り出し */
+#if 1
+			/*
+				この処理を glGetBufferSubData や glGetNamedBufferSubData で行うと、
+				ブロッキングが避けられないようだ。
+				この問題は glMapNamedBuffer を用いることで回避できる。
+				ただしバッファのマップは、VRAM を CPU のアドレス空間にマップ
+				できない GPU の場合、バッファ全体のコピーが作成される可能性が
+				あり、むしろ効率が悪くなる可能性がある。
+			*/
+			size_t partitionSizeInBytes = NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
+			{
+				void *p = glExtMapNamedBuffer(
+					/* GLuint buffer */	s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS],
+					/* GLenum access */	GL_READ_ONLY
+				);
+				memcpy(
+					(void *)(
+						(uintptr_t)s_soundBuffer + partitionSizeInBytes * partitionIndex
+						/* マージンをスキップ */
+					+	NUM_SOUND_MARGIN_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS
+					),
+					(const void *)((uintptr_t)p + partitionSizeInBytes * partitionIndex),
+					partitionSizeInBytes
+				);
+				glExtUnmapNamedBuffer(
+					/* GLuint buffer */	s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS]
+				);
+			}
+#else
+			/*
+				ブロッキングを起こす旧実装。
+				読み出し対象のバッファに対する dispatch は、数十フレーム前に完了
+				しているため、ノンブロックでアクセスできて欲しいところだが、
+				実際にはブロッキングが発生してしまう（nVidia GTX960 で再現）。
+			*/
 			size_t partitionSizeInBytes = NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
 			glExtBindBufferBase(
 				/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
@@ -172,6 +207,12 @@ static void SoundGetSynthesizedPartitionResult(
 				+	NUM_SOUND_MARGIN_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS
 				)
 			);
+			glExtBindBufferBase(
+				/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
+				/* GLuint index */		BUFFER_INDEX_FOR_SOUND_OUTPUT,
+				/* GLuint buffer */		0	/* unbind */
+			);
+#endif
 
 			/* 生成結果のコピー */
 			glExtCopyNamedBufferSubData(
