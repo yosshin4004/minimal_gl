@@ -217,13 +217,18 @@ MinimalGL には以下の制限事項があります。
 		cJSON のライセンスに従います。  
 		入手元 : https://github.com/DaveGamble/cJSON
 
+	- src/external/imgui 以下  
+		imgui のライセンスに従います。  
+		入手元 : https://github.com/ocornut/imgui
+
 	- src/external/stb 以下  
 		stb のライセンスに従います。  
 		入手元 : https://github.com/nothings/stb
 
-	- src/GL 及び src/KHR 以下  
+	- src/GL/ 及び src/KHR/ 以下  
 		ソースコード中に書かれているライセンスに従います。  
-		入手元 : https://github.com/KhronosGroup/OpenGL-Registry
+		入手元 : https://github.com/KhronosGroup/OpenGL-Registry  
+		入手元 : https://github.com/skaslev/gl3w
 
 	- examples/ 以下  
 		twigl 互換サンプルコードに含まれる main 関数は twigl のデフォルトシェーダを流用しています。
