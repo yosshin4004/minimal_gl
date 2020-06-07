@@ -153,23 +153,23 @@ const char *AppUserTexturesGetCurrentFileName(int userTextureIndex);
 bool AppUserTexturesDelete(int userTextureIndex);
 
 
-/* カメラパラメータのエディット : 座標の設定 */
-void AppEditCameraParamsSetPosition(const float vec3Pos[3]);
+/* カメラ設定 : 座標の設定 */
+void AppCameraSettingsSetPosition(const float vec3Pos[3]);
 
-/* カメラパラメータのエディット : 座標の取得 */
-void AppEditCameraParamsGetPosition(float vec3Pos[3]);
+/* カメラ設定 : 座標の取得 */
+void AppCameraSettingsGetPosition(float vec3Pos[3]);
 
-/* カメラパラメータのエディット : 角度の設定 */
-void AppEditCameraParamsSetAngleAsRadian(const float vec3Ang[3]);
+/* カメラ設定 : 角度の設定 */
+void AppCameraSettingsSetAngleAsRadian(const float vec3Ang[3]);
 
-/* カメラパラメータのエディット : 角度の取得 */
-void AppEditCameraParamsGetAngleAsRadian(float vec3Ang[3]);
+/* カメラ設定 : 角度の取得 */
+void AppCameraSettingsGetAngleAsRadian(float vec3Ang[3]);
 
-/* カメラパラメータのエディット : 画角の設定 */
-void AppEditCameraParamsSetFovYAsRadian(float rad);
+/* カメラ設定 : 画角の設定 */
+void AppCameraSettingsSetFovYAsRadian(float rad);
 
-/* カメラパラメータのエディット : 画角の取得 */
-float AppEditCameraParamsGetFovYAsRadian();
+/* カメラ設定 : 画角の取得 */
+float AppCameraSettingsGetFovYAsRadian();
 
 
 /* スクリーンショットキャプチャ : 現在の出力ファイル名の設定 */

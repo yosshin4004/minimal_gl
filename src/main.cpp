@@ -9,7 +9,7 @@
 #include <shellapi.h>
 
 #include "config.h"
-#include "dialog_edit_camera_params.h"
+#include "dialog_camera_settings.h"
 #include "dialog_export_executable.h"
 #include "dialog_capture_screen_shot.h"
 #include "dialog_capture_cubemap.h"
@@ -22,6 +22,7 @@
 #include "dialog_snd_uniforms.h"
 #include "dialog_preprocessor_definitions.h"
 #include "common.h"
+#include "gl3w_work_around.h"
 #include "app.h"
 
 #include "resource/resource.h"
@@ -144,6 +145,9 @@ void ToggleFullScreen(){
 	}
 }
 
+/* ImGui のウィンドウプロシージャ */
+extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
 /* ウィンドウプロシージャ */
 static LRESULT CALLBACK MainWndProc(
 	HWND hWnd,
@@ -151,6 +155,9 @@ static LRESULT CALLBACK MainWndProc(
 	WPARAM wParam,
 	LPARAM lParam
 ){
+	/* ImGui 関連 */
+	if (ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam)) return true;
+
 	switch (uMsg) {
 		case WM_SYSCOMMAND: {
 			/* スクリーンセーバー抑制 */
@@ -168,42 +175,46 @@ static LRESULT CALLBACK MainWndProc(
 
 		/* マウスボタンの押下と開放を検出 */
 		case WM_LBUTTONDOWN: {
-			AppMouseLButtonDown();
+			if (ImGui::GetIO().WantCaptureMouse == false) AppMouseLButtonDown();
 			return 0;
 		} break;
 		case WM_MBUTTONDOWN: {
-			AppMouseMButtonDown();
+			if (ImGui::GetIO().WantCaptureMouse == false) AppMouseMButtonDown();
 			return 0;
 		} break;
 		case WM_RBUTTONDOWN: {
-			AppMouseRButtonDown();
+			if (ImGui::GetIO().WantCaptureMouse == false) AppMouseRButtonDown();
 			return 0;
 		} break;
 		case WM_LBUTTONUP: {
-			AppMouseLButtonUp();
+			if (ImGui::GetIO().WantCaptureMouse == false) AppMouseLButtonUp();
 			return 0;
 		} break;
 		case WM_MBUTTONUP: {
-			AppMouseMButtonUp();
+			if (ImGui::GetIO().WantCaptureMouse == false) AppMouseMButtonUp();
 			return 0;
 		} break;
 		case WM_RBUTTONUP: {
-			AppMouseRButtonUp();
+			if (ImGui::GetIO().WantCaptureMouse == false) AppMouseRButtonUp();
 			return 0;
 		} break;
 
 		/* マウスホイールの回転を検出 */
 		case WM_MOUSEWHEEL: {
-			AppSetMouseWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam), GetAsyncKeyState(VK_MBUTTON));
+			if (ImGui::GetIO().WantCaptureMouse == false) {
+				AppSetMouseWheelDelta(GET_WHEEL_DELTA_WPARAM(wParam), GetAsyncKeyState(VK_MBUTTON));
+			}
 			return 0;
 		} break;
 
 		/* マウス移動を検出 */
 		case WM_MOUSEMOVE: {
-			POINT pos;
-			GetCursorPos(&pos);
-			ScreenToClient(hWnd, &pos);
-			AppSetMousePosition(pos.x, pos.y);
+			if (ImGui::GetIO().WantCaptureMouse == false) {
+				POINT pos;
+				GetCursorPos(&pos);
+				ScreenToClient(hWnd, &pos);
+				AppSetMousePosition(pos.x, pos.y);
+			}
 			return 0;
 		} break;
 
@@ -437,12 +448,12 @@ static LRESULT CALLBACK MainWndProc(
 					return 0;
 				} break;
 
-				/* カメラパラメータの設定 */
-				case IDM_EDIT_CAMERA_PARAMS: {
+				/* カメラ設定 */
+				case IDM_CAMERA_SETTINGS: {
 					if (s_fullScreen) {
 						ToggleFullScreen();
 					} else {
-						DialogEditCameraParams();
+						DialogCameraSettings();
 					}
 					return 0;
 				} break;
@@ -561,12 +572,24 @@ static LRESULT CALLBACK MainWndProc(
 /* ウィンドウ終了処理 */
 static bool WindowTerminate(
 ){
+	/* ImGui 関連 */
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui::DestroyContext();
+	ImGui_ImplWin32_Shutdown();
+
+	/* GL コンテキストの削除 */
 	if (s_hRC) {
 		wglMakeCurrent(0, 0);
 		wglDeleteContext(s_hRC);
 	}
+
+	/* デバイスコンテキスト解放 */
 	if (s_hDC) ReleaseDC(AppGetMainWindowHandle(), s_hDC);
+
+	/* ウィンドウ削除 */
 	if (AppGetMainWindowHandle()) DestroyWindow(AppGetMainWindowHandle());
+
+	/* ウィンドウクラスの登録解除 */
 	UnregisterClass(s_wndClassName, AppGetCurrentInstance());
 
 	return true;
@@ -679,12 +702,33 @@ static bool WindowInitialize(
 		&s_pixelFormatDescriptor
 	);
 
-	/* コンテキストを作成して、カレントに設定 */
+	/* GL コンテキストを作成して、カレントに設定 */
 	s_hRC = wglCreateContext(s_hDC);
 	wglMakeCurrent(s_hDC, s_hRC);
 
 	/* ドラッグアンドドロップを受け入れる */
 	DragAcceptFiles(AppGetMainWindowHandle(), TRUE);
+
+	/* ImGui 関連 */
+	{
+		/* GL 拡張 API の取得 */
+		CallGl3wInit();
+
+		/* ImGui バインディングの設定 */
+		IMGUI_CHECKVERSION();
+		ImGui::CreateContext();
+		ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+		/* Win32 用の初期化 */
+		ImGui_ImplWin32_Init(AppGetMainWindowHandle());
+
+		/* OpenGL 実装の初期化（GL3.0 & GLSL130）*/
+		const char* glsl_version = "#version 130";
+		ImGui_ImplOpenGL3_Init(glsl_version);
+
+		/* スタイルの設定 */
+		ImGui::StyleColorsClassic();
+	}
 
 	return true;
 }
@@ -743,22 +787,29 @@ int WINAPI WinMain(
 			}
 		}
 
+		/* ImGui フレームの開始 */
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplWin32_NewFrame();
+		ImGui::NewFrame();
+
 		/* アプリケーション更新 */
 		if (AppUpdate() == false) {
 			AppErrorMessageBox(APP_NAME, "AppUpdate() failed.");
 			break;
 		}
 
+		/* アプリケーション解像度取得 */
+		int xReso, yReso;
+		AppGetResolution(&xReso, &yReso);
+
 		/* アプリケーション側で解像度変更があったらメインウィンドウをリサイズ */
 		{
 			int wClient, hClient;
-			int xReso, yReso;
 			{
 				RECT clientRect;
 				GetClientRect(hWnd, &clientRect);
 				wClient = clientRect.right - clientRect.left;
 				hClient = clientRect.bottom - clientRect.top;
-				AppGetResolution(&xReso, &yReso);
 			}
 			if (wClient != xReso || hClient != yReso) {
 				printf(
@@ -797,6 +848,14 @@ int WINAPI WinMain(
 				);
 			}
 		}
+
+		/* デモウィンドウの表示 */
+//		ImGui::ShowDemoWindow();
+
+		/* ImGui レンダリング */
+		ImGui::Render();
+		glViewport(0, 0, xReso, yReso);
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 		/* フリップ */
 		SwapBuffers(s_hDC);

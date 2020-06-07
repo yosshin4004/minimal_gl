@@ -56,6 +56,9 @@ void GraphicsClearAllRenderTargets();
 /* シェーダが frameCount uniform 変数を要求するか？ */
 bool GraphicsShaderRequiresFrameCountUniform();
 
+/* シェーダが camera control を利用しているか？ */
+bool GraphicsShaderRequiresCameraControlUniforms();
+
 /* ユーザーテクスチャの読み込み */
 bool GraphicsLoadUserTexture(
 	const char *fileName,

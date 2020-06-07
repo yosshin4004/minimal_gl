@@ -102,6 +102,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\usr\dev_area\app\tool_proj\minimal_gl\src\external\imgui;C:\usr\dev_area\app\tool_proj\minimal_gl\src\external\imgui\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -133,6 +134,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\usr\dev_area\app\tool_proj\minimal_gl\src\external\imgui;C:\usr\dev_area\app\tool_proj\minimal_gl\src\external\imgui\examples;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -147,11 +149,11 @@
     <ClCompile Include="src\common.cpp" />
     <ClCompile Include="src\dds_parser.cpp" />
     <ClCompile Include="src\dds_util.cpp" />
+    <ClCompile Include="src\dialog_camera_settings.cpp" />
     <ClCompile Include="src\dialog_capture_cubemap.cpp" />
     <ClCompile Include="src\dialog_capture_screen_shot.cpp" />
     <ClCompile Include="src\dialog_capture_sound.cpp" />
     <ClCompile Include="src\dialog_confirm_over_write.cpp" />
-    <ClCompile Include="src\dialog_edit_camera_params.cpp" />
     <ClCompile Include="src\dialog_export_executable.cpp" />
     <ClCompile Include="src\dialog_gfx_uniforms.cpp" />
     <ClCompile Include="src\dialog_load_user_textures.cpp" />
@@ -163,7 +165,15 @@
     <ClCompile Include="src\export_executable.cpp" />
     <ClCompile Include="src\external\cJSON\cJSON.c" />
     <ClCompile Include="src\external\cJSON\cJSON_Utils.c" />
+    <ClCompile Include="src\external\imgui\examples\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="src\external\imgui\examples\imgui_impl_win32.cpp" />
+    <ClCompile Include="src\external\imgui\imgui.cpp" />
+    <ClCompile Include="src\external\imgui\imgui_demo.cpp" />
+    <ClCompile Include="src\external\imgui\imgui_draw.cpp" />
+    <ClCompile Include="src\external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="src\gl3w_work_around.cpp" />
     <ClCompile Include="src\glext_util.cpp" />
+    <ClCompile Include="src\GL\gl3w.c" />
     <ClCompile Include="src\graphics.cpp" />
     <ClCompile Include="src\high_precision_timer.cpp" />
     <ClCompile Include="src\main.cpp" />
@@ -178,11 +188,11 @@
     <ClInclude Include="src\config.h" />
     <ClInclude Include="src\dds_parser.h" />
     <ClInclude Include="src\dds_util.h" />
+    <ClInclude Include="src\dialog_camera_settings.h" />
     <ClInclude Include="src\dialog_capture_cubemap.h" />
     <ClInclude Include="src\dialog_capture_screen_shot.h" />
     <ClInclude Include="src\dialog_capture_sound.h" />
     <ClInclude Include="src\dialog_confirm_over_write.h" />
-    <ClInclude Include="src\dialog_edit_camera_params.h" />
     <ClInclude Include="src\dialog_export_executable.h" />
     <ClInclude Include="src\dialog_gfx_uniforms.h" />
     <ClInclude Include="src\dialog_load_user_textures.h" />
@@ -194,10 +204,13 @@
     <ClInclude Include="src\export_executable.h" />
     <ClInclude Include="src\external\cJSON\cJSON.h" />
     <ClInclude Include="src\external\cJSON\cJSON_Utils.h" />
+    <ClInclude Include="src\external\imgui\imgui.h" />
     <ClInclude Include="src\external\stb\stb_image.h" />
     <ClInclude Include="src\external\stb\stb_image_write.h" />
+    <ClInclude Include="src\gl3w_work_around.h" />
     <ClInclude Include="src\glext.h" />
     <ClInclude Include="src\glext_util.h" />
+    <ClInclude Include="src\GL\gl3w.h" />
     <ClInclude Include="src\graphics.h" />
     <ClInclude Include="src\high_precision_timer.h" />
     <ClInclude Include="src\png_util.h" />

@@ -14,10 +14,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <GL/gl.h>
-#include <GL/glext.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <GL/gl.h>
+#include <GL/glext.h>
+
+#include "imgui.h"
+#include "imgui_impl_win32.h"
+#include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 
 
 /* レガシー API に対する警告の抑制 */

@@ -450,7 +450,7 @@ void AppSetMousePosition(int x, int y){
 	s_mouse.y = y;
 }
 void AppSetResolution(int xReso, int yReso){
-	printf("\nchange the resolution to %dx%d.\n", xReso, yReso);
+	printf("change the resolution to %dx%d.\n", xReso, yReso);
 	s_xReso = xReso;
 	s_yReso = yReso;
 }
@@ -642,34 +642,34 @@ bool AppUserTexturesDelete(int userTextureIndex){
 }
 
 /*=============================================================================
-▼	カメラパラメータのエディット関連
+▼	カメラ設定関連
 -----------------------------------------------------------------------------*/
-void AppEditCameraParamsSetPosition(const float vec3Pos[3]){
+void AppCameraSettingsSetPosition(const float vec3Pos[3]){
 	s_camera.vec3Pos[0] = vec3Pos[0];
 	s_camera.vec3Pos[1] = vec3Pos[1];
 	s_camera.vec3Pos[2] = vec3Pos[2];
 }
-void AppEditCameraParamsGetPosition(float vec3Pos[3]){
+void AppCameraSettingsGetPosition(float vec3Pos[3]){
 	vec3Pos[0] = s_camera.vec3Pos[0];
 	vec3Pos[1] = s_camera.vec3Pos[1];
 	vec3Pos[2] = s_camera.vec3Pos[2];
 }
-void AppEditCameraParamsSetAngleAsRadian(const float vec3Ang[3]){
+void AppCameraSettingsSetAngleAsRadian(const float vec3Ang[3]){
 	s_camera.vec3Ang[0] = vec3Ang[0];
 	s_camera.vec3Ang[1] = vec3Ang[1];
 	s_camera.vec3Ang[2] = vec3Ang[2];
 }
-void AppEditCameraParamsGetAngleAsRadian(float vec3Ang[3]){
+void AppCameraSettingsGetAngleAsRadian(float vec3Ang[3]){
 	vec3Ang[0] = s_camera.vec3Ang[0];
 	vec3Ang[1] = s_camera.vec3Ang[1];
 	vec3Ang[2] = s_camera.vec3Ang[2];
 }
-void AppEditCameraParamsSetFovYAsRadian(float rad){
+void AppCameraSettingsSetFovYAsRadian(float rad){
 	s_camera.fovYAsRadian = rad;
 	if (s_camera.fovYAsRadian < 0.0f) s_camera.fovYAsRadian = 0.0f;
 	if (s_camera.fovYAsRadian > PI * 0.5f) s_camera.fovYAsRadian = PI * 0.5f;
 }
-float AppEditCameraParamsGetFovYAsRadian(){
+float AppCameraSettingsGetFovYAsRadian(){
 	return s_camera.fovYAsRadian;
 }
 
@@ -780,7 +780,7 @@ float AppCaptureSoundGetDurationInSeconds(){
 	return s_captureSoundSettings.durationInSeconds;
 }
 void AppCaptureSound(){
-	printf("\ncapture the sound.\n");
+	printf("capture the sound.\n");
 	if (s_soundCreateShaderSucceeded) {
 		if (DialogConfirmOverWrite(s_captureSoundSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
 			bool ret = SoundCaptureSound(&s_captureSoundSettings);
@@ -877,7 +877,7 @@ bool AppExportExecutableGetCrinklerOptionsUseTinyImport(){
 	return s_executableExportSettings.crinklerOptions.useTinyImport;
 }
 void AppExportExecutable(){
-	printf("\nexport a executable file.\n");
+	printf("export an executable file.\n");
 	if (s_soundCreateShaderSucceeded
 	&&	s_graphicsCreateShaderSucceeded
 	) {
@@ -938,7 +938,7 @@ bool AppRecordImageSequenceGetForceReplaceAlphaByOneFlag(){
 	return s_recordImageSequenceSettings.replaceAlphaByOne;
 }
 void AppRecordImageSequence(){
-	printf("\nrecord image sequence.\n");
+	printf("record image sequence.\n");
 	if (s_soundCreateShaderSucceeded
 	&&	s_graphicsCreateShaderSucceeded
 	) {
@@ -1592,7 +1592,7 @@ bool AppOpenGraphicsShaderFile(const char *fileName){
 		return false;
 	}
 
-	printf("\nopen graphics shader file %s.\n", fileName);
+	printf("open a graphics shader file %s.\n", fileName);
 	strcpy_s(
 		s_graphicsShaderFileName,
 		sizeof(s_graphicsShaderFileName),
@@ -1608,7 +1608,7 @@ bool AppOpenSoundShaderFile(const char *fileName){
 		return false;
 	}
 
-	printf("\nopen sound shader file %s.\n", fileName);
+	printf("open a sound shader file %s.\n", fileName);
 	strcpy_s(
 		s_soundShaderFileName,
 		sizeof(s_soundShaderFileName),
@@ -1670,11 +1670,12 @@ const char *AppGetCurrentSoundShaderCode(){
 ▼	その他
 -----------------------------------------------------------------------------*/
 void AppClearAllRenderTargets(){
+	printf("clear all render targets.\n");
 	GraphicsClearAllRenderTargets();
 }
 
 void AppRestart(){
-	printf("\nrestart.\n");
+	printf("restart.\n");
 	HighPrecisionTimerReset(0);
 	SoundRestartWaveOut();
 	s_paused = false;
@@ -1682,13 +1683,8 @@ void AppRestart(){
 }
 
 void AppResetCamera(){
-	printf("\nreset the camera.\n");
-	s_camera.vec3Pos[0] = 0;
-	s_camera.vec3Pos[1] = 0;
-	s_camera.vec3Pos[2] = 0;
-	s_camera.vec3Ang[0] = 0;
-	s_camera.vec3Ang[1] = 0;
-	s_camera.vec3Ang[2] = 0;
+	printf("reset the camera.\n");
+	CameraInitialize();
 }
 
 void AppTogglePauseAndResume(){
@@ -1701,7 +1697,7 @@ void AppTogglePauseAndResume(){
 
 void AppPause(){
 	if (s_paused == false) {
-		printf("\npause.\n");
+		printf("pause.\n");
 		s_paused = true;
 		SoundPauseWaveOut();
 		s_fp64PausedTime = HighPrecisionTimerGet();
@@ -1710,7 +1706,7 @@ void AppPause(){
 
 void AppResume(){
 	if (s_paused) {
-		printf("\nresume.\n");
+		printf("resume.\n");
 		s_paused = false;
 		SoundResumeWaveOut();
 		HighPrecisionTimerReset(s_fp64PausedTime);
@@ -1762,16 +1758,18 @@ bool AppUpdate(){
 	) {
 		static int s_frameSkip = 0;
 		static double s_fp64PrevTime = 0.0;
-		static double s_fp64Fps = 0.0;
+		static double s_fp64Fps = 60.0;
 		++s_frameSkip;
 
-		/* 1 秒ごとに FPS を求める */
-		if (floor(fp64CurrentTime) > floor(s_fp64PrevTime)) {
-			if (s_graphicsCreateShaderSucceeded) {
-				s_fp64Fps = (double)s_frameSkip / (fp64CurrentTime - s_fp64PrevTime);
+		/* pause 中でなければ 1 秒ごとに FPS を求める */
+		if (s_paused == false) {
+			if (floor(fp64CurrentTime) > floor(s_fp64PrevTime)) {
+				if (s_graphicsCreateShaderSucceeded) {
+					s_fp64Fps = (double)s_frameSkip / (fp64CurrentTime - s_fp64PrevTime);
+				}
+				s_fp64PrevTime = fp64CurrentTime;
+				s_frameSkip = 0;
 			}
-			s_fp64PrevTime = fp64CurrentTime;
-			s_frameSkip = 0;
 		}
 
 		/* 時間が巻き戻っているなら修正 */
@@ -1779,26 +1777,49 @@ bool AppUpdate(){
 			s_fp64PrevTime = fp64CurrentTime;
 		}
 
-		/* ステートの TTY 出力 */
-		printf(
-			"time %.1f, waveOutPos %08x, FPS %.1f, camPos(%.2f, %.2f, %.2f), camAng(%.1f, %.1f, %.1f), fovY %.1f    \r",
-			fp64CurrentTime,
-			SoundGetWaveOutPos(),
-			s_fp64Fps,
-			s_camera.vec3Pos[0],
-			s_camera.vec3Pos[1],
-			s_camera.vec3Pos[2],
-			s_camera.vec3Ang[0] * 180.0f / PI,
-			s_camera.vec3Ang[1] * 180.0f / PI,
-			s_camera.vec3Ang[2] * 180.0f / PI,
-			s_camera.fovYAsRadian * 180.0f / PI
-		);
+		/* ステートを ImGui で表示 */
+		{
+			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoSavedSettings;
+			ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
+			if (ImGui::Begin("Current States", NULL, window_flags)) {
+				ImGui::Text(
+					"time       %.2f\n"
+					"FPS        %.2f\n"
+					"waveOutPos %08x\n"
+					,
+					fp64CurrentTime,
+					s_fp64Fps,
+					SoundGetWaveOutPos()
+				);
+			}
+			ImGui::End();
+		}
+	}
+
+	/* カメラコントロールを要求するシェーダでは、カメラの設定を ImGui で表示 */
+	if (GraphicsShaderRequiresCameraControlUniforms()) {
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoSavedSettings;
+		ImGui::SetNextWindowPos(ImVec2(200, 0), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin("Camera Settings", NULL, window_flags)) {
+			ImGui::PushItemWidth(ImGui::GetFontSize() * 16);
+
+			ImGui::InputFloat3("position", s_camera.vec3Pos);
+			ImGui::InputFloat3("angle", s_camera.vec3Ang);
+			float fovYAsDegree = s_camera.fovYAsRadian * 180.0f / PI;
+			ImGui::SliderFloat("fovY", &fovYAsDegree, 0.0f, 90.0f, "%.2f");
+			s_camera.fovYAsRadian = fovYAsDegree * PI / 180.0f;
+			bool ret = ImGui::Button("Reset");
+			if (ret) AppResetCamera();
+
+			ImGui::PopItemWidth();
+		}
+		ImGui::End();
 	}
 
 	/* サウンドシェーダの更新 */
 	if (IsValidFileName(s_soundShaderFileName)) {
 		if (IsFileUpdated(s_soundShaderFileName, &s_soundShaderFileStat)) {
-			printf("\nupdate the sound shader.\n");
+			printf("update the sound shader.\n");
 			if (s_soundShaderCode != NULL) free(s_soundShaderCode);
 			s_soundShaderCode = MallocReadTextFile(s_soundShaderFileName);
 			if (s_soundShaderCode == NULL) {
@@ -1812,7 +1833,7 @@ bool AppUpdate(){
 	/* グラフィクスシェーダの更新 */
 	if (IsValidFileName(s_graphicsShaderFileName)) {
 		if (IsFileUpdated(s_graphicsShaderFileName, &s_graphicsShaderFileStat)) {
-			printf("\nupdate the graphics shader.\n");
+			printf("update the graphics shader.\n");
 			if (s_graphicsShaderCode != NULL) free(s_graphicsShaderCode);
 			s_graphicsShaderCode = MallocReadTextFile(s_graphicsShaderFileName);
 			if (s_graphicsShaderCode == NULL) {

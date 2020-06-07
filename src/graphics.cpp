@@ -133,6 +133,15 @@ bool GraphicsShaderRequiresFrameCountUniform(){
 	return false;
 }
 
+bool GraphicsShaderRequiresCameraControlUniforms(){
+	if (s_graphicsProgramId != 0) {
+		return
+			ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_TAN_FOVY, GL_FLOAT)
+		||	ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_CAMERA_COORD, GL_FLOAT_MAT4);
+	}
+	return false;
+}
+
 
 static bool GraphicsLoadUserTextureSubAsPng(
 	const char *fileName,
@@ -393,18 +402,18 @@ bool GraphicsDeleteUserTexture(
 bool GraphicsCreateShader(
 	const char *shaderCode
 ){
-	printf("setup graphics shader ...\n");
+	printf("setup the graphics shader ...\n");
 	const GLchar *(strings[]) = {
 		SkipBomConst(shaderCode)
 	};
 	assert(s_graphicsProgramId == 0);
 	s_graphicsProgramId = CreateShader(GL_FRAGMENT_SHADER, SIZE_OF_ARRAY(strings), strings);
 	if (s_graphicsProgramId == 0) {
-		printf("setup graphics shader ... fialed.\n");
+		printf("setup the graphics shader ... fialed.\n");
 		return false;
 	}
 	DumpShaderInterfaces(s_graphicsProgramId);
-	printf("setup graphics shader ... done.\n");
+	printf("setup the graphics shader ... done.\n");
 
 	return true;
 }

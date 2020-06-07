@@ -188,18 +188,18 @@ static void SoundGetSynthesizedPartitionResult(
 bool SoundCreateShader(
 	const char *shaderCode
 ){
-	printf("setup sound shader ...\n");
+	printf("setup the sound shader ...\n");
 	const GLchar *(strings[]) = {
 		SkipBomConst(shaderCode)
 	};
 	assert(s_soundProgramId == 0);
 	s_soundProgramId = CreateShader(GL_COMPUTE_SHADER, SIZE_OF_ARRAY(strings), strings);
 	if (s_soundProgramId == 0) {
-		printf("setup sound shader ... fialed.\n");
+		printf("setup the sound shader ... fialed.\n");
 		return false;
 	}
 	DumpShaderInterfaces(s_soundProgramId);
-	printf("setup sound shader ... done.\n");
+	printf("setup the sound shader ... done.\n");
 	return true;
 }
 

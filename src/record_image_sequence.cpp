@@ -286,7 +286,7 @@ bool RecordImageSequence(
 		float duration = AppRecordImageSequenceGetDurationInSeconds();
 		float framesPerSecond = AppRecordImageSequenceGetFramesPerSecond();
 
-		float fovYAsRadian = AppEditCameraParamsGetFovYAsRadian();
+		float fovYAsRadian = AppCameraSettingsGetFovYAsRadian();
 		float mat4x4CameraInWorld[4][4];
 		AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
 

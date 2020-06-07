@@ -9,7 +9,7 @@
 #include "config.h"
 #include "common.h"
 #include "app.h"
-#include "dialog_edit_camera_params.h"
+#include "dialog_camera_settings.h"
 #include "resource/resource.h"
 
 #define PI 3.14159265359
@@ -28,9 +28,9 @@ static LRESULT CALLBACK DialogFunc(
 			float vec3Pos[3];
 			float vec3Ang[3];
 			float fovY;
-			AppEditCameraParamsGetPosition(vec3Pos);
-			AppEditCameraParamsGetAngleAsRadian(vec3Ang);
-			fovY = AppEditCameraParamsGetFovYAsRadian();
+			AppCameraSettingsGetPosition(vec3Pos);
+			AppCameraSettingsGetAngleAsRadian(vec3Ang);
+			fovY = AppCameraSettingsGetFovYAsRadian();
 
 			/* radian → degree */
 			vec3Ang[0] *= (float)(180.0 / PI);
@@ -39,13 +39,13 @@ static LRESULT CALLBACK DialogFunc(
 			fovY *= (float)(180.0 / PI);
 
 			/* カメラパラメータをエディットボックスに設定 */
-			SetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_POS_X, vec3Pos[0], TRUE);
-			SetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_POS_Y, vec3Pos[1], TRUE);
-			SetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_POS_Z, vec3Pos[2], TRUE);
-			SetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_ANG_X, vec3Ang[0], TRUE);
-			SetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_ANG_Y, vec3Ang[1], TRUE);
-			SetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_ANG_Z, vec3Ang[2], TRUE);
-			SetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_FOV_Y, fovY, FALSE);
+			SetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_POS_X, vec3Pos[0], TRUE);
+			SetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_POS_Y, vec3Pos[1], TRUE);
+			SetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_POS_Z, vec3Pos[2], TRUE);
+			SetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_ANG_X, vec3Ang[0], TRUE);
+			SetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_ANG_Y, vec3Ang[1], TRUE);
+			SetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_ANG_Z, vec3Ang[2], TRUE);
+			SetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_FOV_Y, fovY, FALSE);
 
 			/* メッセージは処理された */
 			return 1;
@@ -67,13 +67,13 @@ static LRESULT CALLBACK DialogFunc(
 					float vec3Pos[3];
 					float vec3Ang[3];
 					float fovY;
-					vec3Pos[0] = GetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_POS_X, &posXTranslated, TRUE);
-					vec3Pos[1] = GetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_POS_Y, &posYTranslated, TRUE);
-					vec3Pos[2] = GetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_POS_Z, &posZTranslated, TRUE);
-					vec3Ang[0] = GetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_ANG_X, &angXTranslated, TRUE);
-					vec3Ang[1] = GetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_ANG_Y, &angYTranslated, TRUE);
-					vec3Ang[2] = GetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_ANG_Z, &angZTranslated, TRUE);
-					fovY = GetDlgItemFloat(hDwnd, IDD_EDIT_CAMERA_PARAMS_FOV_Y, &fovYTranslated, FALSE);
+					vec3Pos[0] = GetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_POS_X, &posXTranslated, TRUE);
+					vec3Pos[1] = GetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_POS_Y, &posYTranslated, TRUE);
+					vec3Pos[2] = GetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_POS_Z, &posZTranslated, TRUE);
+					vec3Ang[0] = GetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_ANG_X, &angXTranslated, TRUE);
+					vec3Ang[1] = GetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_ANG_Y, &angYTranslated, TRUE);
+					vec3Ang[2] = GetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_ANG_Z, &angZTranslated, TRUE);
+					fovY = GetDlgItemFloat(hDwnd, IDD_CAMERA_SETTINGS_FOV_Y, &fovYTranslated, FALSE);
 					if (posXTranslated == FALSE) {
 						AppErrorMessageBox(APP_NAME, "Invalid position X.");
 						return 0;	/* メッセージは処理されなかった */
@@ -110,12 +110,12 @@ static LRESULT CALLBACK DialogFunc(
 					fovY *= (float)(PI / 180.0);
 
 					/* App に通知 */
-					AppEditCameraParamsSetPosition(vec3Pos);
-					AppEditCameraParamsSetAngleAsRadian(vec3Ang);
-					AppEditCameraParamsSetFovYAsRadian(fovY);
+					AppCameraSettingsSetPosition(vec3Pos);
+					AppCameraSettingsSetAngleAsRadian(vec3Ang);
+					AppCameraSettingsSetFovYAsRadian(fovY);
 
 					/* ダイアログボックス終了 */
-					EndDialog(hDwnd, DialogEditCameraParamsResult_Ok);
+					EndDialog(hDwnd, DialogCameraSettingsResult_Ok);
 
 					/* メッセージは処理された */
 					return 1;
@@ -124,7 +124,7 @@ static LRESULT CALLBACK DialogFunc(
 				/* キャンセル */
 				case IDCANCEL: {
 					/* ダイアログボックス終了 */
-					EndDialog(hDwnd, DialogEditCameraParamsResult_Canceled);
+					EndDialog(hDwnd, DialogCameraSettingsResult_Canceled);
 
 					/* メッセージは処理された */
 					return 1;
@@ -138,12 +138,12 @@ static LRESULT CALLBACK DialogFunc(
 }
 
 
-DialogEditCameraParamsResult
-DialogEditCameraParams()
+DialogCameraSettingsResult
+DialogCameraSettings()
 {
-	return (DialogEditCameraParamsResult)DialogBox(
+	return (DialogCameraSettingsResult)DialogBox(
 		AppGetCurrentInstance(),
-		"EDIT_CAMERA_PARAMS",
+		"CAMERA_SETTINGS",
 		AppGetMainWindowHandle(),
 		DialogFunc
 	);
