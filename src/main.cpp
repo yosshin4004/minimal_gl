@@ -123,8 +123,8 @@ void ToggleFullScreen(){
 
 		/* ウィンドウサイズ変更 */
 		RECT rect = {0};
-		rect.right = SCREEN_XRESO;
-		rect.bottom = SCREEN_YRESO;
+		rect.right = DEFAULT_SCREEN_XRESO;
+		rect.bottom = DEFAULT_SCREEN_YRESO;
 		AdjustWindowRectEx(
 			&rect,
 			GetWindowLong(AppGetMainWindowHandle(), GWL_STYLE),
@@ -510,6 +510,24 @@ static LRESULT CALLBACK MainWndProc(
 					return 0;
 				} break;
 
+				/* ImGui Current Status の表示 */
+				case IDM_TOGGLE_DISPLAY_CURRENT_STATUS: {
+					bool flag = ToggleMenuItemCheck(
+						GetMenu(AppGetMainWindowHandle()),
+						IDM_TOGGLE_DISPLAY_CURRENT_STATUS
+					);
+					AppImGuiSetDisplayCurrentStatusFlag(flag);
+				} break;
+
+				/* ImGui Camera Settings の表示 */
+				case IDM_TOGGLE_DISPLAY_CAMERA_SETTINGS: {
+					bool flag = ToggleMenuItemCheck(
+						GetMenu(AppGetMainWindowHandle()),
+						IDM_TOGGLE_DISPLAY_CAMERA_SETTINGS
+					);
+					AppImGuiSetDisplayCameraSettingsFlag(flag);
+				} break;
+
 				/* グラフィクスシェーダ用ユニフォーム一覧 */
 				case IDM_HELP_GRAPHICS_SHADER_UNIFORMS: {
 					if (s_fullScreen) {
@@ -657,8 +675,8 @@ static bool WindowInitialize(
 		);
 
 		RECT rect = {0};
-		rect.right = SCREEN_XRESO;
-		rect.bottom = SCREEN_YRESO;
+		rect.right = DEFAULT_SCREEN_XRESO;
+		rect.bottom = DEFAULT_SCREEN_YRESO;
 		AdjustWindowRectEx(
 			&rect,
 			windowStyle,
@@ -717,14 +735,14 @@ static bool WindowInitialize(
 		/* ImGui バインディングの設定 */
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
-		ImGuiIO& io = ImGui::GetIO(); (void)io;
+		ImGuiIO &io = ImGui::GetIO(); (void)io;
 
 		/* Win32 用の初期化 */
 		ImGui_ImplWin32_Init(AppGetMainWindowHandle());
 
 		/* OpenGL 実装の初期化（GL3.0 & GLSL130）*/
-		const char* glsl_version = "#version 130";
-		ImGui_ImplOpenGL3_Init(glsl_version);
+		const char *glslVersion = "#version 130";
+		ImGui_ImplOpenGL3_Init(glslVersion);
 
 		/* スタイルの設定 */
 		ImGui::StyleColorsClassic();
@@ -764,12 +782,13 @@ int WINAPI WinMain(
 		freopen("conout$", "w", stderr);
 	}
 
-	/* 初期化 */
+	/* ウィンドウ初期化 */
 	if (WindowInitialize() == false) {
 		AppErrorMessageBox(APP_NAME, "WindowInitialize() failed.");
 		return 0;
 	}
 
+	/* アプリケーション初期化 */
 	if (AppInitialize() == false) {
 		AppErrorMessageBox(APP_NAME, "AppInitialize() failed.");
 		return 0;
@@ -796,6 +815,21 @@ int WINAPI WinMain(
 		if (AppUpdate() == false) {
 			AppErrorMessageBox(APP_NAME, "AppUpdate() failed.");
 			break;
+		}
+
+		/* メニューのチェック状態を更新 */
+		{
+			HMENU hMenu = GetMenu(AppGetMainWindowHandle());
+			SetMenuItemCheck(
+				hMenu,
+				IDM_TOGGLE_DISPLAY_CURRENT_STATUS,
+				AppImGuiGetDisplayCurrentStatusFlag()
+			);
+			SetMenuItemCheck(
+				hMenu,
+				IDM_TOGGLE_DISPLAY_CAMERA_SETTINGS,
+				AppImGuiGetDisplayCameraSettingsFlag()
+			);
 		}
 
 		/* アプリケーション解像度取得 */

@@ -85,7 +85,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	int waveOutPos,
 	int frameCount,
 	float time,
-	float fovYAsRadian,
+	float fovYInRadians,
 	const float mat4x4CameraInWorld[4][4],
 	const RenderSettings *renderSettings,
 	const CaptureScreenShotSettings *captureSettings
@@ -96,7 +96,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 	int waveOutPos,
 	int frameCount,
 	float time,
-	float fovYAsRadian,
+	float fovYInRadians,
 	const float mat4x4CameraInWorld[4][4],
 	const RenderSettings *renderSettings,
 	const CaptureScreenShotSettings *captureSettings
@@ -124,7 +124,7 @@ void GraphicsUpdate(
 	int mouseRButtonPressed,
 	int xReso,
 	int yReso,
-	float fovYAsRadian,
+	float fovYInRadians,
 	const float mat4x4CameraInWorld[4][4],
 	const RenderSettings *settings
 );

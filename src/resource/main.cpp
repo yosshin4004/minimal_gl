@@ -351,11 +351,19 @@ entrypoint(
 		/* GLuint index */			BUFFER_INDEX_FOR_SOUND_OUTPUT,
 		/* GLuint buffer */			ASSUMED_SOUND_SSBO
 	);
-	glExtBufferData(
+	glExtBufferStorage(
 		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
 		/* GLsizeiptr size */		NUM_SOUND_BUFFER_BYTES,
-		/* const GLvoid * data */	NULL,
-		/* GLenum usage */			GL_DYNAMIC_COPY
+		/* const void * data */		NULL,
+		/* GLbitfield flags */			GL_MAP_READ_BIT			/* 0x0001 */
+									|	GL_MAP_WRITE_BIT		/* 0x0002 */
+									|	GL_MAP_PERSISTENT_BIT	/* 0x0040 */
+	);
+
+	/* サウンドバッファのポインタを waveHeader に設定 */
+	s_waveHeader.lpData = (LPSTR)glExtMapBuffer(
+		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+		/* GLenum access */			GL_READ_WRITE
 	);
 
 	/* コンピュートシェーダの作成 */
@@ -473,12 +481,6 @@ entrypoint(
 #		error
 #	endif
 #endif
-
-	/* サウンドバッファのポインタを waveHeader に設定 */
-	s_waveHeader.lpData = (LPSTR)glExtMapBuffer(
-		/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
-		/* GLenum access */		GL_READ_WRITE
-	);
 
 	/* サウンド再生 */
 	HWAVEOUT hWaveOut;

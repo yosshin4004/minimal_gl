@@ -36,6 +36,7 @@ typedef enum {
 	GlExtDeleteBuffers,
 	GlExtBindBuffer,
 	GlExtBindBufferBase,
+	GlExtBufferStorage,
 	GlExtBufferData,
 	GlExtBufferSubData,
 	GlExtGetBufferSubData,
@@ -96,6 +97,7 @@ extern void *g_glExtFunctions[NUM_GLEXT_FUNCTIONS];
 #define glExtDeleteBuffers				((PFNGLDELETEBUFFERSPROC)g_glExtFunctions[GlExtDeleteBuffers])
 #define glExtBindBuffer					((PFNGLBINDBUFFERPROC)g_glExtFunctions[GlExtBindBuffer])
 #define glExtBindBufferBase				((PFNGLBINDBUFFERBASEPROC)g_glExtFunctions[GlExtBindBufferBase])
+#define glExtBufferStorage				((PFNGLBUFFERSTORAGEPROC)g_glExtFunctions[GlExtBufferStorage])
 #define glExtBufferData					((PFNGLBUFFERDATAPROC)g_glExtFunctions[GlExtBufferData])
 #define glExtBufferSubData				((PFNGLBUFFERSUBDATAPROC)g_glExtFunctions[GlExtBufferSubData])
 #define glExtGetBufferSubData			((PFNGLGETBUFFERSUBDATAPROC)g_glExtFunctions[GlExtGetBufferSubData])

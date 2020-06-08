@@ -586,3 +586,37 @@ BOOL GetDlgItemCheck(
 		(LPARAM)0
 	);
 }
+
+bool ToggleMenuItemCheck(
+	HMENU hMenu,
+	UINT idCheckItem
+){
+	/* チェックされてるか取得 */
+	int state = GetMenuState(hMenu, idCheckItem, MF_BYCOMMAND);
+	if (state & MFS_CHECKED) {
+		/* チェックはずす */
+		CheckMenuItem(hMenu, idCheckItem, MF_BYCOMMAND | MFS_UNCHECKED);
+		return false;
+	} else {
+		/* チェック付ける */
+		CheckMenuItem(hMenu, idCheckItem, MF_BYCOMMAND | MFS_CHECKED);
+		return true;
+	}
+}
+
+void SetMenuItemCheck(
+	HMENU hMenu,
+	UINT idCheckItem,
+	bool flag
+){
+	/* チェックされてるか取得 */
+	int state = GetMenuState(hMenu, idCheckItem, MF_BYCOMMAND);
+	if ((state & MFS_CHECKED) != 0 && flag == false) {
+		/* チェックはずす */
+		CheckMenuItem(hMenu, idCheckItem, MF_BYCOMMAND | MFS_UNCHECKED);
+	} else
+	if ((state & MFS_CHECKED) == 0 && flag == true) {
+		/* チェック付ける */
+		CheckMenuItem(hMenu, idCheckItem, MF_BYCOMMAND | MFS_CHECKED);
+	}
+}

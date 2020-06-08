@@ -286,7 +286,7 @@ bool RecordImageSequence(
 		float duration = AppRecordImageSequenceGetDurationInSeconds();
 		float framesPerSecond = AppRecordImageSequenceGetFramesPerSecond();
 
-		float fovYAsRadian = AppCameraSettingsGetFovYAsRadian();
+		float fovYInRadians = AppCameraSettingsGetFovYInRadians();
 		float mat4x4CameraInWorld[4][4];
 		AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
 
@@ -331,7 +331,7 @@ bool RecordImageSequence(
 				GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 					job.image, imageBufferSizeInBytes,
 					waveOutPos, frameCount, time,
-					fovYAsRadian, mat4x4CameraInWorld,
+					fovYInRadians, mat4x4CameraInWorld,
 					renderSettings,
 					&captureSettings
 				);

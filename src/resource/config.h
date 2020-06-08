@@ -44,7 +44,7 @@
 
 
 /* glTexImage2D の代わりに glExtTexStorage2D を使うか */
-#define PREFER_GL_TEX_STORAGE_2D				0
+#define PREFER_GL_TEX_STORAGE_2D				1
 
 /* サウンド出力デバイスの秒間サンプル数 */
 #define NUM_SOUND_SAMPLES_PER_SEC				48000

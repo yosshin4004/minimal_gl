@@ -29,8 +29,8 @@ static LRESULT CALLBACK DialogFunc(
 			float vec3Ang[3];
 			float fovY;
 			AppCameraSettingsGetPosition(vec3Pos);
-			AppCameraSettingsGetAngleAsRadian(vec3Ang);
-			fovY = AppCameraSettingsGetFovYAsRadian();
+			AppCameraSettingsGetAngleInRadians(vec3Ang);
+			fovY = AppCameraSettingsGetFovYInRadians();
 
 			/* radian → degree */
 			vec3Ang[0] *= (float)(180.0 / PI);
@@ -111,8 +111,8 @@ static LRESULT CALLBACK DialogFunc(
 
 					/* App に通知 */
 					AppCameraSettingsSetPosition(vec3Pos);
-					AppCameraSettingsSetAngleAsRadian(vec3Ang);
-					AppCameraSettingsSetFovYAsRadian(fovY);
+					AppCameraSettingsSetAngleInRadians(vec3Ang);
+					AppCameraSettingsSetFovYInRadians(fovY);
 
 					/* ダイアログボックス終了 */
 					EndDialog(hDwnd, DialogCameraSettingsResult_Ok);

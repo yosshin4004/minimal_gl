@@ -23,8 +23,8 @@ static struct {
 } s_userTextures[NUM_USER_TEXTURES] = {0};
 static GLuint s_graphicsProgramId = 0;
 static RenderSettings s_currentRenderSettings = {0};
-static int s_xReso = SCREEN_XRESO;
-static int s_yReso = SCREEN_YRESO;
+static int s_xReso = DEFAULT_SCREEN_XRESO;
+static int s_yReso = DEFAULT_SCREEN_YRESO;
 
 
 static void GraphicsCreateFrameBuffer(
@@ -709,7 +709,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	int waveOutPos,
 	int frameCount,
 	float time,
-	float fovYAsRadian,
+	float fovYInRadians,
 	const float mat4x4CameraInWorld[4][4],
 	const RenderSettings *renderSettings,
 	const CaptureScreenShotSettings *captureSettings
@@ -761,7 +761,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	);
 
 	/* 画面全体に四角形を描画 */
-	float tanFovY = tanf(fovYAsRadian);
+	float tanFovY = tanf(fovYInRadians);
 	GraphicsDrawFullScreenQuad(
 		offscreenRenderTargetFbo,
 		waveOutPos,
@@ -821,7 +821,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 	int waveOutPos,
 	int frameCount,
 	float time,
-	float fovYAsRadian,
+	float fovYInRadians,
 	const float mat4x4CameraInWorld[4][4],
 	const RenderSettings *renderSettings,
 	const CaptureScreenShotSettings *captureSettings
@@ -832,7 +832,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 	if (
 		GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 			buffer, bufferSizeInBytes, waveOutPos, frameCount, time,
-			fovYAsRadian, mat4x4CameraInWorld,
+			fovYInRadians, mat4x4CameraInWorld,
 			renderSettings, captureSettings
 		) == false
 	) {
@@ -1169,12 +1169,12 @@ void GraphicsUpdate(
 	int mouseRButtonPressed,
 	int xReso,
 	int yReso,
-	float fovYAsRadian,
+	float fovYInRadians,
 	const float mat4x4CameraInWorld[4][4],
 	const RenderSettings *settings
 ){
 	/* 画面全体に四角形を描画 */
-	float tanFovY = tanf(fovYAsRadian);
+	float tanFovY = tanf(fovYInRadians);
 	GraphicsDrawFullScreenQuad(
 		0,		/* デフォルトフレームバッファに出力 */
 		waveOutPos,

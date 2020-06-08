@@ -36,10 +36,17 @@
 
 static bool s_paused = false;
 static double s_fp64PausedTime = 0;
-static int s_xReso = SCREEN_XRESO;
-static int s_yReso = SCREEN_YRESO;
+static int s_xReso = DEFAULT_SCREEN_XRESO;
+static int s_yReso = DEFAULT_SCREEN_YRESO;
 static int32_t s_waveOutSampleOffset = 0;
 static int32_t s_frameCount = 0;
+static struct ImGuiStatus {
+	bool displayCurrentStatus;
+	bool displayCameraSettings;
+} s_imGuiStatus = {
+	true,
+	true
+};
 static struct Mouse {
 	int x;
 	int y;
@@ -53,30 +60,30 @@ static struct Mouse {
 static struct Camera {
 	float vec3Pos[3];
 	float vec3Ang[3];
-	float fovYAsRadian;
+	float fovYInRadians;
 } s_camera = {0};
 static CaptureScreenShotSettings s_captureScreenShotSettings = {
 	/* char fileName[MAX_PATH]; */	{0},
-	/* int xReso; */				SCREEN_XRESO,
-	/* int yReso; */				SCREEN_YRESO,
+	/* int xReso; */				DEFAULT_SCREEN_XRESO,
+	/* int yReso; */				DEFAULT_SCREEN_YRESO,
 	/* bool replaceAlphaByOne; */	true,
 };
 static CaptureCubemapSettings s_captureCubemapSettings = {
 	/* char fileName[MAX_PATH]; */	{0},
-	/* int reso; */					CUBEMAP_RESO
+	/* int reso; */					DEFAULT_CUBEMAP_RESO
 };
 static RenderSettings s_renderSettings = {
-	/* PixelFormat pixelFormat; */			PixelFormatUnorm8RGBA,
+	/* PixelFormat pixelFormat; */			DEFAULT_PIXEL_FORMAT,
 	/* bool enableMultipleRenderTargets; */	true,
 	/* int numEnabledRenderTargets; */		4,
 
 	/* bool enableBackBuffer; */			true,
 	/* bool enableMipmapGeneration; */		true,
-	/* TextureFilter textureFilter; */		TextureFilterLinear,
-	/* TextureWrap textureWrap; */			TextureWrapClampToEdge,
+	/* TextureFilter textureFilter; */		DEFAULT_TEXTURE_FILTER,
+	/* TextureWrap textureWrap; */			DEFAULT_TEXTURE_WRAP,
 
 	/* bool enableSwapIntervalControl; */	true,
-	/* SwapInterval swapInterval; */		SwapIntervalVsync,
+	/* SwapInterval swapInterval; */		DEFAULT_SWAP_INTERVAL,
 };
 static struct PreferenceSettings {
 	bool enableAutoRestartByGraphicsShader;
@@ -86,9 +93,9 @@ static struct PreferenceSettings {
 };
 static ExecutableExportSettings s_executableExportSettings = {
 	/* char fileName[MAX_PATH]; */				{0},
-	/* int xReso; */							SCREEN_XRESO,
-	/* int yReso; */							SCREEN_YRESO,
-	/* float durationInSeconds; */				120.0f,
+	/* int xReso; */							DEFAULT_SCREEN_XRESO,
+	/* int yReso; */							DEFAULT_SCREEN_YRESO,
+	/* float durationInSeconds; */				DEFAULT_DURATION_IN_SECONDS,
 	/* int numSoundBufferSamples; */			NUM_SOUND_BUFFER_SAMPLES,
 	/* int numSoundBufferAvailableSamples; */	NUM_SOUND_BUFFER_SAMPLES,
 	/* int numSoundBufferSamplesPerDispatch; */	NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH,
@@ -100,23 +107,23 @@ static ExecutableExportSettings s_executableExportSettings = {
 	/*  bool smoothstep; */							false,
 	/* } shaderMinifierOptions; */				},
 	/* struct CrinklerOptions { */				{
-	/*  CrinklerCompMode compMode; */				CrinklerCompModeSlow,
+	/*  CrinklerCompMode compMode; */				DEFAULT_CRINKLER_COMP_MODE,
 	/*  bool useTinyHeader; */						false,
 	/*  bool useTinyImport; */						false,
 	/* } crinklerOptions; */					}
 };
 static RecordImageSequenceSettings s_recordImageSequenceSettings = {
 	/* char directoryName[MAX_PATH]; */	{0},
-	/* int xReso; */					SCREEN_XRESO,
-	/* int yReso; */					SCREEN_YRESO,
+	/* int xReso; */					DEFAULT_SCREEN_XRESO,
+	/* int yReso; */					DEFAULT_SCREEN_YRESO,
 	/* float startTimeInSeconds; */		0.0f,
-	/* float durationInSeconds; */		120.0f,
-	/* float framesPerSecond; */		60.0f,
+	/* float durationInSeconds; */		DEFAULT_DURATION_IN_SECONDS,
+	/* float framesPerSecond; */		DEFAULT_FRAMES_PER_SECOND,
 	/* bool replaceAlphaByOne; */		true,
 };
 static CaptureSoundSettings s_captureSoundSettings = {
 	/* char fileName[MAX_PATH]; */	{0},
-	/* float durationInSeconds; */	120.0f
+	/* float durationInSeconds; */	DEFAULT_DURATION_IN_SECONDS
 };
 static bool s_forceOverWrite = false;
 
@@ -438,9 +445,9 @@ void AppSetMouseWheelDelta(int delta, int mButton){
 	if (mButton == 0) {
 		s_mouse.wheelDelta += delta;
 	} else {
-		s_camera.fovYAsRadian += ((float)delta / 120.0f / 180.0f) * PI;
-		if (s_camera.fovYAsRadian < 0.0f) s_camera.fovYAsRadian = 0.0f;
-		if (s_camera.fovYAsRadian > PI * 0.5f) s_camera.fovYAsRadian = PI * 0.5f;
+		s_camera.fovYInRadians += ((float)delta / 120.0f / 180.0f) * PI;
+		if (s_camera.fovYInRadians < 0.0f) s_camera.fovYInRadians = 0.0f;
+		if (s_camera.fovYInRadians > PI * 0.5f) s_camera.fovYInRadians = PI * 0.5f;
 	}
 }
 void AppSetMousePosition(int x, int y){
@@ -535,13 +542,32 @@ CameraInitialize(){
 	s_camera.vec3Ang[0] = 0.0f;
 	s_camera.vec3Ang[1] = 0.0f;
 	s_camera.vec3Ang[2] = 0.0f;
-	s_camera.fovYAsRadian = PI / 8.0f;
+	s_camera.fovYInRadians = PI * DEFAULT_CAMERA_FOVY_IN_DEGREES / 180.0f;
 	return true;
 }
 
 static bool
 CameraTerminate(){
 	return true;
+}
+
+/*=============================================================================
+▼	ImGui 設定関連
+-----------------------------------------------------------------------------*/
+void AppImGuiSetDisplayCurrentStatusFlag(bool flag){
+	s_imGuiStatus.displayCurrentStatus = flag;
+}
+
+bool AppImGuiGetDisplayCurrentStatusFlag(){
+	return s_imGuiStatus.displayCurrentStatus;
+}
+
+void AppImGuiSetDisplayCameraSettingsFlag(bool flag){
+	s_imGuiStatus.displayCameraSettings = flag;
+}
+
+bool AppImGuiGetDisplayCameraSettingsFlag(){
+	return s_imGuiStatus.displayCameraSettings;
 }
 
 /*=============================================================================
@@ -654,23 +680,23 @@ void AppCameraSettingsGetPosition(float vec3Pos[3]){
 	vec3Pos[1] = s_camera.vec3Pos[1];
 	vec3Pos[2] = s_camera.vec3Pos[2];
 }
-void AppCameraSettingsSetAngleAsRadian(const float vec3Ang[3]){
+void AppCameraSettingsSetAngleInRadians(const float vec3Ang[3]){
 	s_camera.vec3Ang[0] = vec3Ang[0];
 	s_camera.vec3Ang[1] = vec3Ang[1];
 	s_camera.vec3Ang[2] = vec3Ang[2];
 }
-void AppCameraSettingsGetAngleAsRadian(float vec3Ang[3]){
+void AppCameraSettingsGetAngleInRadians(float vec3Ang[3]){
 	vec3Ang[0] = s_camera.vec3Ang[0];
 	vec3Ang[1] = s_camera.vec3Ang[1];
 	vec3Ang[2] = s_camera.vec3Ang[2];
 }
-void AppCameraSettingsSetFovYAsRadian(float rad){
-	s_camera.fovYAsRadian = rad;
-	if (s_camera.fovYAsRadian < 0.0f) s_camera.fovYAsRadian = 0.0f;
-	if (s_camera.fovYAsRadian > PI * 0.5f) s_camera.fovYAsRadian = PI * 0.5f;
+void AppCameraSettingsSetFovYInRadians(float rad){
+	s_camera.fovYInRadians = rad;
+	if (s_camera.fovYInRadians < 0.0f) s_camera.fovYInRadians = 0.0f;
+	if (s_camera.fovYInRadians > PI * 0.5f) s_camera.fovYInRadians = PI * 0.5f;
 }
-float AppCameraSettingsGetFovYAsRadian(){
-	return s_camera.fovYAsRadian;
+float AppCameraSettingsGetFovYInRadians(){
+	return s_camera.fovYInRadians;
 }
 
 /*=============================================================================
@@ -707,7 +733,7 @@ void AppCaptureScreenShot(){
 			AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
 			bool ret = GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 				SoundGetWaveOutPos(), s_frameCount, float(HighPrecisionTimerGet()),
-				s_camera.fovYAsRadian, mat4x4CameraInWorld,
+				s_camera.fovYInRadians, mat4x4CameraInWorld,
 				&s_renderSettings, &s_captureScreenShotSettings
 			);
 			if (ret) {
@@ -958,9 +984,10 @@ static bool JsonGetAsString(
 	cJSON *json,
 	const char *pointer,
 	char *dstString,
-	size_t dstStringSizeInBytes
+	size_t dstStringSizeInBytes,
+	const char *defaultString
 ){
-	memset(dstString, 0, dstStringSizeInBytes);
+	strcpy_s(dstString, dstStringSizeInBytes, defaultString);
 	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
 	if (jsonFound == NULL) return false;
 	if (cJSON_IsString(jsonFound) == false || (jsonFound->valuestring == NULL)) return false;
@@ -972,9 +999,10 @@ static bool JsonGetAsString(
 static bool JsonGetAsInt(
 	cJSON *json,
 	const char *pointer,
-	int *dst
+	int *dst,
+	int defaultValue
 ){
-	*dst = 0;
+	*dst = defaultValue;
 	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
 	if (jsonFound == NULL) return false;
 	if (cJSON_IsNumber(jsonFound) == false) return false;
@@ -985,9 +1013,10 @@ static bool JsonGetAsInt(
 static bool JsonGetAsFloat(
 	cJSON *json,
 	const char *pointer,
-	float *dst
+	float *dst,
+	float defaultValue
 ){
-	*dst = 0;
+	*dst = defaultValue;
 	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
 	if (jsonFound == NULL) return false;
 	if (cJSON_IsNumber(jsonFound) == false) return false;
@@ -998,9 +1027,10 @@ static bool JsonGetAsFloat(
 static bool JsonGetAsBool(
 	cJSON *json,
 	const char *pointer,
-	bool *dst
+	bool *dst,
+	bool defaultValue
 ){
-	*dst = false;
+	*dst = defaultValue;
 	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
 	if (jsonFound == NULL) return false;
 	if (cJSON_IsBool(jsonFound) == false) return false;
@@ -1011,11 +1041,12 @@ static bool JsonGetAsBool(
 static bool JsonGetAsVec3(
 	cJSON *json,
 	const char *pointer,
-	float vec3Dst[3]
+	float vec3Dst[3],
+	const float vec3Default[3]
 ){
-	vec3Dst[0] = 0;
-	vec3Dst[1] = 0;
-	vec3Dst[2] = 0;
+	vec3Dst[0] = vec3Default[0];
+	vec3Dst[1] = vec3Default[1];
+	vec3Dst[2] = vec3Default[2];
 	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
 	if (jsonFound == NULL) return false;
 
@@ -1043,10 +1074,10 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 		char graphicsShaderRelativeFileName[MAX_PATH] = {0};
 		char soundShaderRelativeFileName[MAX_PATH] = {0};
 
-		if (JsonGetAsString(jsonRoot, "/app/graphicsShaderFileName", graphicsShaderRelativeFileName, sizeof(graphicsShaderRelativeFileName)) == false) result = false;
-		if (JsonGetAsString(jsonRoot, "/app/soundShaderFileName",    soundShaderRelativeFileName, sizeof(soundShaderRelativeFileName)      ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/app/xReso",                 &s_xReso) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/app/yReso",                 &s_yReso) == false) result = false;
+		JsonGetAsString(jsonRoot, "/app/graphicsShaderFileName", graphicsShaderRelativeFileName, sizeof(graphicsShaderRelativeFileName), "");
+		JsonGetAsString(jsonRoot, "/app/soundShaderFileName",    soundShaderRelativeFileName,    sizeof(soundShaderRelativeFileName),    "");
+		JsonGetAsInt   (jsonRoot, "/app/xReso",                 &s_xReso, DEFAULT_SCREEN_XRESO);
+		JsonGetAsInt   (jsonRoot, "/app/yReso",                 &s_yReso, DEFAULT_SCREEN_YRESO);
 
 		PathCombine(
 			/* LPSTR  pszDest */	s_graphicsShaderFileName,
@@ -1060,17 +1091,18 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 		);
 	}
 	{
-		if (JsonGetAsVec3  (jsonRoot, "/camera/vec3Pos",       s_camera.vec3Pos     ) == false) result = false;
-		if (JsonGetAsVec3  (jsonRoot, "/camera/vec3Ang",       s_camera.vec3Ang     ) == false) result = false;
-		if (JsonGetAsFloat (jsonRoot, "/camera/fovYAsRadian", &s_camera.fovYAsRadian) == false) result = false;
+		float vec3Zero[3] = {0};
+		JsonGetAsVec3 (jsonRoot, "/camera/vec3Pos",       s_camera.vec3Pos, vec3Zero);
+		JsonGetAsVec3 (jsonRoot, "/camera/vec3Ang",       s_camera.vec3Ang, vec3Zero);
+		JsonGetAsFloat(jsonRoot, "/camera/fovYInRadians", &s_camera.fovYInRadians, PI * DEFAULT_CAMERA_FOVY_IN_DEGREES / 180.0f);
 	}
 	{
 		char relativeFileName[MAX_PATH] = {0};
 
-		if (JsonGetAsString(jsonRoot, "/captureScreenShotSettings/fileName",          relativeFileName, sizeof(relativeFileName)    ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/xReso",             &s_captureScreenShotSettings.xReso            ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/yReso",             &s_captureScreenShotSettings.yReso            ) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/captureScreenShotSettings/replaceAlphaByOne", &s_captureScreenShotSettings.replaceAlphaByOne) == false) result = false;
+		JsonGetAsString(jsonRoot, "/captureScreenShotSettings/fileName",          relativeFileName, sizeof(relativeFileName), "");
+		JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/xReso",             &s_captureScreenShotSettings.xReso, DEFAULT_SCREEN_XRESO);
+		JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/yReso",             &s_captureScreenShotSettings.yReso, DEFAULT_SCREEN_YRESO);
+		JsonGetAsBool  (jsonRoot, "/captureScreenShotSettings/replaceAlphaByOne", &s_captureScreenShotSettings.replaceAlphaByOne, true);
 
 		PathCombine(
 			/* LPSTR  pszDest */	s_captureScreenShotSettings.fileName,
@@ -1081,8 +1113,8 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 	{
 		char relativeFileName[MAX_PATH] = {0};
 
-		if (JsonGetAsString(jsonRoot, "/captureCubemapSettings/fileName", relativeFileName, sizeof(relativeFileName)) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/captureCubemapSettings/reso",     &s_captureCubemapSettings.reso            ) == false) result = false;
+		JsonGetAsString(jsonRoot, "/captureCubemapSettings/fileName", relativeFileName, sizeof(relativeFileName), "");
+		JsonGetAsInt   (jsonRoot, "/captureCubemapSettings/reso",     &s_captureCubemapSettings.reso, DEFAULT_CUBEMAP_RESO);
 
 		PathCombine(
 			/* LPSTR  pszDest */	s_captureCubemapSettings.fileName,
@@ -1091,37 +1123,38 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 		);
 	}
 	{
-		if (JsonGetAsInt   (jsonRoot, "/renderSettings/pixelFormat",                 (int *)&s_renderSettings.pixelFormat         ) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableMultipleRenderTargets", &s_renderSettings.enableMultipleRenderTargets) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/renderSettings/numEnabledRenderTargets",     &s_renderSettings.numEnabledRenderTargets    ) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableBackBuffer",            &s_renderSettings.enableBackBuffer           ) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableMipmapGeneration",      &s_renderSettings.enableMipmapGeneration     ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/renderSettings/textureFilter",               (int *)&s_renderSettings.textureFilter       ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/renderSettings/textureWrap",                 (int *)&s_renderSettings.textureWrap         ) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/renderSettings/enableSwapIntervalControl",   &s_renderSettings.enableSwapIntervalControl  ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/renderSettings/swapInterval",                (int *)&s_renderSettings.swapInterval        ) == false) result = false;
+		JsonGetAsInt (jsonRoot, "/renderSettings/pixelFormat",                 (int *)&s_renderSettings.pixelFormat, DEFAULT_PIXEL_FORMAT);
+		JsonGetAsBool(jsonRoot, "/renderSettings/enableMultipleRenderTargets", &s_renderSettings.enableMultipleRenderTargets, true);
+		JsonGetAsInt (jsonRoot, "/renderSettings/numEnabledRenderTargets",     &s_renderSettings.numEnabledRenderTargets, 4);
+		JsonGetAsBool(jsonRoot, "/renderSettings/enableBackBuffer",            &s_renderSettings.enableBackBuffer, true);
+		JsonGetAsBool(jsonRoot, "/renderSettings/enableMipmapGeneration",      &s_renderSettings.enableMipmapGeneration, true);
+		JsonGetAsInt (jsonRoot, "/renderSettings/textureFilter",               (int *)&s_renderSettings.textureFilter, DEFAULT_TEXTURE_FILTER);
+		JsonGetAsInt (jsonRoot, "/renderSettings/textureWrap",                 (int *)&s_renderSettings.textureWrap, DEFAULT_TEXTURE_WRAP);
+		JsonGetAsBool(jsonRoot, "/renderSettings/enableSwapIntervalControl",   &s_renderSettings.enableSwapIntervalControl, true);
+		JsonGetAsInt (jsonRoot, "/renderSettings/swapInterval",                (int *)&s_renderSettings.swapInterval, DEFAULT_SWAP_INTERVAL);
 	}
 	{
-		if (JsonGetAsBool  (jsonRoot, "/preferenceSettings/enableAutoRestartByGraphicsShader", &s_preferenceSettings.enableAutoRestartByGraphicsShader) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/preferenceSettings/enableAutoRestartBySoundShader",    &s_preferenceSettings.enableAutoRestartBySoundShader   ) == false) result = false;
+		JsonGetAsBool(jsonRoot, "/preferenceSettings/enableAutoRestartByGraphicsShader", &s_preferenceSettings.enableAutoRestartByGraphicsShader, true);
+		JsonGetAsBool(jsonRoot, "/preferenceSettings/enableAutoRestartBySoundShader",    &s_preferenceSettings.enableAutoRestartBySoundShader, true);
 	}
 	{
 		char relativeFileName[MAX_PATH] = {0};
 
-		if (JsonGetAsString(jsonRoot, "/executableExportSettings/fileName",                         relativeFileName, sizeof(relativeFileName)                  ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/xReso",                            &s_executableExportSettings.xReso                           ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/yReso",                            &s_executableExportSettings.yReso                           ) == false) result = false;
-		if (JsonGetAsFloat (jsonRoot, "/executableExportSettings/durationInSeconds",                &s_executableExportSettings.durationInSeconds               ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamples",            &s_executableExportSettings.numSoundBufferSamples           ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferAvailableSamples",   &s_executableExportSettings.numSoundBufferAvailableSamples  ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamplesPerDispatch", &s_executableExportSettings.numSoundBufferSamplesPerDispatch) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableFrameCountUniform",          &s_executableExportSettings.enableFrameCountUniform         ) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableSoundDispatchWait",          &s_executableExportSettings.enableSoundDispatchWait         ) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noRenaming", &s_executableExportSettings.shaderMinifierOptions.noRenaming) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noSequence", &s_executableExportSettings.shaderMinifierOptions.noSequence) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/smoothstep", &s_executableExportSettings.shaderMinifierOptions.smoothstep) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyHeader",    &s_executableExportSettings.crinklerOptions.useTinyHeader   ) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyImport",    &s_executableExportSettings.crinklerOptions.useTinyImport   ) == false) result = false;
+		JsonGetAsString(jsonRoot, "/executableExportSettings/fileName",                         relativeFileName, sizeof(relativeFileName), "");
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/xReso",                            &s_executableExportSettings.xReso, DEFAULT_SCREEN_XRESO);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/yReso",                            &s_executableExportSettings.yReso, DEFAULT_SCREEN_YRESO);
+		JsonGetAsFloat (jsonRoot, "/executableExportSettings/durationInSeconds",                &s_executableExportSettings.durationInSeconds, DEFAULT_DURATION_IN_SECONDS);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamples",            &s_executableExportSettings.numSoundBufferSamples, NUM_SOUND_BUFFER_SAMPLES);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferAvailableSamples",   &s_executableExportSettings.numSoundBufferAvailableSamples, NUM_SOUND_BUFFER_SAMPLES);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamplesPerDispatch", &s_executableExportSettings.numSoundBufferSamplesPerDispatch, NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableFrameCountUniform",          &s_executableExportSettings.enableFrameCountUniform, true);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableSoundDispatchWait",          &s_executableExportSettings.enableSoundDispatchWait, true);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noRenaming", &s_executableExportSettings.shaderMinifierOptions.noRenaming, false);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noSequence", &s_executableExportSettings.shaderMinifierOptions.noSequence, false);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/smoothstep", &s_executableExportSettings.shaderMinifierOptions.smoothstep, false);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/crinklerOptions/compMode",         (int *)&s_executableExportSettings.crinklerOptions.compMode, DEFAULT_CRINKLER_COMP_MODE);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyHeader",    &s_executableExportSettings.crinklerOptions.useTinyHeader, false);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyImport",    &s_executableExportSettings.crinklerOptions.useTinyImport, false);
 
 		PathCombine(
 			/* LPSTR  pszDest */	s_executableExportSettings.fileName,
@@ -1132,13 +1165,13 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 	{
 		char relativeDirectoryName[MAX_PATH] = {0};
 
-		if (JsonGetAsString(jsonRoot, "/recordImageSequenceSettings/directoryName",      relativeDirectoryName, sizeof(relativeDirectoryName)) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/xReso",              &s_recordImageSequenceSettings.xReso                ) == false) result = false;
-		if (JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/yReso",              &s_recordImageSequenceSettings.yReso                ) == false) result = false;
-		if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/startTimeInSeconds", &s_recordImageSequenceSettings.startTimeInSeconds   ) == false) result = false;
-		if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/durationInSeconds",  &s_recordImageSequenceSettings.durationInSeconds    ) == false) result = false;
-		if (JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/framesPerSecond",    &s_recordImageSequenceSettings.framesPerSecond      ) == false) result = false;
-		if (JsonGetAsBool  (jsonRoot, "/recordImageSequenceSettings/replaceAlphaByOne",  &s_recordImageSequenceSettings.replaceAlphaByOne    ) == false) result = false;
+		JsonGetAsString(jsonRoot, "/recordImageSequenceSettings/directoryName",      relativeDirectoryName, sizeof(relativeDirectoryName), "");
+		JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/xReso",              &s_recordImageSequenceSettings.xReso, DEFAULT_SCREEN_XRESO);
+		JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/yReso",              &s_recordImageSequenceSettings.yReso, DEFAULT_SCREEN_YRESO);
+		JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/startTimeInSeconds", &s_recordImageSequenceSettings.startTimeInSeconds, 0.0f);
+		JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/durationInSeconds",  &s_recordImageSequenceSettings.durationInSeconds, DEFAULT_DURATION_IN_SECONDS);
+		JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/framesPerSecond",    &s_recordImageSequenceSettings.framesPerSecond, DEFAULT_FRAMES_PER_SECOND);
+		JsonGetAsBool  (jsonRoot, "/recordImageSequenceSettings/replaceAlphaByOne",  &s_recordImageSequenceSettings.replaceAlphaByOne, true);
 
 		PathCombine(
 			/* LPSTR  pszDest */	s_recordImageSequenceSettings.directoryName,
@@ -1149,14 +1182,18 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 	{
 		char relativeFileName[MAX_PATH] = {0};
 
-		if (JsonGetAsString(jsonRoot, "/captureSoundSettings/fileName",          relativeFileName, sizeof(relativeFileName)) == false) result = false;
-		if (JsonGetAsFloat (jsonRoot, "/captureSoundSettings/durationInSeconds", &s_captureSoundSettings.durationInSeconds ) == false) result = false;
+		JsonGetAsString(jsonRoot, "/captureSoundSettings/fileName",          relativeFileName, sizeof(relativeFileName), "");
+		JsonGetAsFloat (jsonRoot, "/captureSoundSettings/durationInSeconds", &s_captureSoundSettings.durationInSeconds, DEFAULT_DURATION_IN_SECONDS);
 
 		PathCombine(
 			/* LPSTR  pszDest */	s_captureSoundSettings.fileName,
 			/* LPCSTR pszDir */		projectBasePath,
 			/* LPCSTR pszFile */	relativeFileName
 		);
+	}
+	{
+		JsonGetAsBool(jsonRoot, "/imGuiStatus/displayCurrentStatus",  &s_imGuiStatus.displayCurrentStatus, true);
+		JsonGetAsBool(jsonRoot, "/imGuiStatus/displayCameraSettings", &s_imGuiStatus.displayCameraSettings, true);
 	}
 	{
 		for (int i = 0; i < NUM_USER_TEXTURES; i++) {
@@ -1167,7 +1204,7 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 			snprintf(pointer, sizeof(pointer), "/userTextures/%d/fileName", i);
 
 			char relativeFileName[MAX_PATH] = {0};
-			if (JsonGetAsString(jsonRoot, pointer, relativeFileName, sizeof(relativeFileName)) == false) result = false;
+			if (JsonGetAsString(jsonRoot, pointer, relativeFileName, sizeof(relativeFileName), "") == false) result = false;
 			char fileName[MAX_PATH];
 			PathCombine(
 				/* LPSTR  pszDest */	fileName,
@@ -1220,7 +1257,7 @@ static void AppProjectSerializeToJson(cJSON *jsonRoot, const char *projectBasePa
 		cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[1]));
 		cJSON_AddItemToArray(jsonVec3Ang, cJSON_CreateNumber(s_camera.vec3Ang[2]));
 
-		cJSON_AddNumberToObject(jsonCamera, "fovYAsRadian", s_camera.fovYAsRadian);
+		cJSON_AddNumberToObject(jsonCamera, "fovYInRadians", s_camera.fovYInRadians);
 	}
 	{
 		cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureScreenShotSettings");
@@ -1300,8 +1337,9 @@ static void AppProjectSerializeToJson(cJSON *jsonRoot, const char *projectBasePa
 		}
 		{
 			cJSON *jsonOptions = cJSON_AddObjectToObject(jsonSettings, "crinklerOptions");
-			cJSON_AddBoolToObject(jsonOptions, "useTinyHeader", s_executableExportSettings.crinklerOptions.useTinyHeader);
-			cJSON_AddBoolToObject(jsonOptions, "useTinyImport", s_executableExportSettings.crinklerOptions.useTinyImport);
+			cJSON_AddNumberToObject(jsonOptions, "compMode",      s_executableExportSettings.crinklerOptions.compMode);
+			cJSON_AddBoolToObject  (jsonOptions, "useTinyHeader", s_executableExportSettings.crinklerOptions.useTinyHeader);
+			cJSON_AddBoolToObject  (jsonOptions, "useTinyImport", s_executableExportSettings.crinklerOptions.useTinyImport);
 		}
 	}
 	{
@@ -1338,6 +1376,11 @@ static void AppProjectSerializeToJson(cJSON *jsonRoot, const char *projectBasePa
 
 		cJSON_AddStringToObject(jsonSettings, "fileName",          relativeFileName);
 		cJSON_AddNumberToObject(jsonSettings, "durationInSeconds", s_captureSoundSettings.durationInSeconds);
+	}
+	{
+		cJSON *jsonImGuiStatus = cJSON_AddObjectToObject(jsonRoot, "imGuiStatus");
+		cJSON_AddBoolToObject(jsonImGuiStatus, "displayCurrentStatus",  s_imGuiStatus.displayCurrentStatus);
+		cJSON_AddBoolToObject(jsonImGuiStatus, "displayCameraSettings", s_imGuiStatus.displayCameraSettings);
 	}
 	{
 		cJSON *jsonUserTextures = cJSON_AddArrayToObject(jsonRoot, "userTextures");
@@ -1778,17 +1821,19 @@ bool AppUpdate(){
 		}
 
 		/* ステートを ImGui で表示 */
-		{
+		if (s_imGuiStatus.displayCurrentStatus) {
 			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoSavedSettings;
 			ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
-			if (ImGui::Begin("Current States", NULL, window_flags)) {
+			if (ImGui::Begin("Current Status", NULL, window_flags)) {
 				ImGui::Text(
 					"time       %.2f\n"
 					"FPS        %.2f\n"
-					"waveOutPos %08x\n"
+					"frameCount %d\n"
+					"waveOutPos 0x%08x\n"
 					,
 					fp64CurrentTime,
 					s_fp64Fps,
+					s_frameCount,
 					SoundGetWaveOutPos()
 				);
 			}
@@ -1798,22 +1843,24 @@ bool AppUpdate(){
 
 	/* カメラコントロールを要求するシェーダでは、カメラの設定を ImGui で表示 */
 	if (GraphicsShaderRequiresCameraControlUniforms()) {
-		ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoSavedSettings;
-		ImGui::SetNextWindowPos(ImVec2(200, 0), ImGuiCond_FirstUseEver);
-		if (ImGui::Begin("Camera Settings", NULL, window_flags)) {
-			ImGui::PushItemWidth(ImGui::GetFontSize() * 16);
+		if (s_imGuiStatus.displayCameraSettings) {
+			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoSavedSettings;
+			ImGui::SetNextWindowPos(ImVec2(200, 0), ImGuiCond_FirstUseEver);
+			if (ImGui::Begin("Camera Settings", NULL, window_flags)) {
+				ImGui::PushItemWidth(ImGui::GetFontSize() * 16);
 
-			ImGui::InputFloat3("position", s_camera.vec3Pos);
-			ImGui::InputFloat3("angle", s_camera.vec3Ang);
-			float fovYAsDegree = s_camera.fovYAsRadian * 180.0f / PI;
-			ImGui::SliderFloat("fovY", &fovYAsDegree, 0.0f, 90.0f, "%.2f");
-			s_camera.fovYAsRadian = fovYAsDegree * PI / 180.0f;
-			bool ret = ImGui::Button("Reset");
-			if (ret) AppResetCamera();
+				ImGui::InputFloat3("position", s_camera.vec3Pos);
+				ImGui::InputFloat3("angle", s_camera.vec3Ang);
+				float fovYInDegrees = s_camera.fovYInRadians * 180.0f / PI;
+				ImGui::SliderFloat("fovY", &fovYInDegrees, 0.0f, 90.0f, "%.2f");
+				s_camera.fovYInRadians = fovYInDegrees * PI / 180.0f;
+				bool ret = ImGui::Button("Reset");
+				if (ret) AppResetCamera();
 
-			ImGui::PopItemWidth();
+				ImGui::PopItemWidth();
+			}
+			ImGui::End();
 		}
-		ImGui::End();
 	}
 
 	/* サウンドシェーダの更新 */
@@ -1844,8 +1891,10 @@ bool AppUpdate(){
 		}
 	}
 
-	/* カメラ更新 */
-	CameraUpdate();
+	/* カメラコントロールが必要ならカメラ更新 */
+	if (GraphicsShaderRequiresCameraControlUniforms()) {
+		CameraUpdate();
+	}
 
 	/* サウンドの更新 */
 	CheckGlError("pre SoundUpdate");
@@ -1864,7 +1913,7 @@ bool AppUpdate(){
 			s_mouse.x, s_mouse.y,
 			s_mouse.LButtonPressed, s_mouse.MButtonPressed, s_mouse.RButtonPressed,
 			s_xReso, s_yReso,
-			s_camera.fovYAsRadian, mat4x4CameraInWorld, &s_renderSettings
+			s_camera.fovYInRadians, mat4x4CameraInWorld, &s_renderSettings
 		);
 	}
 	CheckGlError("post GraphicsUpdate");
@@ -1922,6 +1971,7 @@ bool AppInitialize(){
 	}
 	AppOpenDefaultGraphicsShader();
 	SoundRestartWaveOut();
+
 	return true;
 }
 

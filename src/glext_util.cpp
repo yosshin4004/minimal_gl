@@ -29,6 +29,7 @@ static const char s_margedFunctionName[] =
 	"glDeleteBuffers\0"
 	"glBindBuffer\0"
 	"glBindBufferBase\0"
+	"glBufferStorage\0"
 	"glBufferData\0"
 	"glBufferSubData\0"
 	"glGetBufferSubData\0"

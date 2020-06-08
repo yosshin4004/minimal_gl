@@ -183,6 +183,19 @@ BOOL GetDlgItemCheck(
 	int nIDDlgItem
 );
 
+/* メニューアイテムのチェックを切り替え */
+bool ToggleMenuItemCheck(
+	HMENU hMenu,
+	UINT idCheckItem
+);
+
+/* メニューアイテムのチェックを設定 */
+void SetMenuItemCheck(
+	HMENU hMenu,
+	UINT idCheckItem,
+	bool flag
+);
+
 #define SIZE_OF_ARRAY(a) (sizeof(a) / sizeof(a[0]))
 
 

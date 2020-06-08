@@ -75,6 +75,19 @@ void AppGetResolution(int *xResoRet, int *yResoRet);
 void AppGetMat4x4CameraInWorld(float mat4x4CameraInWorld[4][4]);
 
 
+/* ImGui 設定 : Current Status 表示フラグの設定 */
+void AppImGuiSetDisplayCurrentStatusFlag(bool flag);
+
+/* ImGui 設定 : Current Status 表示フラグの取得 */
+bool AppImGuiGetDisplayCurrentStatusFlag();
+
+/* ImGui 設定 : Camera Settings 表示フラグの設定 */
+void AppImGuiSetDisplayCameraSettingsFlag(bool flag);
+
+/* ImGui 設定 : Camera Settings 表示フラグの取得 */
+bool AppImGuiGetDisplayCameraSettingsFlag();
+
+
 /* プリファレンス設定 : グラフィクスシェーダ更新によるリスタート有効化フラグの設定 */
 void AppPreferenceSettingsSetEnableAutoRestartByGraphicsShader(bool flag);
 
@@ -160,16 +173,16 @@ void AppCameraSettingsSetPosition(const float vec3Pos[3]);
 void AppCameraSettingsGetPosition(float vec3Pos[3]);
 
 /* カメラ設定 : 角度の設定 */
-void AppCameraSettingsSetAngleAsRadian(const float vec3Ang[3]);
+void AppCameraSettingsSetAngleInRadians(const float vec3Ang[3]);
 
 /* カメラ設定 : 角度の取得 */
-void AppCameraSettingsGetAngleAsRadian(float vec3Ang[3]);
+void AppCameraSettingsGetAngleInRadians(float vec3Ang[3]);
 
 /* カメラ設定 : 画角の設定 */
-void AppCameraSettingsSetFovYAsRadian(float rad);
+void AppCameraSettingsSetFovYInRadians(float rad);
 
 /* カメラ設定 : 画角の取得 */
-float AppCameraSettingsGetFovYAsRadian();
+float AppCameraSettingsGetFovYInRadians();
 
 
 /* スクリーンショットキャプチャ : 現在の出力ファイル名の設定 */

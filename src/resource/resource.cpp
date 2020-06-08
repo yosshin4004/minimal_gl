@@ -32,21 +32,31 @@ char g_concatenatedString_align0[] =
 #endif
 	"glCreateShaderProgramv\0"		/* Generate の ate が 既出ワード */
 	"glUseProgram\0"				/* Program が既出ワード */
-	"glBufferData\0"
+#if ENABLE_BACK_BUFFER && ((NUM_RENDER_TARGETS > 1) || (PIXEL_FORMAT != PIXEL_FORMAT_UNORM8_RGBA))
+	#if PREFER_GL_TEX_STORAGE_2D
+	"glTexStorage2D\0"
+	#endif
+#endif
+	"glBufferStorage\0"				/* Storage が既出ワード */
 	"glMapBuffer\0"					/* Buffer が既出ワード */
+#if ENABLE_BACK_BUFFER && ((NUM_RENDER_TARGETS > 1) || (PIXEL_FORMAT != PIXEL_FORMAT_UNORM8_RGBA))
+	"glDrawBuffers\0"				/* Buffer が既出ワード */
+#endif
 	"glBindBufferBase\0"			/* Buffer が既出ワード */
 #if ENABLE_BACK_BUFFER && ((NUM_RENDER_TARGETS > 1) || (PIXEL_FORMAT != PIXEL_FORMAT_UNORM8_RGBA))
 	"glBindFramebuffer\0"			/* Bind と Buffer の uffer が既出ワード */
 	"glGenFramebuffers\0"			/* Framebuffer が既出ワード */
 	"glBlitNamedFramebuffer\0"		/* Framebuffer が既出ワード */
-	"glFramebufferTexture\0"		/* Framebuffer が既出ワード */
+	"glFramebufferTexture\0"		/* Framebuffer Tex が既出ワード */
 	#if (NUM_RENDER_TARGETS > 1)
 	"glActiveTexture\0"				/* Texture が既出ワード */
 	#endif
-	#if PREFER_GL_TEX_STORAGE_2D
-	"glTexStorage2D\0"				/* Tex が既出ワード */
-	#endif
-	"glDrawBuffers\0"				/* Buffer が既出ワード（ちょっと遠いけど）*/
+#endif
+#ifdef _DEBUG
+	"glUniform2f\0"
+	"glGetUniformLocation\0"
+	"glGetProgramiv\0"
+	"glGetProgramInfoLog\0"
 #endif
 	"\xFF"			/* end mark */
 
@@ -70,8 +80,16 @@ typedef enum {
 #endif
 	GlExtCreateShaderProgramv,
 	GlExtUseProgram,
-	GlExtBufferData,
+#if ENABLE_BACK_BUFFER && ((NUM_RENDER_TARGETS > 1) || (PIXEL_FORMAT != PIXEL_FORMAT_UNORM8_RGBA))
+	#if PREFER_GL_TEX_STORAGE_2D
+	GlExtTexStorage2D,
+	#endif
+#endif
+	GlExtBufferStorage,
 	GlExtMapBuffer,
+#if ENABLE_BACK_BUFFER && ((NUM_RENDER_TARGETS > 1) || (PIXEL_FORMAT != PIXEL_FORMAT_UNORM8_RGBA))
+	GlExtDrawBuffers,
+#endif
 	GlExtBindBufferBase,
 #if ENABLE_BACK_BUFFER && ((NUM_RENDER_TARGETS > 1) || (PIXEL_FORMAT != PIXEL_FORMAT_UNORM8_RGBA))
 	GlExtBindFramebuffer,
@@ -81,10 +99,12 @@ typedef enum {
 	#if (NUM_RENDER_TARGETS > 1)
 	GlExtActiveTexture,
 	#endif
-	#if PREFER_GL_TEX_STORAGE_2D
-	GlExtTexStorage2D,
-	#endif
-	GlExtDrawBuffers,
+#endif
+#ifdef _DEBUG
+	GlExtUniform2f,
+	GlExtGetUniformLocation,
+	GlExtGetProgramiv,
+	GlExtGetProgramInfoLog,
 #endif
 	NUM_GLEXT_FUNCTIONS
 } GlExt;
@@ -96,16 +116,16 @@ typedef enum {
 #define glExtGenerateMipmap			((PFNGLGENERATEMIPMAPPROC)      s_glExtFunctions[GlExtGenerateMipmap])
 #define glExtCreateShaderProgramv	((PFNGLCREATESHADERPROGRAMVPROC)s_glExtFunctions[GlExtCreateShaderProgramv])
 #define glExtUseProgram				((PFNGLUSEPROGRAMPROC)          s_glExtFunctions[GlExtUseProgram])
-#define glExtBufferData				((PFNGLBUFFERDATAPROC)          s_glExtFunctions[GlExtBufferData])
+#define glExtTexStorage2D			((PFNGLTEXSTORAGE2DPROC)        s_glExtFunctions[GlExtTexStorage2D])
+#define glExtBufferStorage			((PFNGLBUFFERSTORAGEPROC)       s_glExtFunctions[GlExtBufferStorage])
 #define glExtMapBuffer				((PFNGLMAPBUFFERPROC)	        s_glExtFunctions[GlExtMapBuffer])
+#define glExtDrawBuffers			((PFNGLDRAWBUFFERSPROC)         s_glExtFunctions[GlExtDrawBuffers])
 #define glExtBindBufferBase			((PFNGLBINDBUFFERBASEPROC)      s_glExtFunctions[GlExtBindBufferBase])
 #define glExtBindFramebuffer		((PFNGLBINDFRAMEBUFFERPROC)     s_glExtFunctions[GlExtBindFramebuffer])
 #define glExtGenFramebuffers		((PFNGLGENFRAMEBUFFERSPROC)     s_glExtFunctions[GlExtGenFramebuffers])
 #define glExtBlitNamedFramebuffer	((PFNGLBLITNAMEDFRAMEBUFFERPROC)s_glExtFunctions[GlExtBlitNamedFramebuffer])
 #define glExtFramebufferTexture		((PFNGLFRAMEBUFFERTEXTUREPROC)  s_glExtFunctions[GlExtFramebufferTexture])
 #define glExtActiveTexture			((PFNGLACTIVETEXTUREPROC)       s_glExtFunctions[GlExtActiveTexture])
-#define glExtTexStorage2D			((PFNGLTEXSTORAGE2DPROC)        s_glExtFunctions[GlExtTexStorage2D])
-#define glExtDrawBuffers			((PFNGLDRAWBUFFERSPROC)         s_glExtFunctions[GlExtDrawBuffers])
 #define glExtUniform2f				((PFNGLUNIFORM2FPROC)           s_glExtFunctions[GlExtUniform2f])
 #define glExtGetUniformLocation		((PFNGLGETUNIFORMLOCATIONPROC)  s_glExtFunctions[GlExtGetUniformLocation])
 #define glExtGetProgramiv			((PFNGLGETPROGRAMIVPROC)        s_glExtFunctions[GlExtGetProgramiv])

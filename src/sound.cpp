@@ -1,5 +1,4 @@
 ﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
-
 #include "config.h"
 #include "common.h"
 #include "app.h"
@@ -8,9 +7,9 @@
 #include "wav_util.h"
 
 
-#define BUFFER_INDEX_FOR_SOUND_OUTPUT	(0)
+#define BUFFER_INDEX_FOR_SOUND_OUTPUT			(0)
 
-#define NUM_SOUND_BUFFERS				(4)
+#define NUM_SOUND_BUFFERS						(4)
 
 /*
 	原因は不明だが、再生開始時に冒頭 256 サンプルほどが正しく音声出力されない
@@ -18,20 +17,13 @@
 	スキップした位置からサウンド生成を行う。
 	サウンド保存時には、このサンプルスキップはキャンセルされる。
 */
-#define NUM_SOUND_MARGIN_SAMPLES		(0x100)
+#define NUM_SOUND_MARGIN_SAMPLES				(0x100)
 
 static bool s_paused = false;
 static GLuint s_soundProgramId = 0;
-/*
-	s_soundTempSsbos は、GPU と CPU で同一バッファをアクセスしないよう、複数
-	バッファに分離したもの。使用位置は不連続である。
-	s_soundOutputSsbo はグラフィクスシェーダに見せるためシンセサイズ結果を
-	連続領域に作成するためのもの。
-*/
-static GLuint s_soundTempSsbos[NUM_SOUND_BUFFERS] = {0};
 static GLuint s_soundOutputSsbo = 0;
+static SOUND_SAMPLE_TYPE *s_mappedSoundOutputSsbo = NULL;
 static bool s_soundShaderSetupSucceeded = false;
-
 
 
 static int s_soundCurrentPartitionIndex = 0;
@@ -47,6 +39,7 @@ static SOUND_SAMPLE_TYPE s_soundBuffer[(NUM_SOUND_BUFFER_SAMPLES + NUM_SOUND_MAR
 static HWAVEOUT s_waveOutHandle = 0;
 static uint32_t s_waveOutOffset = 0;
 
+/* waveout 関連 */
 static const WAVEFORMATEX s_waveFormat = {
 	/* WORD  wFormatTag */
 #if SOUND_SAMPLE_TYPE_IS_FLOAT
@@ -61,7 +54,6 @@ static const WAVEFORMATEX s_waveFormat = {
 	/* WORD  wBitsPerSample */	sizeof(SOUND_SAMPLE_TYPE) * 8,
 	/* WORD  cbSize */			0	/* extension not needed */
 };
-
 static WAVEHDR s_waveHeader = {
 	/* LPSTR lpData */					(LPSTR)s_soundBuffer,
 	/* DWORD dwBufferLength */			NUM_SOUND_BUFFER_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS,
@@ -73,6 +65,7 @@ static WAVEHDR s_waveHeader = {
 	/* DWORD reserved */				0
 };
 
+/* 再生位置取得用 */
 static MMTIME s_mmTime = {
 	TIME_SAMPLES,	/* win32 SDK で定義された定数 */
 	0
@@ -81,7 +74,7 @@ static MMTIME s_mmTime = {
 /*=============================================================================
 ▼	サウンド合成関連
 -----------------------------------------------------------------------------*/
-static void SoundDisposePreSynthesizedCache(){
+static void SoundInvalidatePreSynthesizedCache(){
 	s_soundSynthesizePartitionIndex = s_soundCurrentPartitionIndex;
 }
 
@@ -108,7 +101,7 @@ static void SoundSynthesizePartition(
 			glExtBindBufferBase(
 				/* GLenum target */	GL_SHADER_STORAGE_BUFFER,
 				/* GLuint index */	BUFFER_INDEX_FOR_SOUND_OUTPUT,
-				/* GLuint buffer */	s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS]
+				/* GLuint buffer */	s_soundOutputSsbo
 			);
 
 			/* ユニフォームパラメータの設定 */
@@ -132,7 +125,7 @@ static void SoundSynthesizePartition(
 			glExtBindBufferBase(
 				/* GLenum target */	GL_SHADER_STORAGE_BUFFER,
 				/* GLuint index */	BUFFER_INDEX_FOR_SOUND_OUTPUT,
-				/* GLuint buffer */	0
+				/* GLuint buffer */	0	/* unbind */
 			);
 
 			/* シェーダをアンバインド */
@@ -149,78 +142,26 @@ static void SoundGetSynthesizedPartitionResult(
 		if (s_soundBufferPartitionStates[partitionIndex] == PartitionState_Synthesized) {
 			s_soundBufferPartitionStates[partitionIndex] = PartitionState_Copied;
 //			printf("SoundCopyPartition #%d (synthesized %d frames ago.) \n", partitionIndex, frameCount - s_soundBufferPartitionSynthesizedFrameCount[partitionIndex]);
+			size_t partitionSizeInBytes = NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
 
 			/* サウンド生成リクエストから十分なフレーム数が経過していないなら dispatch 完了待ち */
 			if (s_soundBufferPartitionSynthesizedFrameCount[partitionIndex] + (NUM_SOUND_BUFFERS - 1) >= frameCount) {
 				glFinish();
 			}
 
-			/* サウンド生成結果の取り出し */
-#if 1
 			/*
-				この処理を glGetBufferSubData や glGetNamedBufferSubData で行うと、
-				ブロッキングが避けられないようだ。
-				この問題は glMapNamedBuffer を用いることで回避できる。
-				ただしバッファのマップは、VRAM を CPU のアドレス空間にマップ
-				できない GPU の場合、バッファ全体のコピーが作成される可能性が
-				あり、むしろ効率が悪くなる可能性がある。
+				生成結果のコピー
+				持続的 map を使うのでコピーしなくともそのまま waveout は可能だが、
+				マージンを考慮するためコピーが必要
 			*/
-			size_t partitionSizeInBytes = NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
-			{
-				void *p = glExtMapNamedBuffer(
-					/* GLuint buffer */	s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS],
-					/* GLenum access */	GL_READ_ONLY
-				);
-				memcpy(
-					(void *)(
-						(uintptr_t)s_soundBuffer + partitionSizeInBytes * partitionIndex
-						/* マージンをスキップ */
-					+	NUM_SOUND_MARGIN_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS
-					),
-					(const void *)((uintptr_t)p + partitionSizeInBytes * partitionIndex),
-					partitionSizeInBytes
-				);
-				glExtUnmapNamedBuffer(
-					/* GLuint buffer */	s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS]
-				);
-			}
-#else
-			/*
-				ブロッキングを起こす旧実装。
-				読み出し対象のバッファに対する dispatch は、数十フレーム前に完了
-				しているため、ノンブロックでアクセスできて欲しいところだが、
-				実際にはブロッキングが発生してしまう（nVidia GTX960 で再現）。
-			*/
-			size_t partitionSizeInBytes = NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
-			glExtBindBufferBase(
-				/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
-				/* GLuint index */		BUFFER_INDEX_FOR_SOUND_OUTPUT,
-				/* GLuint buffer */		s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS]
-			);
-			glExtGetBufferSubData(
-				/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
-				/* GLintptr OFFSET */	partitionSizeInBytes * partitionIndex,
-				/* GLsizeiptr size */	partitionSizeInBytes,
-				/* GLvoid *data */		(void *)(
+			memcpy(
+				(void *)(
 					(uintptr_t)s_soundBuffer + partitionSizeInBytes * partitionIndex
 					/* マージンをスキップ */
 				+	NUM_SOUND_MARGIN_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS
-				)
-			);
-			glExtBindBufferBase(
-				/* GLenum target */		GL_SHADER_STORAGE_BUFFER,
-				/* GLuint index */		BUFFER_INDEX_FOR_SOUND_OUTPUT,
-				/* GLuint buffer */		0	/* unbind */
-			);
-#endif
-
-			/* 生成結果のコピー */
-			glExtCopyNamedBufferSubData(
-				/* GLuint readBuffer */		s_soundTempSsbos[partitionIndex % NUM_SOUND_BUFFERS],
-				/* GLuint writeBuffer */	s_soundOutputSsbo,
-				/* GLintptr readOffset */	partitionSizeInBytes * partitionIndex,
-				/* GLintptr writeOffset */	partitionSizeInBytes * partitionIndex,
-				/* GLsizeiptr size */		partitionSizeInBytes
+				),
+				(const void *)((uintptr_t)s_mappedSoundOutputSsbo + partitionSizeInBytes * partitionIndex),
+				partitionSizeInBytes
 			);
 		}
 	}
@@ -272,46 +213,34 @@ float SoundDetectDurationInSeconds(){
 static bool SoundCreateSoundOutputBuffer(
 ){
 	size_t bufferSizeInBytes = NUM_SOUND_BUFFER_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
-	for (int i = 0; i < NUM_SOUND_BUFFERS; i++) {
-		glExtGenBuffers(
-			/* GLsizei n */				1,
-			/* GLuint * buffers */		&s_soundTempSsbos[i]
-		);
-		glExtBindBuffer(
-			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
-			/* GLuint buffer */			s_soundTempSsbos[i]
-		);
-		glExtBufferData(
-			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
-			/* GLsizeiptr size */		bufferSizeInBytes,
-			/* const GLvoid * data */	NULL,
-			/* GLenum usage */			GL_DYNAMIC_COPY
-		);
-		glExtBindBuffer(
-			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
-			/* GLuint buffer */			0	/* unbind */
-		);
-	}
-	{
-		glExtGenBuffers(
-			/* GLsizei n */				1,
-			/* GLuint * buffers */		&s_soundOutputSsbo
-		);
-		glExtBindBuffer(
-			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
-			/* GLuint buffer */			s_soundOutputSsbo
-		);
-		glExtBufferData(
-			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
-			/* GLsizeiptr size */		bufferSizeInBytes,
-			/* const GLvoid * data */	NULL,
-			/* GLenum usage */			GL_DYNAMIC_COPY
-		);
-		glExtBindBuffer(
-			/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
-			/* GLuint buffer */			0	/* unbind */
-		);
-	}
+	glExtGenBuffers(
+		/* GLsizei n */				1,
+		/* GLuint * buffers */		&s_soundOutputSsbo
+	);
+	glExtBindBuffer(
+		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+		/* GLuint buffer */			s_soundOutputSsbo
+	);
+	/*
+		AMD 環境では、GL_MAP_PERSISTENT_BIT を指定しないバッファは、
+		持続的な MAP 状態にできない。GL_MAP_PERSISTENT_BIT を指定するには、
+		glBufferData でなく glBufferStorage を利用する必要がある。
+	*/
+	glExtBufferStorage(
+		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+		/* GLsizeiptr size */		bufferSizeInBytes,
+		/* const void * data */		NULL,
+		/* GLbitfield flags */		GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT
+	);
+	s_mappedSoundOutputSsbo = (SOUND_SAMPLE_TYPE *)glExtMapBuffer(
+		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+		/* GLenum access */			GL_READ_WRITE
+	);
+	assert(s_mappedSoundOutputSsbo != NULL);
+	glExtBindBuffer(
+		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
+		/* GLuint buffer */			0	/* unbind */
+	);
 	return true;
 }
 
@@ -322,20 +251,15 @@ static bool SoundDeleteSoundOutputBuffer(
 		/* GLuint * buffers */	&s_soundOutputSsbo
 	);
 	s_soundOutputSsbo = 0;
-	for (int i = 0; i < NUM_SOUND_BUFFERS; i++) {
-		glExtDeleteBuffers(
-			/* GLsizei n */			1,
-			/* GLuint * buffers */	&s_soundTempSsbos[i]
-		);
-		s_soundTempSsbos[i] = 0;
-	}
+
 	return true;
 }
 
 void SoundClearOutputBuffer(
 ){
 	/*
-		サウンドシェーダ更新によるリスタートが無効の場合は、バッファクリアしない。
+		サウンドシェーダ更新によるリスタートが無効の場合は、サウンドシェーダ更新
+		に伴うプチノイズ回避のため、出力バッファをクリアしない。
 		副作用として、メッセージループ停止時（ウィドウドラッグ移動中）や、
 		サウンド生成が間に合わない場合に、バッファ上の古いサウンドが再生されてしまう。
 	*/
@@ -346,7 +270,7 @@ void SoundClearOutputBuffer(
 	for (int i = 0; i < NUM_SOUND_BUFFER_PARTITIONS; i++) {
 		s_soundBufferPartitionStates[i] = PartitionState_ZeroCleared;
 	}
-	SoundDisposePreSynthesizedCache();
+	SoundInvalidatePreSynthesizedCache();
 }
 
 GLuint SoundGetOutputSsbo(
@@ -407,7 +331,7 @@ void SoundSeekWaveOut(uint32_t offset){
 	MMRESULT ret = waveOutReset(s_waveOutHandle);
 
 	s_soundCurrentPartitionIndex = offset / NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH;
-	SoundDisposePreSynthesizedCache();
+	SoundInvalidatePreSynthesizedCache();
 
 	if (offset > NUM_SOUND_BUFFER_SAMPLES) offset = NUM_SOUND_BUFFER_SAMPLES;
 	s_waveHeader.lpData = (LPSTR)&s_soundBuffer[offset * NUM_SOUND_CHANNELS];

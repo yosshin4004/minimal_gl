@@ -80,6 +80,12 @@ MYMENU MENU
 		MENUITEM "&Toggle Full Screen\tAlt+Enter"		IDM_TOGGLE_FULL_SCREEN
 	}
 
+	POPUP	"&Window (W)"
+	{
+		MENUITEM "&Current Status",						IDM_TOGGLE_DISPLAY_CURRENT_STATUS
+		MENUITEM "&Camera Settings",					IDM_TOGGLE_DISPLAY_CAMERA_SETTINGS
+	}
+
 	POPUP	"&Help (H)"
 	{
 		MENUITEM "&Graphics Shader Uniforms...",		IDM_HELP_GRAPHICS_SHADER_UNIFORMS

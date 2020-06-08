@@ -4,12 +4,36 @@
 #define _CONFIG_H_
 
 
-/* スクリーン解像度 */
-#define SCREEN_XRESO							(1280)
-#define SCREEN_YRESO							(720)
+/* デフォルトスクリーン解像度 */
+#define DEFAULT_SCREEN_XRESO					(1280)
+#define DEFAULT_SCREEN_YRESO					(720)
 
-/* キューブマップの初期解像度 */
-#define CUBEMAP_RESO							(512)
+/* カメラのデフォルト画角 */
+#define DEFAULT_CAMERA_FOVY_IN_DEGREES			(22.5)
+
+/* キューブマップのデフォルト解像度 */
+#define DEFAULT_CUBEMAP_RESO					(512)
+
+/* デフォルトピクセルフォーマット */
+#define DEFAULT_PIXEL_FORMAT					(PixelFormatUnorm8RGBA)
+
+/* デフォルトテクスチャフィルタ */
+#define DEFAULT_TEXTURE_FILTER					(TextureFilterLinear)
+
+/* デフォルトテクスチャラップ */
+#define DEFAULT_TEXTURE_WRAP					(TextureWrapClampToEdge)
+
+/* デフォルトスワップインターバル */
+#define DEFAULT_SWAP_INTERVAL					(SwapIntervalVsync)
+
+/* デフォルトのデモの尺 */
+#define DEFAULT_DURATION_IN_SECONDS				(120.0f)
+
+/* デフォルトの crinkler 圧縮モード */
+#define DEFAULT_CRINKLER_COMP_MODE				(CrinklerCompModeSlow)
+
+/* デフォルトのフレームレート */
+#define DEFAULT_FRAMES_PER_SECOND				(60.0f)
 
 /* 解像度の上限 */
 #define MAX_RESO								(8192)
