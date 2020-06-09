@@ -1214,6 +1214,7 @@ void GraphicsUpdate(
 bool GraphicsInitialize(
 ){
 	GraphicsCreateFrameBuffer(s_xReso, s_yReso, &s_currentRenderSettings);
+	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	return true;
 }
 
