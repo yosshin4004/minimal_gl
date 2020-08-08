@@ -268,6 +268,30 @@ void AppGetWindowFocus(){
 	SetForegroundWindow(AppGetMainWindowHandle());
 }
 
+void AppUpdateWindowTitle(){
+	char title[0x200] = {0};
+	if (strcmp(s_projectFileName, "") != 0) {
+		char fileName[MAX_PATH] = {0};
+		SplitFileNameFromFilePath(fileName, sizeof(fileName), s_projectFileName);
+		strncat_s(title, sizeof(title), fileName, _TRUNCATE);
+		strncat_s(title, sizeof(title), "        ", _TRUNCATE);
+	}
+	if (strcmp(s_graphicsShaderFileName, "") != 0) {
+		char fileName[MAX_PATH] = {0};
+		SplitFileNameFromFilePath(fileName, sizeof(fileName), s_graphicsShaderFileName);
+		strncat_s(title, sizeof(title), fileName, _TRUNCATE);
+		strncat_s(title, sizeof(title), "        ", _TRUNCATE);
+	}
+	if (strcmp(s_soundShaderFileName, "") != 0) {
+		char fileName[MAX_PATH] = {0};
+		SplitFileNameFromFilePath(fileName, sizeof(fileName), s_soundShaderFileName);
+		strncat_s(title, sizeof(title), fileName, _TRUNCATE);
+		strncat_s(title, sizeof(title), "        ", _TRUNCATE);
+	}
+
+	SetWindowText(AppGetMainWindowHandle(), title);
+}
+
 /*=============================================================================
 ▼	メッセージボックス関連
 -----------------------------------------------------------------------------*/
@@ -1412,7 +1436,7 @@ const char *AppProjectGetCurrentFileName(){
 bool AppProjectImport(const char *fileName){
 	/* プロジェクトのベースパス抽出 */
 	char projectBasePath[MAX_PATH] = {0};
-	SplitDirectoryFromFileName(projectBasePath, sizeof(projectBasePath), fileName);
+	SplitDirectoryPathFromFilePath(projectBasePath, sizeof(projectBasePath), fileName);
 
 	/* シリアライズされたプロジェクトの読み込み */
 	char *text = MallocReadTextFile(fileName);
@@ -1436,11 +1460,8 @@ bool AppProjectImport(const char *fileName){
 		*/
 
 		/* 現在のプロジェクトファイル名を保存 */
-		strcpy_s(
-			s_projectFileName,
-			sizeof(s_projectFileName),
-			fileName
-		);
+		strcpy_s(s_projectFileName, sizeof(s_projectFileName), fileName);
+		AppUpdateWindowTitle();
 	} else {
 		AppErrorMessageBox(APP_NAME, "Failed to import project.");
 	}
@@ -1462,7 +1483,7 @@ bool AppProjectImport(const char *fileName){
 bool AppProjectExport(const char *fileName){
 	/* プロジェクトのベースパス抽出 */
 	char projectBasePath[MAX_PATH] = {0};
-	SplitDirectoryFromFileName(projectBasePath, sizeof(projectBasePath), fileName);
+	SplitDirectoryPathFromFilePath(projectBasePath, sizeof(projectBasePath), fileName);
 
 	/* プロジェクトをメモリ上にシリアライズ */
 	cJSON *jsonRoot = cJSON_CreateObject();
@@ -1483,11 +1504,8 @@ bool AppProjectExport(const char *fileName){
 			AppMessageBox(APP_NAME, "Export project successfully.");
 
 			/* 現在のプロジェクトファイル名を保存 */
-			strcpy_s(
-				s_projectFileName,
-				sizeof(s_projectFileName),
-				fileName
-			);
+			strcpy_s(s_projectFileName, sizeof(s_projectFileName), fileName);
+			AppUpdateWindowTitle();
 		}
 	}
 
@@ -1502,7 +1520,7 @@ bool AppProjectAutoExport(bool confirm){
 
 	/* プロジェクトのベースパス抽出 */
 	char projectBasePath[MAX_PATH] = {0};
-	SplitDirectoryFromFileName(projectBasePath, sizeof(projectBasePath), s_projectFileName);
+	SplitDirectoryPathFromFilePath(projectBasePath, sizeof(projectBasePath), s_projectFileName);
 
 	/* プロジェクトをメモリ上にシリアライズ */
 	cJSON *jsonRoot = cJSON_CreateObject();
@@ -1599,20 +1617,20 @@ void AppGetDefaultDirectoryName(char *directoryName, size_t directoryNameSizeInB
 		シェーダのパスなどから作成する。
 	*/
 	if (strcmp(s_projectFileName, "") != 0) {
-		SplitDirectoryFromFileName(directoryName, directoryNameSizeInBytes, s_projectFileName);
+		SplitDirectoryPathFromFilePath(directoryName, directoryNameSizeInBytes, s_projectFileName);
 		return;
 	}
 	if (strcmp(s_graphicsShaderFileName, "") != 0) {
-		SplitDirectoryFromFileName(directoryName, directoryNameSizeInBytes, s_graphicsShaderFileName);
+		SplitDirectoryPathFromFilePath(directoryName, directoryNameSizeInBytes, s_graphicsShaderFileName);
 		return;
 	}
 	if (strcmp(s_soundShaderFileName, "") != 0) {
-		SplitDirectoryFromFileName(directoryName, directoryNameSizeInBytes, s_soundShaderFileName);
+		SplitDirectoryPathFromFilePath(directoryName, directoryNameSizeInBytes, s_soundShaderFileName);
 		return;
 	}
 	char selfPath[MAX_PATH] = {0};
 	GetModuleFileName(NULL, selfPath, sizeof(selfPath));
-	SplitDirectoryFromFileName(directoryName, directoryNameSizeInBytes, selfPath);
+	SplitDirectoryPathFromFilePath(directoryName, directoryNameSizeInBytes, selfPath);
 }
 
 bool AppOpenDefaultGraphicsShader(){
@@ -1636,11 +1654,8 @@ bool AppOpenGraphicsShaderFile(const char *fileName){
 	}
 
 	printf("open a graphics shader file %s.\n", fileName);
-	strcpy_s(
-		s_graphicsShaderFileName,
-		sizeof(s_graphicsShaderFileName),
-		fileName
-	);
+	strcpy_s(s_graphicsShaderFileName, sizeof(s_graphicsShaderFileName), fileName);
+	AppUpdateWindowTitle();
 	s_graphicsShaderFileStat.st_mtime = 0;	/* 強制的に再読み込み */
 
 	return true;
@@ -1652,11 +1667,8 @@ bool AppOpenSoundShaderFile(const char *fileName){
 	}
 
 	printf("open a sound shader file %s.\n", fileName);
-	strcpy_s(
-		s_soundShaderFileName,
-		sizeof(s_soundShaderFileName),
-		fileName
-	);
+	strcpy_s(s_soundShaderFileName, sizeof(s_soundShaderFileName), fileName);
+	AppUpdateWindowTitle();
 	s_soundShaderFileStat.st_mtime = 0;		/* 強制的に再読み込み */
 
 	return true;

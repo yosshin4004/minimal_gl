@@ -386,7 +386,7 @@ bool ExportExecutableSub(
 
 	/* 実行ファイルのディレクトリを取得 */
 	char selfDir[MAX_PATH] = {0};
-	SplitDirectoryFromFileName(selfDir, sizeof(selfDir), selfPath);
+	SplitDirectoryPathFromFilePath(selfDir, sizeof(selfDir), selfPath);
 
 	/*
 		実行ファイルのディレクトリに crinkler.exe が存在するならそのパスを、

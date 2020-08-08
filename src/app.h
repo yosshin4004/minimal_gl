@@ -27,6 +27,9 @@ HWND AppGetMainWindowHandle();
 /* メインウィンドウを最前面に出す */
 void AppGetWindowFocus();
 
+/* メインウィンドウのタイトル文字列を更新 */
+void AppUpdateWindowTitle();
+
 
 /* メッセージ BOX の表示 */
 void AppMessageBox(const char *caption, const char *format, ...);

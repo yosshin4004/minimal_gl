@@ -47,11 +47,18 @@ int CalcNumMipmapLevelsFromResolution(
 	int yReso
 );
 
-/* ファイル名からディレクトリ部分を抽出 */
-void SplitDirectoryFromFileName(
-	char *directoryName,
-	size_t directoryNameSizeInBytes,
-	const char *fileName
+/* ファイルパスからディレクトリ名部分を抽出 */
+void SplitDirectoryPathFromFilePath(
+	char *directoryPath,
+	size_t directoryPathSizeInBytes,
+	const char *filePath
+);
+
+/* ファイルパスからファイル名部分を抽出 */
+void SplitFileNameFromFilePath(
+	char *fileName,
+	size_t fileNameSizeInBytes,
+	const char *filePath
 );
 
 /* 妥当なファイルパスであるか確認 */

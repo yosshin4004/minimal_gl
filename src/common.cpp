@@ -46,17 +46,17 @@ int CalcNumMipmapLevelsFromResolution(
 	return mipmapLevel + 1;
 }
 
-void SplitDirectoryFromFileName(
-	char *directoryName,
-	size_t directoryNameSizeInBytes,
-	const char *fileName
+void SplitDirectoryPathFromFilePath(
+	char *directoryPath,
+	size_t directoryPathSizeInBytes,
+	const char *filePath
 ){
 	char splittedDriveName[MAX_PATH] = {0};
 	char splittedDirectoryName[MAX_PATH] = {0};
 	char splittedFileName[MAX_PATH] = {0};
 	char splittedExtName[MAX_PATH] = {0};
 	_splitpath_s(
-		/* const char * path */				fileName,
+		/* const char * path */				filePath,
 		/* char * drive */					splittedDriveName,
 		/* size_t driveNumberOfElements */	sizeof(splittedDriveName),
 		/* char * dir */					splittedDirectoryName,
@@ -67,11 +67,40 @@ void SplitDirectoryFromFileName(
 		/* size_t extNumberOfElements */	sizeof(splittedExtName)
 	);
 	snprintf(
-		directoryName,
-		directoryNameSizeInBytes,
+		directoryPath,
+		directoryPathSizeInBytes,
 		"%s%s",
 		splittedDriveName,
 		splittedDirectoryName
+	);
+}
+
+void SplitFileNameFromFilePath(
+	char *fileName,
+	size_t fileNameSizeInBytes,
+	const char *filePath
+){
+	char splittedDriveName[MAX_PATH] = {0};
+	char splittedDirectoryName[MAX_PATH] = {0};
+	char splittedFileName[MAX_PATH] = {0};
+	char splittedExtName[MAX_PATH] = {0};
+	_splitpath_s(
+		/* const char * path */				filePath,
+		/* char * drive */					splittedDriveName,
+		/* size_t driveNumberOfElements */	sizeof(splittedDriveName),
+		/* char * dir */					splittedDirectoryName,
+		/* size_t dirNumberOfElements */	sizeof(splittedDirectoryName),
+		/* char * fname */					splittedFileName,
+		/* size_t nameNumberOfElements */	sizeof(splittedFileName),
+		/* char * ext */					splittedExtName,
+		/* size_t extNumberOfElements */	sizeof(splittedExtName)
+	);
+	snprintf(
+		fileName,
+		fileNameSizeInBytes,
+		"%s%s",
+		splittedFileName,
+		splittedExtName
 	);
 }
 
