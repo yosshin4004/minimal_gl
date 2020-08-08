@@ -61,6 +61,30 @@ void SplitFileNameFromFilePath(
 	const char *filePath
 );
 
+/* ディレクトリからディレクトリへの相対パス生成 */
+void GenerateRelativePathFromDirectoryToDirectory(
+	char *relativePath,
+	size_t relativePathSizeInBytes,
+	const char *fromDirectoryPath,
+	const char *toDirectoryPath
+);
+
+/* ディレクトリからファイルへの相対パス生成 */
+void GenerateRelativePathFromDirectoryToFile(
+	char *relativePath,
+	size_t relativePathSizeInBytes,
+	const char *fromDirectoryPath,
+	const char *toFilePath
+);
+
+/* ディレクトリパスとファイル名の結合 */
+void GenerateCombinedPath(
+	char *combinedPath,
+	size_t combinedPathSizeInBytes,
+	const char *directoryPath,
+	const char *filePath
+);
+
 /* 妥当なファイルパスであるか確認 */
 bool IsValidFileName(
 	const char *fileName

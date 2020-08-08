@@ -1,5 +1,9 @@
 ﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
 
+#define WIN32_LEAN_AND_MEAN
+#define WIN32_EXTRA_LEAN
+#include <windows.h>
+#include <Shlwapi.h>	/* for PathRelativePathTo */
 #include "common.h"
 #include "glext_util.h"
 
@@ -102,6 +106,55 @@ void SplitFileNameFromFilePath(
 		splittedFileName,
 		splittedExtName
 	);
+}
+
+void GenerateRelativePathFromDirectoryToDirectory(
+	char *relativePath,
+	size_t relativePathSizeInBytes,
+	const char *fromDirectoryPath,
+	const char *toDirectoryPath
+){
+	char tempRelativePath[MAX_PATH] = {0};
+	PathRelativePathTo(
+		/* LPSTR  pszPath */	tempRelativePath,
+		/* LPCSTR pszFrom */	fromDirectoryPath,
+		/* DWORD  dwAttrFrom */	FILE_ATTRIBUTE_DIRECTORY /* from directory */,
+		/* LPCSTR pszTo */		toDirectoryPath,
+		/* DWORD  dwAttrTo */	FILE_ATTRIBUTE_DIRECTORY /* to directory */
+	);
+	strlcpy(relativePath, tempRelativePath, relativePathSizeInBytes);
+}
+
+void GenerateRelativePathFromDirectoryToFile(
+	char *relativePath,
+	size_t relativePathSizeInBytes,
+	const char *fromDirectoryPath,
+	const char *toFilePath
+){
+	char tempRelativePath[MAX_PATH] = {0};
+	PathRelativePathTo(
+		/* LPSTR  pszPath */	tempRelativePath,
+		/* LPCSTR pszFrom */	fromDirectoryPath,
+		/* DWORD  dwAttrFrom */	FILE_ATTRIBUTE_DIRECTORY /* from directory */,
+		/* LPCSTR pszTo */		toFilePath,
+		/* DWORD  dwAttrTo */	0 /* to file */
+	);
+	strlcpy(relativePath, tempRelativePath, relativePathSizeInBytes);
+}
+
+void GenerateCombinedPath(
+	char *combinedPath,
+	size_t combinedPathSizeInBytes,
+	const char *directoryPath,
+	const char *filePath
+){
+	char tempCombinedPath[MAX_PATH] = {0};
+	PathCombine(
+		/* LPSTR  pszDest */	tempCombinedPath,
+		/* LPCSTR pszDir */		directoryPath,
+		/* LPCSTR pszFile */	filePath
+	);
+	strlcpy(combinedPath, tempCombinedPath, combinedPathSizeInBytes);
 }
 
 bool IsValidFileName(
