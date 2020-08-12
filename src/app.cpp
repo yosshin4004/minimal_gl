@@ -60,6 +60,8 @@ static struct Camera {
 	float vec3Pos[3];
 	float vec3Ang[3];
 	float fovYInRadians;
+	float mat4x4CameraInWorld[4][4];
+	float mat4x4PrevCameraInWorld[4][4];
 } s_camera = {0};
 static CaptureScreenShotSettings s_captureScreenShotSettings = {
 	/* char fileName[MAX_PATH]; */	{0},
@@ -489,19 +491,10 @@ void AppGetResolution(int *xResoRet, int *yResoRet){
 	*yResoRet = s_yReso;
 }
 void AppGetMat4x4CameraInWorld(float mat4x4CameraInWorld[4][4]){
-	Mat4x4SetUnit(mat4x4CameraInWorld);
-	float mat4x4RotX[4][4];
-	float mat4x4RotY[4][4];
-	float mat4x4RotZ[4][4];
-	Mat4x4SetAffineRotZ(mat4x4RotX, s_camera.vec3Ang[2]);
-	Mat4x4SetAffineRotX(mat4x4RotY, s_camera.vec3Ang[0]);
-	Mat4x4SetAffineRotY(mat4x4RotZ, s_camera.vec3Ang[1]);
-	Mat4x4Mul(mat4x4CameraInWorld, mat4x4RotZ, mat4x4CameraInWorld);
-	Mat4x4Mul(mat4x4CameraInWorld, mat4x4RotX, mat4x4CameraInWorld);
-	Mat4x4Mul(mat4x4CameraInWorld, mat4x4RotY, mat4x4CameraInWorld);
-	mat4x4CameraInWorld[3][0] = s_camera.vec3Pos[0];
-	mat4x4CameraInWorld[3][1] = s_camera.vec3Pos[1];
-	mat4x4CameraInWorld[3][2] = s_camera.vec3Pos[2];
+	Mat4x4Copy(mat4x4CameraInWorld, s_camera.mat4x4CameraInWorld);
+}
+void AppGetMat4x4PrevCameraInWorld(float mat4x4PrevCameraInWorld[4][4]){
+	Mat4x4Copy(mat4x4PrevCameraInWorld, s_camera.mat4x4PrevCameraInWorld);
 }
 
 /*=============================================================================
@@ -529,26 +522,42 @@ CameraUpdate(){
 		s_camera.vec3Ang[1] -= float(s_mouse.xDelta) * k;
 	}
 
+	/* 前回フレームの Camera -> World 変換行列の保存 */
+	Mat4x4Copy(s_camera.mat4x4PrevCameraInWorld, s_camera.mat4x4CameraInWorld);
+
 	/* Camera -> World 変換行列の取得 */
-	float mat4x4CameraInWorld[4][4];
-	AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
+	{
+		Mat4x4SetUnit(s_camera.mat4x4CameraInWorld);
+		float mat4x4RotX[4][4];
+		float mat4x4RotY[4][4];
+		float mat4x4RotZ[4][4];
+		Mat4x4SetAffineRotZ(mat4x4RotX, s_camera.vec3Ang[2]);
+		Mat4x4SetAffineRotX(mat4x4RotY, s_camera.vec3Ang[0]);
+		Mat4x4SetAffineRotY(mat4x4RotZ, s_camera.vec3Ang[1]);
+		Mat4x4Mul(s_camera.mat4x4CameraInWorld, mat4x4RotZ, s_camera.mat4x4CameraInWorld);
+		Mat4x4Mul(s_camera.mat4x4CameraInWorld, mat4x4RotX, s_camera.mat4x4CameraInWorld);
+		Mat4x4Mul(s_camera.mat4x4CameraInWorld, mat4x4RotY, s_camera.mat4x4CameraInWorld);
+		s_camera.mat4x4CameraInWorld[3][0] = s_camera.vec3Pos[0];
+		s_camera.mat4x4CameraInWorld[3][1] = s_camera.vec3Pos[1];
+		s_camera.mat4x4CameraInWorld[3][2] = s_camera.vec3Pos[2];
+	}
 
 	/* 座標を変更 */
 	if (s_mouse.LButtonPressed) {
 		float k = 0.005f;
-		s_camera.vec3Pos[0] -= mat4x4CameraInWorld[0][0] * float(s_mouse.xDelta) * k;
-		s_camera.vec3Pos[1] -= mat4x4CameraInWorld[0][1] * float(s_mouse.xDelta) * k;
-		s_camera.vec3Pos[2] -= mat4x4CameraInWorld[0][2] * float(s_mouse.xDelta) * k;
-		s_camera.vec3Pos[0] += mat4x4CameraInWorld[1][0] * float(s_mouse.yDelta) * k;
-		s_camera.vec3Pos[1] += mat4x4CameraInWorld[1][1] * float(s_mouse.yDelta) * k;
-		s_camera.vec3Pos[2] += mat4x4CameraInWorld[1][2] * float(s_mouse.yDelta) * k;
+		s_camera.vec3Pos[0] -= s_camera.mat4x4CameraInWorld[0][0] * float(s_mouse.xDelta) * k;
+		s_camera.vec3Pos[1] -= s_camera.mat4x4CameraInWorld[0][1] * float(s_mouse.xDelta) * k;
+		s_camera.vec3Pos[2] -= s_camera.mat4x4CameraInWorld[0][2] * float(s_mouse.xDelta) * k;
+		s_camera.vec3Pos[0] += s_camera.mat4x4CameraInWorld[1][0] * float(s_mouse.yDelta) * k;
+		s_camera.vec3Pos[1] += s_camera.mat4x4CameraInWorld[1][1] * float(s_mouse.yDelta) * k;
+		s_camera.vec3Pos[2] += s_camera.mat4x4CameraInWorld[1][2] * float(s_mouse.yDelta) * k;
 	}
 
 	/* マウスホイール移動量に従い Z 軸方向に移動 */
 	if (s_mouse.wheelDelta) {
-		s_camera.vec3Pos[0] -= mat4x4CameraInWorld[2][0] * float(s_mouse.wheelDelta) * 0.001f;
-		s_camera.vec3Pos[1] -= mat4x4CameraInWorld[2][1] * float(s_mouse.wheelDelta) * 0.001f;
-		s_camera.vec3Pos[2] -= mat4x4CameraInWorld[2][2] * float(s_mouse.wheelDelta) * 0.001f;
+		s_camera.vec3Pos[0] -= s_camera.mat4x4CameraInWorld[2][0] * float(s_mouse.wheelDelta) * 0.001f;
+		s_camera.vec3Pos[1] -= s_camera.mat4x4CameraInWorld[2][1] * float(s_mouse.wheelDelta) * 0.001f;
+		s_camera.vec3Pos[2] -= s_camera.mat4x4CameraInWorld[2][2] * float(s_mouse.wheelDelta) * 0.001f;
 	}
 
 	/* マウスの移動量をクリア */
@@ -752,11 +761,9 @@ bool AppCaptureScreenShotGetForceReplaceAlphaByOneFlag(){
 void AppCaptureScreenShot(){
 	if (s_graphicsCreateShaderSucceeded) {
 		if (DialogConfirmOverWrite(s_captureScreenShotSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
-			float mat4x4CameraInWorld[4][4];
-			AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
 			bool ret = GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 				SoundGetWaveOutPos(), s_frameCount, float(HighPrecisionTimerGet()),
-				s_camera.fovYInRadians, mat4x4CameraInWorld,
+				s_camera.fovYInRadians, s_camera.mat4x4CameraInWorld,
 				&s_renderSettings, &s_captureScreenShotSettings
 			);
 			if (ret) {
@@ -792,11 +799,9 @@ int AppCaptureCubemapGetResolution(){
 void AppCaptureCubemap(){
 	if (s_graphicsCreateShaderSucceeded) {
 		if (DialogConfirmOverWrite(s_captureCubemapSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
-			float mat4x4CameraInWorld[4][4];
-			AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
 			bool ret = GraphicsCaptureCubemap(
 				SoundGetWaveOutPos(), s_frameCount, float(HighPrecisionTimerGet()),
-				mat4x4CameraInWorld, &s_renderSettings, &s_captureCubemapSettings
+				s_camera.mat4x4CameraInWorld, &s_renderSettings, &s_captureCubemapSettings
 			);
 			if (ret) {
 				AppMessageBox(APP_NAME, "Capture cubemap as dds file completed successfully.");
@@ -1971,14 +1976,14 @@ bool AppUpdate(){
 	/* グラフィクスの更新 */
 	CheckGlError("pre GraphicsUpdate");
 	if (s_graphicsCreateShaderSucceeded) {
-		float mat4x4CameraInWorld[4][4];
-		AppGetMat4x4CameraInWorld(mat4x4CameraInWorld);
 		GraphicsUpdate(
 			SoundGetWaveOutPos(), s_frameCount, float(fp64CurrentTime),
 			s_mouse.x, s_mouse.y,
 			s_mouse.LButtonPressed, s_mouse.MButtonPressed, s_mouse.RButtonPressed,
 			s_xReso, s_yReso,
-			s_camera.fovYInRadians, mat4x4CameraInWorld, &s_renderSettings
+			s_camera.fovYInRadians,
+			s_camera.mat4x4CameraInWorld, s_camera.mat4x4PrevCameraInWorld,
+			&s_renderSettings
 		);
 	}
 	CheckGlError("post GraphicsUpdate");

@@ -500,6 +500,7 @@ static void GraphicsDrawFullScreenQuad(
 	int yReso,
 	const float tanFovY,
 	const float mat4x4CameraInWorld[4][4],
+	const float mat4x4PrevCameraInWorld[4][4],
 	const RenderSettings *settings
 ){
 	/* RenderSettings 更新を認識 */
@@ -614,6 +615,14 @@ static void GraphicsDrawFullScreenQuad(
 			/* GLsizei count */			1,
 			/* GLboolean transpose */	false,
 			/* const GLfloat *value */	&mat4x4CameraInWorld[0][0]
+		);
+	}
+	if (ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_PREV_CAMERA_COORD, GL_FLOAT_MAT4)) {
+		glExtUniformMatrix4fv(
+			/* GLint location */		UNIFORM_LOCATION_PREV_CAMERA_COORD,
+			/* GLsizei count */			1,
+			/* GLboolean transpose */	false,
+			/* const GLfloat *value */	&mat4x4PrevCameraInWorld[0][0]
 		);
 	}
 
@@ -776,6 +785,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 		captureSettings->yReso,
 		tanFovY,
 		mat4x4CameraInWorld,
+		mat4x4CameraInWorld,	/* キャプチャ時は前回フレームのカメラ＝最新フレームのカメラ */
 		renderSettings
 	);
 
@@ -1099,6 +1109,7 @@ bool GraphicsCaptureCubemap(
 			captureSettings->reso,
 			tanFovY,
 			mat4x4FaceInWorld,
+			mat4x4FaceInWorld,	/* キャプチャ時は前回フレームのカメラ＝最新フレームのカメラ */
 			renderSettings
 		);
 
@@ -1171,6 +1182,7 @@ void GraphicsUpdate(
 	int yReso,
 	float fovYInRadians,
 	const float mat4x4CameraInWorld[4][4],
+	const float mat4x4PrevCameraInWorld[4][4],
 	const RenderSettings *settings
 ){
 	/* 画面全体に四角形を描画 */
@@ -1189,6 +1201,7 @@ void GraphicsUpdate(
 		yReso,
 		tanFovY,
 		mat4x4CameraInWorld,
+		mat4x4PrevCameraInWorld,
 		settings
 	);
 

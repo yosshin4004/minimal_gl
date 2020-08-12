@@ -77,6 +77,9 @@ void AppGetResolution(int *xResoRet, int *yResoRet);
 /* Camera -> World 変換行列の取得 */
 void AppGetMat4x4CameraInWorld(float mat4x4CameraInWorld[4][4]);
 
+/* 前回フレームの Camera -> World 変換行列の取得 */
+void AppGetMat4x4PrevCameraInWorld(float mat4x4PrevCameraInWorld[4][4]);
+
 
 /* ImGui 設定 : Current Status 表示フラグの設定 */
 void AppImGuiSetDisplayCurrentStatusFlag(bool flag);

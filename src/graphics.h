@@ -126,6 +126,7 @@ void GraphicsUpdate(
 	int yReso,
 	float fovYInRadians,
 	const float mat4x4CameraInWorld[4][4],
+	const float mat4x4PrevCameraInWorld[4][4],
 	const RenderSettings *settings
 );
 
