@@ -1840,19 +1840,23 @@ static void AppSeekInSamples(int samples){
 void AppSlowForward(){
 	AppPause();
 	AppSeekInSamples(0x100);
+	s_frameCount++;
 }
 
 void AppSlowBackward(){
 	AppPause();
 	AppSeekInSamples(-0x100);
+	s_frameCount--;
 }
 
 void AppFastForward(){
 	AppSeekInSamples(WAVEOUT_SEEKSTEP_IN_SAMPLES);
+	s_frameCount++;
 }
 
 void AppFastBackward(){
 	AppSeekInSamples(-WAVEOUT_SEEKSTEP_IN_SAMPLES);
+	s_frameCount--;
 }
 
 
