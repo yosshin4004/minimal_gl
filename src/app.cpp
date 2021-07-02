@@ -1942,7 +1942,13 @@ bool AppUpdate(){
 		if (IsFileUpdated(s_soundShaderFileName, &s_soundShaderFileStat)) {
 			printf("update the sound shader.\n");
 			if (s_soundShaderCode != NULL) free(s_soundShaderCode);
-			s_soundShaderCode = MallocReadTextFile(s_soundShaderFileName);
+			/* ファイルのロック状態が継続していることがあるため、リトライしながら読む */
+			for (int retryCount = 0; retryCount < 10; retryCount++) {
+				s_soundShaderCode = MallocReadTextFile(s_soundShaderFileName);
+				if (s_soundShaderCode != NULL) break;
+				printf("retry %d ... \n", retryCount);
+				Sleep(100);
+			}
 			if (s_soundShaderCode == NULL) {
 				AppErrorMessageBox(APP_NAME, "Failed to read %s.\n", s_soundShaderFileName);
 			} else {
@@ -1956,7 +1962,13 @@ bool AppUpdate(){
 		if (IsFileUpdated(s_graphicsShaderFileName, &s_graphicsShaderFileStat)) {
 			printf("update the graphics shader.\n");
 			if (s_graphicsShaderCode != NULL) free(s_graphicsShaderCode);
-			s_graphicsShaderCode = MallocReadTextFile(s_graphicsShaderFileName);
+			/* ファイルのロック状態が継続していることがあるため、リトライしながら読む */
+			for (int retryCount = 0; retryCount < 10; retryCount++) {
+				s_graphicsShaderCode = MallocReadTextFile(s_graphicsShaderFileName);
+				if (s_graphicsShaderCode != NULL) break;
+				printf("retry %d ... \n", retryCount);
+				Sleep(100);
+			}
 			if (s_graphicsShaderCode == NULL) {
 				AppErrorMessageBox(APP_NAME, "Failed to read %s.\n", s_graphicsShaderFileName);
 			} else {
