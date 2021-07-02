@@ -27,6 +27,6 @@ layout(location = 0) uniform int waveOutPosition;
 void main(){
 	int offset = int(gl_GlobalInvocationID.x) + waveOutPosition;
 	float sec = float(offset) / NUM_SAMPLES_PER_SEC;
-	waveOutSamples[offset] = sin(vec2(sec * 440 * 4)) * exp(-sec);
+	waveOutSamples[offset] = sin(vec2(sec * 440 * 6.2831)) * exp(-sec);
 }
 
