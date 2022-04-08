@@ -32,6 +32,7 @@ layout(location = 0) uniform int waveOutPosition;
 	layout(std430, binding = 0) buffer _{ vec2 waveOutSamples[]; };
 #endif
 
+out vec4 outColor;
 
 void main(){
 	vec2 pos = gl_FragCoord.xy * 2 / resolution - 1;
@@ -39,6 +40,6 @@ void main(){
 	vec3 color = vec3(0);
 	if (abs(pos.y) < abs(waveOutSample.x)) color += vec3(1, .5, 0);
 	if (abs(pos.y) < abs(waveOutSample.y)) color += vec3(0, .5, 1);
-	gl_FragColor = vec4(color, 1);
+	outColor = vec4(color, 1);
 }
 

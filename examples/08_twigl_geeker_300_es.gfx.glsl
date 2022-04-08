@@ -39,6 +39,8 @@ layout(location = 0) uniform int waveOutPosition;
 	layout(std430, binding = 0) buffer _{ vec2 waveOutSamples[]; };
 #endif
 
+out vec4 outColor;
+
 
 /* s は仮対応である。twigl 互換ではない。*/
 float s = waveOutSamples[waveOutPosition].x + waveOutSamples[waveOutPosition].y;
@@ -56,6 +58,6 @@ void geekerEs300Main(){
 
 void main(){
 	geekerEs300Main();
-	gl_FragColor = o;
+	outColor = o;
 }
 

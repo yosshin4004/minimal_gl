@@ -172,6 +172,7 @@ static const char s_defaultGraphicsShaderCode[] =
 		"layout(location=" TO_STRING(UNIFORM_LOCATION_RESO)         ")uniform vec2 g_vec2Reso;\n"
 	"#endif\n"
 
+	"out vec4 g_vec4OutColor;\n"
 
 	/* 経過時間 */
 	"float g_time = g_waveOutPos /" TO_STRING(NUM_SOUND_SAMPLES_PER_SEC) ".;\n"
@@ -210,7 +211,7 @@ static const char s_defaultGraphicsShaderCode[] =
 	"	vec3Col += sin(vec3(3,5,0) * .2 * g_time) * .1 + .1;\n"
 
 	/* ガンマ補正しつつ結果の出力 */
-	"	gl_FragColor = vec4(\n"
+	"	g_vec4OutColor = vec4(\n"
 	"		vec3Col,\n"
 	"		1\n"
 	"	);\n"

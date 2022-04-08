@@ -22,6 +22,8 @@ layout(location = 3) uniform vec2 resolution;
 layout(location = 6) uniform float tanFovY;
 layout(location = 7) uniform mat4 cameraInWorld;
 
+out vec4 outColor;
+
 
 float GetBoxDistance(
 	vec3 position,
@@ -98,6 +100,6 @@ void main(){
 		color = Shading(intersectPosition, normal);
 	}
 
-	gl_FragColor = vec4(color, 1);
+	outColor = vec4(color, 1);
 }
 
