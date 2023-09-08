@@ -5,7 +5,7 @@
 #include "glext_util.h"
 
 
-static const char s_margedFunctionName[] =
+static const char s_mergedFunctionName[] =
 	"glCreateShaderProgramv\0"
 	"glCreateProgram\0"
 	"glDeleteProgram\0"
@@ -68,7 +68,7 @@ void *g_glExtFunctions[NUM_GLEXT_FUNCTIONS];
 
 bool OpenGlExtInitialize(
 ){
-	const char *p = &s_margedFunctionName[0];
+	const char *p = &s_mergedFunctionName[0];
 	for (int i = 0; i < NUM_GLEXT_FUNCTIONS; ++i) {
 		printf("wglGetProcAddress %s ... ", p);
 		g_glExtFunctions[i] = wglGetProcAddress(p);
