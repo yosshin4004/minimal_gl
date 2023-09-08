@@ -152,13 +152,16 @@ static const char s_defaultGraphicsShaderCode[] =
 	/* shader_minifier が SSBO を認識できない問題を回避するためのハック */
 	"#if defined(EXPORT_EXECUTABLE)\n"
 		/*
-			以下の行はシェーダコードとしては正しくないが、
-			shader_minifier に認識され、minify される。
-			#pragma work_around_begin ~ #pragma work_around_end の範囲は、
-			shader_minifier 通過後も残り、exe エクスポート処理時に
-			正しいコードに置換される。
+			以下の記述はシェーダコードとしては正しくないが、shader minifier に認識され
+			minify が適用されたのち、work_around_begin: 以降のコードに置換される。
+			%s は、shader minifier によるリネームが適用されたあとのシンボル名に
+			置き換えらえる。
+
+			buffer にはレイアウト名を付ける必要がある。ここでは、レイアウト名 = ssbo と
+			している。レイアウト名は shader minifier が生成する他のシンボルと衝突しては
+			いけないので、極端に短い名前を付けることは推奨されない。
 		*/
-		"#pragma work_around_begin:layout(std430,binding=0)buffer _{vec2 %s[];};\n"
+		"#pragma work_around_begin:layout(std430,binding=0)buffer ssbo{vec2 %s[];};\n"
 		"vec2 g_avec2Sample[];\n"
 		"#pragma work_around_end\n"
 	"#else\n"
@@ -223,7 +226,7 @@ static const char s_defaultSoundShaderCode[] =
 	/* shader_minifier が SSBO を認識できない問題を回避するためのハック */
 	"#ifdef EXPORT_EXECUTABLE\n"
 		/* フラグメントシェーダと同様なので説明は省略 */
-		"#pragma work_around_begin:layout(std430,binding=0)buffer _{vec2 %s[];};layout(local_size_x=1)in;\n"
+		"#pragma work_around_begin:layout(std430,binding=0)buffer ssbo{vec2 %s[];};layout(local_size_x=1)in;\n"
 		"vec2 g_avec2Sample[];\n"
 		"#pragma work_around_end\n"
 	"#else\n"

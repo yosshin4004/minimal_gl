@@ -27,12 +27,16 @@ layout(location = 0) uniform int waveOutPosition;
 #if defined(EXPORT_EXECUTABLE)
 	/*
 		shader minifier が SSBO を認識できない問題を回避するためのハック。
-		以下の記述はシェーダコードとしては正しくないが、shader minifier に認識
-		され minify が適用されたのち、work_around_begin: 以降のコードに置換される。
+		以下の記述はシェーダコードとしては正しくないが、shader minifier に認識され
+		minify が適用されたのち、work_around_begin: 以降のコードに置換される。
 		%s は、shader minifier によるリネームが適用されたあとのシンボル名に
 		置き換えらえる。
+
+		buffer にはレイアウト名を付ける必要がある。ここでは、レイアウト名 = ssbo と
+		している。レイアウト名は shader minifier が生成する他のシンボルと衝突しては
+		いけないので、極端に短い名前を付けることは推奨されない。
 	*/
-	#pragma work_around_begin:layout(std430,binding=0)buffer _{vec2 %s[];};
+	#pragma work_around_begin:layout(std430,binding=0)buffer ssbo{vec2 %s[];};
 	vec2 waveOutSamples[];
 	#pragma work_around_end
 #else
