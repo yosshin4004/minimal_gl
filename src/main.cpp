@@ -764,6 +764,9 @@ int WINAPI WinMain(
 	MSG	msg;
 	int	done = 0;
 
+	/* 高 DPI モニタ環境で、ウィンドウが拡大されるのを抑制 */
+	SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+
 	/* 現在のアプリケーションインスタンスのハンドルを設定 */
 	AppSetCurrentInstance(hCurrentInstance);
 
