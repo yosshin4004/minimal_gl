@@ -27,7 +27,7 @@ static LRESULT CALLBACK DialogFunc(
 				"layout(location = 0) uniform int waveOutPosition;\r\n"
 				"\r\n"
 				"// read/write sound buffer.\r\n"
-				"layout(std430, binding = 0) buffer _{ vec2 samples[]; };\r\n"
+				"layout(std430, binding = 0) buffer ssbo{ vec2 samples[]; };\r\n"
 				"\r\n"
 				;
 			SetDlgItemText(hDwnd, IDD_SOUND_SHADER_UNIFORMS_AVAILABLE_ON_EXE, string1);

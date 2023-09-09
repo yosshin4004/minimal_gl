@@ -30,7 +30,7 @@ static LRESULT CALLBACK DialogFunc(
 				"layout(location = 1) uniform int frameCount;\r\n"
 				"\r\n"
 				"// read/write sound buffer.\r\n"
-				"layout(std430, binding = 0) buffer _{ vec2 samples[]; };\r\n"
+				"layout(std430, binding = 0) buffer ssbo{ vec2 samples[]; };\r\n"
 				"\r\n"
 				"// back buffers.\r\n"
 				"layout(binding = 0) uniform sampler2D backBuffer0;\r\n"
