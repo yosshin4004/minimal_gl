@@ -95,13 +95,13 @@ static LRESULT CALLBACK DialogFunc(
 			{
 				int nIDDlgItem = 0;
 				switch (AppRenderSettingsGetPixelFormat()) {
-					case PixelFormatUnorm8RGBA: {
+					case PixelFormatUnorm8Rgba: {
 						nIDDlgItem = IDR_RENDER_SETTINGS_PIXEL_FORMAT_UNORM8_RGBA;
 					} break;
-					case PixelFormatFp16RGBA: {
+					case PixelFormatFp16Rgba: {
 						nIDDlgItem = IDR_RENDER_SETTINGS_PIXEL_FORMAT_FP16_RGBA;
 					} break;
-					case PixelFormatFp32RGBA: {
+					case PixelFormatFp32Rgba: {
 						nIDDlgItem = IDR_RENDER_SETTINGS_PIXEL_FORMAT_FP32_RGBA;
 					} break;
 					default : {
@@ -251,16 +251,16 @@ static LRESULT CALLBACK DialogFunc(
 					}
 
 					/* ピクセルフォーマットをラジオボタンから取得 */
-					PixelFormat pixelFormat = PixelFormatUnorm8RGBA;
+					PixelFormat pixelFormat = PixelFormatUnorm8Rgba;
 					{
 						if (GetDlgItemCheck(hDwnd, IDR_RENDER_SETTINGS_PIXEL_FORMAT_UNORM8_RGBA)) {
-							pixelFormat = PixelFormatUnorm8RGBA;
+							pixelFormat = PixelFormatUnorm8Rgba;
 						} else
 						if (GetDlgItemCheck(hDwnd, IDR_RENDER_SETTINGS_PIXEL_FORMAT_FP16_RGBA)) {
-							pixelFormat = PixelFormatFp16RGBA;
+							pixelFormat = PixelFormatFp16Rgba;
 						} else
 						if (GetDlgItemCheck(hDwnd, IDR_RENDER_SETTINGS_PIXEL_FORMAT_FP32_RGBA)) {
-							pixelFormat = PixelFormatFp32RGBA;
+							pixelFormat = PixelFormatFp32Rgba;
 						} else {
 							AppErrorMessageBox(APP_NAME, "Invalid frame buffer.");
 						}

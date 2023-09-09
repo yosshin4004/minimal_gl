@@ -41,6 +41,18 @@ int CeilAlign(
 	return x + (align - 1) & ~(align - 1);
 }
 
+int32_t Pow2CeilAlign(
+	int32_t x
+){
+	x = x - 1;
+	x = x | (x >>  1);
+	x = x | (x >>  2);
+	x = x | (x >>  4);
+	x = x | (x >>  8);
+	x = x | (x >> 16);
+	return x + 1;
+}
+
 int CalcNumMipmapLevelsFromResolution(
 	int xReso,
 	int yReso

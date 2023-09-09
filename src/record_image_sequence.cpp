@@ -171,7 +171,7 @@ static unsigned __stdcall WorkerThreadProc(
 	bool error = false;
 	for (;;) {
 		Job job = Dequeue();
-		if (job.image == NULL) break;
+		if (job.image == NULL) break;	/* end mark 検出 */
 		if (error == false) {
 			printf("generate %s.\n", job.fileName);
 			bool ret = SerializeAsUnorm8RgbaPng(
@@ -264,7 +264,7 @@ bool RecordImageSequence(
 	);
 
 	/* 先だって全レンダーターゲットをクリア */
-	void AppClearAllRenderTargets();
+	AppClearAllRenderTargets();
 
 	/* 連番画像の保存 */
 	{
@@ -276,7 +276,8 @@ bool RecordImageSequence(
 			int numWorkers = (systemInfo.dwNumberOfProcessors + 1) / 2;
 			if (numWorkers == 0) numWorkers = 1;
 
-			bool ret = QueueInitialize(numWorkers, numWorkers);
+			int numJobs = Pow2CeilAlign(numWorkers * 16);
+			bool ret = QueueInitialize(numWorkers, numJobs);
 			if (ret == false) {
 				AppErrorMessageBox(APP_NAME, "QueueInitialize failed.");
 			}

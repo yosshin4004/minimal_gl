@@ -15,7 +15,7 @@
 #define DEFAULT_CUBEMAP_RESO					(512)
 
 /* デフォルトピクセルフォーマット */
-#define DEFAULT_PIXEL_FORMAT					(PixelFormatUnorm8RGBA)
+#define DEFAULT_PIXEL_FORMAT					(PixelFormatUnorm8Rgba)
 
 /* デフォルトテクスチャフィルタ */
 #define DEFAULT_TEXTURE_FILTER					(TextureFilterLinear)

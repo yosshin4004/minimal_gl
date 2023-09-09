@@ -55,15 +55,15 @@ static void GraphicsCreateFrameBuffer(
 			GLint internalformat = 0;
 			GLenum type = 0;
 			switch (settings->pixelFormat) {
-				case PixelFormatUnorm8RGBA: {
+				case PixelFormatUnorm8Rgba: {
 					internalformat = GL_RGBA;
 					type = GL_UNSIGNED_BYTE;
 				} break;
-				case PixelFormatFp16RGBA: {
+				case PixelFormatFp16Rgba: {
 					internalformat = GL_RGBA16F;
 					type = GL_HALF_FLOAT;
 				} break;
-				case PixelFormatFp32RGBA: {
+				case PixelFormatFp32Rgba: {
 					internalformat = GL_RGBA32F;
 					type = GL_FLOAT;
 				} break;

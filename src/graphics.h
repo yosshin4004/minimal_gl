@@ -14,9 +14,9 @@ typedef enum {
 	TextureWrapMirroredRepeat,
 } TextureWrap;
 typedef enum {
-	PixelFormatUnorm8RGBA,
-	PixelFormatFp16RGBA,
-	PixelFormatFp32RGBA,
+	PixelFormatUnorm8Rgba,
+	PixelFormatFp16Rgba,
+	PixelFormatFp32Rgba,
 } PixelFormat;
 typedef enum {
 	SwapIntervalAllowTearing,

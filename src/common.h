@@ -41,6 +41,11 @@ int CeilAlign(
 	int align
 );
 
+/* 2 のべき乗 ceil アライメント */
+int32_t Pow2CeilAlign(
+	int32_t x
+);
+
 /* 解像度からミップマップレベル総数を求める */
 int CalcNumMipmapLevelsFromResolution(
 	int xReso,
