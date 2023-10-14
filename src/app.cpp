@@ -362,17 +362,61 @@ void AppLastErrorMessageBox(const char *caption){
 ▼	簡易ベクトル演算関連
 -----------------------------------------------------------------------------*/
 static void
+Vec4Copy(
+	float vec4Dst[4],
+	const float vec4Src[4]
+){
+	for (int i = 0; i < 4; ++i) {
+		vec4Dst[i] = vec4Src[i];
+	}
+}
+
+static void
+Vec4MulScalar(
+	float vec4A[4],
+	const float vec4B[4],
+	float scalar
+){
+	for (int i = 0; i < 4; ++i) {
+		vec4A[i] = vec4B[i] * scalar;
+	}
+}
+
+static void
+Vec4MacScalar(
+	float vec4A[4],
+	const float vec4B[4],
+	const float vec4C[4],
+	float scalar
+){
+	for (int i = 0; i < 4; ++i) {
+		vec4A[i] = vec4B[i] + vec4C[i] * scalar;
+	}
+}
+
+static void
+Vec4Transform(
+	float vec4A[4],
+	const float mat4x4B[4][4],
+	const float vec4C[4]
+){
+	float vec4Tmp[4];
+	Vec4MulScalar(vec4Tmp, mat4x4B[0], vec4C[0]);
+	Vec4MacScalar(vec4Tmp, vec4Tmp, mat4x4B[1], vec4C[1]);
+	Vec4MacScalar(vec4Tmp, vec4Tmp, mat4x4B[2], vec4C[2]);
+	Vec4MacScalar(vec4Tmp, vec4Tmp, mat4x4B[3], vec4C[3]);
+	Vec4Copy(vec4A, vec4Tmp);
+}
+
+static void
 Mat4x4Copy(
 	float mat4x4Dst[4][4],
 	const float mat4x4Src[4][4]
 ){
 	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			mat4x4Dst[i][j] = mat4x4Src[i][j];
-		}
+		Vec4Copy(mat4x4Dst[i], mat4x4Src[i]);
 	}
 }
-
 
 static void
 Mat4x4SetUnit(
@@ -393,18 +437,9 @@ Mat4x4Mul(
 ){
 	float mat4x4Tmp[4][4];
 	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			mat4x4Tmp[i][j] = 0.0f;
-			for (int k = 0; k < 4; ++k) {
-				mat4x4Tmp[i][j] += mat4x4B[i][k] * mat4x4C[k][j];
-			}
-		}
+		Vec4Transform(mat4x4Tmp[i], mat4x4B, mat4x4C[i]);
 	}
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			mat4x4A[i][j] = mat4x4Tmp[i][j];
-		}
-	}
+	Mat4x4Copy(mat4x4A, mat4x4Tmp);
 }
 
 static void
@@ -535,12 +570,12 @@ CameraUpdate(){
 		float mat4x4RotX[4][4];
 		float mat4x4RotY[4][4];
 		float mat4x4RotZ[4][4];
-		Mat4x4SetAffineRotZ(mat4x4RotX, s_camera.vec3Ang[2]);
-		Mat4x4SetAffineRotX(mat4x4RotY, s_camera.vec3Ang[0]);
-		Mat4x4SetAffineRotY(mat4x4RotZ, s_camera.vec3Ang[1]);
-		Mat4x4Mul(s_camera.mat4x4CameraInWorld, mat4x4RotZ, s_camera.mat4x4CameraInWorld);
-		Mat4x4Mul(s_camera.mat4x4CameraInWorld, mat4x4RotX, s_camera.mat4x4CameraInWorld);
-		Mat4x4Mul(s_camera.mat4x4CameraInWorld, mat4x4RotY, s_camera.mat4x4CameraInWorld);
+		Mat4x4SetAffineRotX(mat4x4RotX, s_camera.vec3Ang[0]);
+		Mat4x4SetAffineRotY(mat4x4RotY, s_camera.vec3Ang[1]);
+		Mat4x4SetAffineRotZ(mat4x4RotZ, s_camera.vec3Ang[2]);
+		Mat4x4Mul(s_camera.mat4x4CameraInWorld, s_camera.mat4x4CameraInWorld, mat4x4RotY);
+		Mat4x4Mul(s_camera.mat4x4CameraInWorld, s_camera.mat4x4CameraInWorld, mat4x4RotX);
+		Mat4x4Mul(s_camera.mat4x4CameraInWorld, s_camera.mat4x4CameraInWorld, mat4x4RotZ);
 		s_camera.mat4x4CameraInWorld[3][0] = s_camera.vec3Pos[0];
 		s_camera.mat4x4CameraInWorld[3][1] = s_camera.vec3Pos[1];
 		s_camera.mat4x4CameraInWorld[3][2] = s_camera.vec3Pos[2];
