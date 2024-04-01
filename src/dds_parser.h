@@ -15,8 +15,8 @@ struct DdsHeaderDx10 {
 struct DdsPixelFormat {
 	uint32_t		dwSize;
 	uint32_t		dwFlags;
-	uint32_t		dwFourCC;
-	uint32_t		dwRGBBitCount;
+	uint32_t		dwFourCc;
+	uint32_t		dwRgbBitCount;
 	uint32_t		dwRBitMask;
 	uint32_t		dwGBitMask;
 	uint32_t		dwBBitMask;
@@ -53,39 +53,39 @@ typedef enum {
 } Ddsd;
 
 typedef enum {
-	DdsdFourCC_Dx10				= 'D' | ((int)'X' << 8) | ((int)'1' << 16) | ((int)'0' << 24),
-	DdsdFourCC_Dxt1				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'1' << 24),
-	DdsdFourCC_Dxt2				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'2' << 24),
-	DdsdFourCC_Dxt3				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'3' << 24),
-	DdsdFourCC_Dxt4				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'4' << 24),
-	DdsdFourCC_Dxt5				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'5' << 24),
+	DdsdFourCc_Dx10				= 'D' | ((int)'X' << 8) | ((int)'1' << 16) | ((int)'0' << 24),
+	DdsdFourCc_Dxt1				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'1' << 24),
+	DdsdFourCc_Dxt2				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'2' << 24),
+	DdsdFourCc_Dxt3				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'3' << 24),
+	DdsdFourCc_Dxt4				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'4' << 24),
+	DdsdFourCc_Dxt5				= 'D' | ((int)'X' << 8) | ((int)'T' << 16) | ((int)'5' << 24),
 
-	DdsdFourCC_Bc4Unorm			= 'B' | ((int)'C' << 8) | ((int)'4' << 16) | ((int)'U' << 24),
-	DdsdFourCC_Bc4Snorm			= 'B' | ((int)'C' << 8) | ((int)'4' << 16) | ((int)'S' << 24),
-	DdsdFourCC_Bc5Unorm			= 'B' | ((int)'C' << 8) | ((int)'5' << 16) | ((int)'U' << 24),
-	DdsdFourCC_Bc5Snorm			= 'B' | ((int)'C' << 8) | ((int)'5' << 16) | ((int)'S' << 24),
+	DdsdFourCc_Bc4Unorm			= 'B' | ((int)'C' << 8) | ((int)'4' << 16) | ((int)'U' << 24),
+	DdsdFourCc_Bc4Snorm			= 'B' | ((int)'C' << 8) | ((int)'4' << 16) | ((int)'S' << 24),
+	DdsdFourCc_Bc5Unorm			= 'B' | ((int)'C' << 8) | ((int)'5' << 16) | ((int)'U' << 24),
+	DdsdFourCc_Bc5Snorm			= 'B' | ((int)'C' << 8) | ((int)'5' << 16) | ((int)'S' << 24),
 
-	DdsdFourCC_Rgbg				= 'R' | ((int)'G' << 8) | ((int)'B' << 16) | ((int)'G' << 24),
-	DdsdFourCC_Grgb				= 'G' | ((int)'R' << 8) | ((int)'G' << 16) | ((int)'B' << 24),
-	DdsdFourCC_Yuy2				= 'Y' | ((int)'U' << 8) | ((int)'Y' << 16) | ((int)'2' << 24),
+	DdsdFourCc_Rgbg				= 'R' | ((int)'G' << 8) | ((int)'B' << 16) | ((int)'G' << 24),
+	DdsdFourCc_Grgb				= 'G' | ((int)'R' << 8) | ((int)'G' << 16) | ((int)'B' << 24),
+	DdsdFourCc_Yuy2				= 'Y' | ((int)'U' << 8) | ((int)'Y' << 16) | ((int)'2' << 24),
 
-	DdsdFourCC_A16B16G16R16		= 0x00000024,
-	DdsdFourCC_Q16W16V16U16		= 0x0000006e,
-	DdsdFourCC_R16F				= 0x0000006f,
-	DdsdFourCC_G16R16F			= 0x00000070,
-	DdsdFourCC_A16B16G16R16F	= 0x00000071,
-	DdsdFourCC_R32F				= 0x00000072,
-	DdsdFourCC_G32R32F			= 0x00000073,
-	DdsdFourCC_A32B32G32R32F	= 0x00000074,
+	DdsdFourCc_A16B16G16R16		= 0x00000024,
+	DdsdFourCc_Q16W16V16U16		= 0x0000006e,
+	DdsdFourCc_R16F				= 0x0000006f,
+	DdsdFourCc_G16R16F			= 0x00000070,
+	DdsdFourCc_A16B16G16R16F	= 0x00000071,
+	DdsdFourCc_R32F				= 0x00000072,
+	DdsdFourCc_G32R32F			= 0x00000073,
+	DdsdFourCc_A32B32G32R32F	= 0x00000074,
 
-	DdsdFourCC_3dcAti1			= 'A' | ((int)'T' << 8) | ((int)'I' << 16) | ((int)'1' << 24),
-	DdsdFourCC_3dcAti2			= 'A' | ((int)'T' << 8) | ((int)'I' << 16) | ((int)'2' << 24),
+	DdsdFourCc_3dcAti1			= 'A' | ((int)'T' << 8) | ((int)'I' << 16) | ((int)'1' << 24),
+	DdsdFourCc_3dcAti2			= 'A' | ((int)'T' << 8) | ((int)'I' << 16) | ((int)'2' << 24),
 } DdsdFourCC;
 
 typedef enum {
 	Ddpf_AlphaPixels	= 0x00000001,
 	Ddpf_Alpha			= 0x00000002,
-	Ddpf_FourCC			= 0x00000004,
+	Ddpf_FourCc			= 0x00000004,
 	Ddpf_Rgb			= 0x00000040,
 	Ddpf_Yuv			= 0x00000200,
 	Ddpf_Luminance		= 0x00020000,

@@ -511,26 +511,37 @@ bool ExportExecutableSub(
 	/* minify.bat 生成 */
 	{
 		char shaderMinifierOptions[0x100] = {0};
-		snprintf(
-			shaderMinifierOptions,
-			sizeof(shaderMinifierOptions),
-			"%s%s%s",
-			(executableExportSettings->shaderMinifierOptions.noRenaming? "--no-renaming ": ""),
-			(executableExportSettings->shaderMinifierOptions.noSequence? "--no-sequence ": ""),
-			(executableExportSettings->shaderMinifierOptions.smoothstep? "--smoothstep ": "")
-		);
+		{
+			/*
+				コマンドライン引数 --no-renaming-list のパラメータのエラーチェックは、
+				ダイアログボックスから読み取る時点で行われている。
+				ここではパラメータは妥当なものとして扱う。
+			*/
+			bool flag = executableExportSettings->shaderMinifierOptions.enableNoRenamingList;
+			snprintf(
+				shaderMinifierOptions,
+				sizeof(shaderMinifierOptions),
+				"%s%s%s%s%s%s",
+				(executableExportSettings->shaderMinifierOptions.noRenaming? "--no-renaming ": ""),
+				(flag? "--no-renaming-list ": ""),
+				(flag? executableExportSettings->shaderMinifierOptions.noRenamingList: ""),
+				(flag? " ": ""),
+				(executableExportSettings->shaderMinifierOptions.noSequence? "--no-sequence ": ""),
+				(executableExportSettings->shaderMinifierOptions.smoothstep? "--smoothstep ": "")
+			);
+		}
 
 		printf("generate %s.\n", minifyBatFullPath);
 		FILE *file = fopen(minifyBatFullPath, "wt");
 		if (file == NULL) {
 			AppErrorMessageBox(APP_NAME, "Failed to generate %s.", minifyBatFullPath);
 			return false;
-		}
-		fprintf(
-			file,
-
+		} else {
 			/* VisualStudio コマンドプロンプトを起動（失敗したら exit /b 1）*/
-			OPEN_DEVELOPER_COMMAND_PROMPT
+			fprintf(
+				file,
+				OPEN_DEVELOPER_COMMAND_PROMPT
+			);
 
 			/*
 				プリプロセッサの適用
@@ -542,44 +553,57 @@ bool ExportExecutableSub(
 					/EP	stdout に前処理します。#line なし
 					/D<name>{=|#}<text> マクロを定義します
 			*/
-			"cl /P /EP /DEXPORT_EXECUTABLE=1 /DSCREEN_XRESO=%d /DSCREEN_YRESO=%d graphics_fragment_shader.glsl || exit /b 2\n"		/* arg 1,2 */
-			"cl /P /EP /DEXPORT_EXECUTABLE=1 /DSCREEN_XRESO=%d /DSCREEN_YRESO=%d sound_compute_shader.glsl || exit /b 3\n"			/* arg 3,4 */
+			fprintf(
+				file,
+				"cl /P /EP /DEXPORT_EXECUTABLE=1 /DSCREEN_XRESO=%d /DSCREEN_YRESO=%d graphics_fragment_shader.glsl || exit /b 2\n"		/* arg 1,2 */
+				"cl /P /EP /DEXPORT_EXECUTABLE=1 /DSCREEN_XRESO=%d /DSCREEN_YRESO=%d sound_compute_shader.glsl || exit /b 3\n"			/* arg 3,4 */
+				,
+				executableExportSettings->xReso, executableExportSettings->yReso,		/* arg 1,2 */
+				executableExportSettings->xReso, executableExportSettings->yReso		/* arg 3,4 */
+			);
+
+			/* version ディレクティブの復元 */
+			fprintf(
+				file,
+				"echo %s > graphics_fragment_shader.version\n"							/* arg 1 */
+				"echo %s > sound_compute_shader.version\n"								/* arg 2 */
+				"copy /b graphics_fragment_shader.version + graphics_fragment_shader.i graphics_fragment_shader.tmp\n"
+				"copy /b sound_compute_shader.version + sound_compute_shader.i sound_compute_shader.tmp\n"
+				"del graphics_fragment_shader.version\n"
+				"del sound_compute_shader.version\n"
+				"del graphics_fragment_shader.i\n"
+				"del sound_compute_shader.i\n"
+				"rename graphics_fragment_shader.tmp graphics_fragment_shader.i\n"
+				"rename sound_compute_shader.tmp sound_compute_shader.i\n"
+				,
+				graphicsFragmentShaderVersionDirectiveBuffer,							/* arg 1 */
+				soundComputeShaderVersionDirectiveBuffer								/* arg 2 */
+			);
+
+			/* shader_minifier.exe の存在チェック */
+			fprintf(
+				file,
+				"%swhere shader_minifier.exe || exit /b 4\n"							/* arg 1 = enableWhereShaderMinifier? "" : "rem " */
+				,
+				enableWhereShaderMinifier? "" : "rem "									/* arg 1 */
+			);
 
 			/*
-				version ディレクティブの復元
-			*/
-			"echo %s > graphics_fragment_shader.version\n"																/* arg 5 */
-			"echo %s > sound_compute_shader.version\n"																	/* arg 6 */
-			"copy /b graphics_fragment_shader.version + graphics_fragment_shader.i graphics_fragment_shader.tmp\n"
-			"copy /b sound_compute_shader.version + sound_compute_shader.i sound_compute_shader.tmp\n"
-			"del graphics_fragment_shader.version\n"
-			"del sound_compute_shader.version\n"
-			"del graphics_fragment_shader.i\n"
-			"del sound_compute_shader.i\n"
-			"rename graphics_fragment_shader.tmp graphics_fragment_shader.i\n"
-			"rename sound_compute_shader.tmp sound_compute_shader.i\n"
-
-			/*
-				shader_minifier.exe の存在チェック
-			*/
-			"%swhere shader_minifier.exe || exit /b 4\n"																/* arg 7 = enableWhereShaderMinifier? "" : "rem " */
-
-			/*
+				shader_minifier を実行
 				graphics_fragment_shader.i -> graphics_fragment_shader.inl
 				sound_compute_shader.i -> sound_compute_shader.inl
 			*/
-			"\"%s\" %s graphics_fragment_shader.i -o graphics_fragment_shader.inl --format c-array || exit /b 5\n"		/* arg 8,9 = shader_minifier.exe のパスと引数 */
-			"\"%s\" %s sound_compute_shader.i -o sound_compute_shader.inl --format c-array || exit /b 6\n"				/* arg 10,11 = shader_minifier.exe のパスと引数 */
-			,
-			executableExportSettings->xReso, executableExportSettings->yReso,		/* arg 1,2 */
-			executableExportSettings->xReso, executableExportSettings->yReso,		/* arg 3,4 */
-			graphicsFragmentShaderVersionDirectiveBuffer,							/* arg 5 */
-			soundComputeShaderVersionDirectiveBuffer,								/* arg 6 */
-			enableWhereShaderMinifier? "" : "rem ",									/* arg 7 */
-			shaderMinifierPath, shaderMinifierOptions,								/* arg 8,9 */
-			shaderMinifierPath, shaderMinifierOptions								/* arg 10,11 */
-		);
-		fclose(file);
+			fprintf(
+				file,
+				"\"%s\" %s graphics_fragment_shader.i -o graphics_fragment_shader.inl --format c-array || exit /b 5\n"		/* arg 1,2 = shader_minifier.exe のパスと引数 */
+				"\"%s\" %s sound_compute_shader.i -o sound_compute_shader.inl --format c-array || exit /b 6\n"				/* arg 3,4 = shader_minifier.exe のパスと引数 */
+				,
+				shaderMinifierPath, shaderMinifierOptions,								/* arg 1,2 */
+				shaderMinifierPath, shaderMinifierOptions								/* arg 3,4 */
+			);
+
+			fclose(file);
+		}
 	}
 
 	/* minify.bat 実行 */
@@ -613,7 +637,7 @@ bool ExportExecutableSub(
 				case 6: {
 					AppErrorMessageBox(APP_NAME, "Failed to minify sound compute shader.");
 				} break;
-				default : {
+				default: {
 					assert(false);
 				} break;
 			}
@@ -641,10 +665,12 @@ bool ExportExecutableSub(
 	{
 		char crinklerOptions[0x100] = {0};
 		static const char *(s_compModes[]) = {
+			/* CrinklerCompMode と一致させる必要がある */
 			"INSTANT",
 			"FAST",
 			"SLOW",
-			"VERYSLOW"
+			"VERYSLOW",
+			"DISABLE",
 		};
 		assert(executableExportSettings->crinklerOptions.compMode < SIZE_OF_ARRAY(s_compModes));
 		snprintf(
@@ -677,168 +703,204 @@ bool ExportExecutableSub(
 		if (file == NULL) {
 			AppErrorMessageBox(APP_NAME, "Failed to generate %s.", buildBatFullPath);
 			return false;
-		}
-		fprintf(
-			file,
-
+		} else {
 			/* VisualStudio コマンドプロンプトを起動（失敗したら exit /b 1）*/
-			OPEN_DEVELOPER_COMMAND_PROMPT
+			fprintf(
+				file,
+				OPEN_DEVELOPER_COMMAND_PROMPT
+			);
 
+			/* コンパイル */
+			fprintf(
+				file,
 #if USE_MAIN_CPP
-			/* main.cpp -> main.obj */
-			"cl.exe "
-				"/c "			/* コンパイルのみ。リンクは行わない */
-				"/w "			/* 警告をすべて無効にします */
-				"/O1 "			/* 最大限の最適化 (スペースを優先) */
-				"/Os "			/* コード スペースを優先する */
-				"/Oy "			/* フレーム ポインターの省略を有効にする */
-				"/GS- "			/* セキュリティ チェックを無効にする */
-				"/arch:IA32 "
-				"/DARG_SCREEN_WIDTH=%d "							/* arg 1 */
-				"/DARG_SCREEN_HEIGHT=%d "							/* arg 2 */
-				"/DARG_NUM_SOUND_BUFFER_SAMPLES=%d "				/* arg 3 */
-				"/DARG_NUM_SOUND_BUFFER_AVAILABLE_SAMPLES=%d "		/* arg 4 */
-				"/DARG_NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH=%d "	/* arg 5 */
-				"/DARG_ENABLE_SWAP_INTERVAL_CONTROL=%d "			/* arg 6 */
-				"/DARG_SWAP_INTERVAL=%d "							/* arg 7 */
-				"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 8 */
-				"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 9 */
-				"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 10 */
-				"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 11 */
-				"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 12 */
-				"/DARG_PIXEL_FORMAT=%d "							/* arg 13 */
-				"/DARG_TEXTURE_FILTER=%d "							/* arg 14 */
-				"/DARG_TEXTURE_WRAP=%d "							/* arg 15 */
-				"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 16 */
-				"/DARG_USE_TINYHEADER=%d "							/* arg 17 */
-				"/DARG_USE_TINYIMPORT=%d "							/* arg 18 */
-				"/I\"%s\" "											/* arg 19 */
-				"main.cpp || exit /b 2\n"
+				/* main.cpp -> main.obj */
+				"cl.exe "
+					"/c "			/* コンパイルのみ。リンクは行わない */
+					"/w "			/* 警告をすべて無効にします */
+					"/O1 "			/* 最大限の最適化 (スペースを優先) */
+					"/Os "			/* コード スペースを優先する */
+					"/Oy "			/* フレーム ポインターの省略を有効にする */
+					"/GS- "			/* セキュリティ チェックを無効にする */
+					"/arch:IA32 "
+					"/DARG_SCREEN_WIDTH=%d "							/* arg 1 */
+					"/DARG_SCREEN_HEIGHT=%d "							/* arg 2 */
+					"/DARG_NUM_SOUND_BUFFER_SAMPLES=%d "				/* arg 3 */
+					"/DARG_NUM_SOUND_BUFFER_AVAILABLE_SAMPLES=%d "		/* arg 4 */
+					"/DARG_NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH=%d "	/* arg 5 */
+					"/DARG_ENABLE_SWAP_INTERVAL_CONTROL=%d "			/* arg 6 */
+					"/DARG_SWAP_INTERVAL=%d "							/* arg 7 */
+					"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 8 */
+					"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 9 */
+					"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 10 */
+					"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 11 */
+					"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 12 */
+					"/DARG_PIXEL_FORMAT=%d "							/* arg 13 */
+					"/DARG_TEXTURE_FILTER=%d "							/* arg 14 */
+					"/DARG_TEXTURE_WRAP=%d "							/* arg 15 */
+					"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 16 */
+					"/DARG_USE_TINYHEADER=%d "							/* arg 17 */
+					"/DARG_USE_TINYIMPORT=%d "							/* arg 18 */
+					"/I\"%s\" "											/* arg 19 */
+					"main.cpp || exit /b 2\n"
 #else
-			/* main.asm -> main.obj */
-			"ml.exe "
-				"/c "			/* Assemble without linking */
-				"/DARG_SCREEN_WIDTH=%d "							/* arg 1 */
-				"/DARG_SCREEN_HEIGHT=%d "							/* arg 2 */
-				"/DARG_NUM_SOUND_BUFFER_SAMPLES=%d "				/* arg 3 */
-				"/DARG_NUM_SOUND_BUFFER_AVAILABLE_SAMPLES=%d "		/* arg 4 */
-				"/DARG_NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH=%d "	/* arg 5 */
-				"/DARG_ENABLE_SWAP_INTERVAL_CONTROL=%d "			/* arg 6 */
-				"/DARG_SWAP_INTERVAL=%d "							/* arg 7 */
-				"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 8 */
-				"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 9 */
-				"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 10 */
-				"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 11 */
-				"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 12 */
-				"/DARG_PIXEL_FORMAT=%d "							/* arg 13 */
-				"/DARG_TEXTURE_FILTER=%d "							/* arg 14 */
-				"/DARG_TEXTURE_WRAP=%d "							/* arg 15 */
-				"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 16 */
-				"/DARG_USE_TINYHEADER=%d "							/* arg 17 */
-				"/DARG_USE_TINYIMPORT=%d "							/* arg 18 */
-				"main.asm || exit /b 2\n"
+				/* main.asm -> main.obj */
+				"ml.exe "
+					"/c "			/* Assemble without linking */
+					"/DARG_SCREEN_WIDTH=%d "							/* arg 1 */
+					"/DARG_SCREEN_HEIGHT=%d "							/* arg 2 */
+					"/DARG_NUM_SOUND_BUFFER_SAMPLES=%d "				/* arg 3 */
+					"/DARG_NUM_SOUND_BUFFER_AVAILABLE_SAMPLES=%d "		/* arg 4 */
+					"/DARG_NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH=%d "	/* arg 5 */
+					"/DARG_ENABLE_SWAP_INTERVAL_CONTROL=%d "			/* arg 6 */
+					"/DARG_SWAP_INTERVAL=%d "							/* arg 7 */
+					"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 8 */
+					"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 9 */
+					"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 10 */
+					"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 11 */
+					"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 12 */
+					"/DARG_PIXEL_FORMAT=%d "							/* arg 13 */
+					"/DARG_TEXTURE_FILTER=%d "							/* arg 14 */
+					"/DARG_TEXTURE_WRAP=%d "							/* arg 15 */
+					"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 16 */
+					"/DARG_USE_TINYHEADER=%d "							/* arg 17 */
+					"/DARG_USE_TINYIMPORT=%d "							/* arg 18 */
+					"main.asm || exit /b 2\n"
 
-			/* resource.cpp -> resource.obj */
-			"cl.exe "
-				"/c "			/* コンパイルのみ。リンクは行わない */
-				"/w "			/* 警告をすべて無効にします */
-				"/DEXPORT_EXECUTABLE=1 "
-				"/DARG_ENABLE_SWAP_INTERVAL_CONTROL=%d "			/* arg 19 */
-				"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 20 */
-				"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 21 */
-				"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 22 */
-				"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 23 */
-				"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 24 */
-				"/DARG_PIXEL_FORMAT=%d "							/* arg 25 */
-				"/DARG_TEXTURE_FILTER=%d "							/* arg 26 */
-				"/DARG_TEXTURE_WRAP=%d "							/* arg 27 */
-				"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 28 */
-				"/DARG_USE_TINYHEADER=%d "							/* arg 29 */
-				"/DARG_USE_TINYIMPORT=%d "							/* arg 30 */
-				"resource.cpp || exit /b 3\n"
+				/* resource.cpp -> resource.obj */
+				"cl.exe "
+					"/c "			/* コンパイルのみ。リンクは行わない */
+					"/w "			/* 警告をすべて無効にします */
+					"/DEXPORT_EXECUTABLE=1 "
+					"/DARG_ENABLE_SWAP_INTERVAL_CONTROL=%d "			/* arg 19 */
+					"/DARG_ENABLE_BACK_BUFFER=%d "						/* arg 20 */
+					"/DARG_ENABLE_FRAME_COUNT_UNIFORM=%d "				/* arg 21 */
+					"/DARG_ENABLE_MIPMAP_GENERATION=%d "				/* arg 22 */
+					"/DARG_NUM_MIPMAP_LEVELS=%d "						/* arg 23 */
+					"/DARG_NUM_RENDER_TARGETS=%d "						/* arg 24 */
+					"/DARG_PIXEL_FORMAT=%d "							/* arg 25 */
+					"/DARG_TEXTURE_FILTER=%d "							/* arg 26 */
+					"/DARG_TEXTURE_WRAP=%d "							/* arg 27 */
+					"/DARG_ENABLE_SOUND_DISPATCH_WAIT=%d "				/* arg 28 */
+					"/DARG_USE_TINYHEADER=%d "							/* arg 29 */
+					"/DARG_USE_TINYIMPORT=%d "							/* arg 30 */
+					"resource.cpp || exit /b 3\n"
 #endif
+				,
+				executableExportSettings->xReso,								/* arg 1 */
+				executableExportSettings->yReso,								/* arg 2 */
+				executableExportSettings->numSoundBufferSamples,				/* arg 3 */
+				executableExportSettings->numSoundBufferAvailableSamples,		/* arg 4 */
+				executableExportSettings->numSoundBufferSamplesPerDispatch,		/* arg 5 */
+				renderSettings->enableSwapIntervalControl? 1:0,					/* arg 6 */
+				renderSettings->swapInterval,									/* arg 7 */
+				renderSettings->enableBackBuffer? 1:0,							/* arg 8 */
+				enableFrameCountUniform? 1:0,									/* arg 9 */
+				renderSettings->enableMipmapGeneration? 1:0,					/* arg 10 */
+				numMipmapLevels,												/* arg 11 */
+				numRenderTargets,												/* arg 12 */
+				renderSettings->pixelFormat,									/* arg 13 */
+				renderSettings->textureFilter,									/* arg 14 */
+				renderSettings->textureWrap,									/* arg 15 */
+				executableExportSettings->enableSoundDispatchWait? 1:0,			/* arg 16 */
+				executableExportSettings->crinklerOptions.useTinyHeader? 1:0,	/* arg 17 */
+				executableExportSettings->crinklerOptions.useTinyImport? 1:0,	/* arg 18 */
+#if USE_MAIN_CPP
+				workDirName														/* arg 19 */
+#else
+				renderSettings->enableSwapIntervalControl? 1:0,					/* arg 19 */
+				renderSettings->enableBackBuffer? 1:0,							/* arg 20 */
+				enableFrameCountUniform? 1:0,									/* arg 21 */
+				renderSettings->enableMipmapGeneration? 1:0,					/* arg 22 */
+				numMipmapLevels,												/* arg 23 */
+				numRenderTargets,												/* arg 24 */
+				renderSettings->pixelFormat,									/* arg 25 */
+				renderSettings->textureFilter,									/* arg 26 */
+				renderSettings->textureWrap,									/* arg 27 */
+				executableExportSettings->enableSoundDispatchWait? 1:0,			/* arg 28 */
+				executableExportSettings->crinklerOptions.useTinyHeader? 1:0,	/* arg 29 */
+				executableExportSettings->crinklerOptions.useTinyImport? 1:0	/* arg 30 */
+#endif
+			);
 
-			/* crinkler.exe の存在チェック */
-			"%swhere crinkler.exe || exit /b 4\n"					/* crinkler arg 1 = enableWhereCrinklerPath? "": "rem " */
+			if (executableExportSettings->crinklerOptions.compMode != CrinklerCompModeDisable) {
+				/* crinkler.exe の存在チェック */
+				fprintf(
+					file,
+					"%swhere crinkler.exe || exit /b 4\n"	/* arg 1 = enableWhereCrinklerPath? "": "rem " */
+					,
+					enableWhereCrinklerPath? "": "rem "		/* arg 1 */
+				);
 
-			/* main.obj -> main.exe */
-			"\"%s\" "												/* crinkler arg 2 = crinkler.exe のパス */
-				"OPENGL32.LIB WINMM.LIB KERNEL32.LIB USER32.LIB GDI32.LIB "
-				"/SUBSYSTEM:WINDOWS "
-				"/ENTRY:entrypoint "
-				"/UNSAFEIMPORT "
-				"/CRINKLER "
-				"/HASHTRIES:300 "
-				"/ORDERTRIES:300 "
-				"/UNALIGNCODE "
-				"/PRINT:LABELS "
-				"/PRINT:IMPORTS "
-				"/PRINT:MODELS "
-				"/REPORT:\"%s\" "		/* crinkler arg 3 = REPORT ファイル名 */
-				"/PROGRESSGUI "
-				"/NOINITIALIZERS "
-				"/HASHSIZE:300 "
-				"/OVERRIDEALIGNMENTS "
-				"/REUSE:\"%s\" "		/* crinkler arg 4 = REUSE ファイル名 */
-				"/REUSEMODE:IMPROVE "
-				"%s"					/* crinkler arg 5 = 追加引数 */
-				"/OUT:\"%s\" "			/* crinkler arg 6 = 出力 exe ファイル名 */
+				/* crinkler によるリンク */
+				fprintf(
+					file,
+					/* main.obj -> main.exe */
+					"\"%s\" "								/* arg 1 = crinkler.exe のパス */
+						"OPENGL32.LIB WINMM.LIB KERNEL32.LIB USER32.LIB GDI32.LIB "
+						"/SUBSYSTEM:WINDOWS "
+						"/ENTRY:entrypoint "
+						"/UNSAFEIMPORT "
+						"/CRINKLER "
+						"/HASHTRIES:300 "
+						"/ORDERTRIES:300 "
+						"/UNALIGNCODE "
+						"/PRINT:LABELS "
+						"/PRINT:IMPORTS "
+						"/PRINT:MODELS "
+						"/REPORT:\"%s\" "					/* arg 2 = REPORT ファイル名 */
+						"/PROGRESSGUI "
+						"/NOINITIALIZERS "
+						"/HASHSIZE:300 "
+						"/OVERRIDEALIGNMENTS "
+						"/REUSE:\"%s\" "					/* arg 3 = REUSE ファイル名 */
+						"/REUSEMODE:IMPROVE "
+						"%s"								/* arg 4 = 追加引数 */
+						"/OUT:\"%s\" "						/* arg 5 = 出力 exe ファイル名 */
 #if USE_MAIN_CPP == 0
-				"resource.obj "
+						"resource.obj "
 #endif
-				"main.obj "
-			"|| exit /b 5\n"
+						"main.obj "
+					"|| exit /b 5\n"
+					,
+					crinklerPath,							/* arg 1 */
+					crinklerReportFullPath,					/* arg 2 */
+					crinklerReuseFullPath,					/* arg 3 */
+					crinklerOptions,						/* arg 4 */
+					executableExportSettings->fileName		/* arg 5 */
+				);
+			} else {
+				/* デフォルトの link.exe によるリンク */
+				fprintf(
+					file,
+					/* main.obj -> main.exe */
+					"link.exe "
+						"OPENGL32.LIB WINMM.LIB KERNEL32.LIB USER32.LIB GDI32.LIB "
+						"/SUBSYSTEM:WINDOWS "
+						"/ENTRY:entrypoint "
+						"/OUT:\"%s\" "						/* arg 1 = 出力 exe ファイル名 */
+#if USE_MAIN_CPP == 0
+						"resource.obj "
+#endif
+						"main.obj "
+					"|| exit /b 5\n"
+					,
+					executableExportSettings->fileName		/* arg 5 */
+				);
+			}
 
 			/* 生成結果は exe のディレクトリにもコピーされる */
-			"copy graphics_fragment_shader.inl \"%s\" || exit /b 6\n"	/* crinkler arg 7 = graphics_fragment_shader.inl コピー先 */
-			"copy sound_compute_shader.inl \"%s\" || exit /b 7\n"		/* crinkler arg 8 = sound_compute_shader.inl コピー先 */
-			,
-			executableExportSettings->xReso,								/* arg 1 */
-			executableExportSettings->yReso,								/* arg 2 */
-			executableExportSettings->numSoundBufferSamples,				/* arg 3 */
-			executableExportSettings->numSoundBufferAvailableSamples,		/* arg 4 */
-			executableExportSettings->numSoundBufferSamplesPerDispatch,		/* arg 5 */
-			renderSettings->enableSwapIntervalControl? 1:0,					/* arg 6 */
-			renderSettings->swapInterval,									/* arg 7 */
-			renderSettings->enableBackBuffer? 1:0,							/* arg 8 */
-			enableFrameCountUniform? 1:0,									/* arg 9 */
-			renderSettings->enableMipmapGeneration? 1:0,					/* arg 10 */
-			numMipmapLevels,												/* arg 11 */
-			numRenderTargets,												/* arg 12 */
-			renderSettings->pixelFormat,									/* arg 13 */
-			renderSettings->textureFilter,									/* arg 14 */
-			renderSettings->textureWrap,									/* arg 15 */
-			executableExportSettings->enableSoundDispatchWait? 1:0,			/* arg 16 */
-			executableExportSettings->crinklerOptions.useTinyHeader? 1:0,	/* arg 17 */
-			executableExportSettings->crinklerOptions.useTinyImport? 1:0,	/* arg 18 */
+			fprintf(
+				file,
+				"copy graphics_fragment_shader.inl \"%s\" || exit /b 6\n"	/* arg 1 = graphics_fragment_shader.inl コピー先 */
+				"copy sound_compute_shader.inl \"%s\" || exit /b 7\n"		/* arg 2 = sound_compute_shader.inl コピー先 */
+				,
+				outputGraphicsFragmentShaderInlFullPath,					/* arg 1 */
+				outputSoundComputeShaderInlFullPath							/* arg 2 */
+			);
 
-#if USE_MAIN_CPP
-			workDirName,													/* arg 19 */
-#else
-			renderSettings->enableSwapIntervalControl? 1:0,					/* arg 19 */
-			renderSettings->enableBackBuffer? 1:0,							/* arg 20 */
-			enableFrameCountUniform? 1:0,									/* arg 21 */
-			renderSettings->enableMipmapGeneration? 1:0,					/* arg 22 */
-			numMipmapLevels,												/* arg 23 */
-			numRenderTargets,												/* arg 24 */
-			renderSettings->pixelFormat,									/* arg 25 */
-			renderSettings->textureFilter,									/* arg 26 */
-			renderSettings->textureWrap,									/* arg 27 */
-			executableExportSettings->enableSoundDispatchWait? 1:0,			/* arg 28 */
-			executableExportSettings->crinklerOptions.useTinyHeader? 1:0,	/* arg 29 */
-			executableExportSettings->crinklerOptions.useTinyImport? 1:0,	/* arg 30 */
-#endif
-
-			enableWhereCrinklerPath? "": "rem ",							/* crinkler arg 1 */
-			crinklerPath,													/* crinkler arg 2 */
-			crinklerReportFullPath,											/* crinkler arg 3 */
-			crinklerReuseFullPath,											/* crinkler arg 4 */
-			crinklerOptions,												/* crinkler arg 5 */
-			executableExportSettings->fileName,								/* crinkler arg 6 */
-			outputGraphicsFragmentShaderInlFullPath,						/* crinkler arg 7 */
-			outputSoundComputeShaderInlFullPath								/* crinkler arg 8 */
-		);
-		fclose(file);
+			fclose(file);
+		}
 	}
 
 	/* build.bat 実行 */
@@ -879,7 +941,7 @@ bool ExportExecutableSub(
 				case 7: {
 					AppErrorMessageBox(APP_NAME, "Failed to copy to %s.", outputSoundComputeShaderInlFullPath);
 				} break;
-				default : {
+				default: {
 					assert(false);
 				} break;
 			}

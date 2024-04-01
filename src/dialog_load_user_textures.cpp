@@ -80,7 +80,7 @@ static LRESULT CALLBACK DialogFunc(
 					return 1;
 				} break;
 
-				default :{
+				default: {
 					/* Browse */
 					int idd = LOWORD(wParam);
 					if (IDD_LOAD_USER_TEXTURES_BROWSE_FILE_0 <= idd

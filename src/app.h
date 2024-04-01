@@ -281,6 +281,18 @@ void AppExportExecutableSetShaderMinifierOptionsNoRenaming(bool flag);
 /* exe エクスポート : ShaderMinifier の no-renaming フラグの取得 */
 bool AppExportExecutableGetShaderMinifierOptionsNoRenaming();
 
+/* exe エクスポート : ShaderMinifier の no-renaming-list 有効化フラグの設定 */
+void AppExportExecutableSetShaderMinifierOptionsEnableNoRenamingList(bool flag);
+
+/* exe エクスポート : ShaderMinifier の no-renaming-list 有効化フラグの取得 */
+bool AppExportExecutableGetShaderMinifierOptionsEnableNoRenamingList();
+
+/* exe エクスポート : ShaderMinifier の no-renaming-list の設定 */
+void AppExportExecutableSetShaderMinifierOptionsNoRenamingList(const char *noRenamingList);
+
+/* exe エクスポート : ShaderMinifier の no-renaming-list の取得 */
+const char *AppExportExecutableGetShaderMinifierOptionsNoRenamingList();
+
 /* exe エクスポート : ShaderMinifier の no-sequence フラグの設定 */
 void AppExportExecutableSetShaderMinifierOptionsNoSequence(bool flag);
 

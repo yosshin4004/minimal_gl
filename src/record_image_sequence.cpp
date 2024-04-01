@@ -5,6 +5,7 @@
 #include "app.h"
 #include "graphics.h"
 #include "png_util.h"
+#include "tiny_vmath.h"
 #include "record_image_sequence.h"
 #include "dialog_confirm_over_write.h"
 #include "resource/resource.h"
@@ -174,8 +175,13 @@ static unsigned __stdcall WorkerThreadProc(
 		if (job.image == NULL) break;	/* end mark 検出 */
 		if (error == false) {
 			printf("generate %s.\n", job.fileName);
-			bool ret = SerializeAsUnorm8RgbaPng(
-				job.fileName, job.image, job.settings->xReso, job.settings->yReso
+			bool ret = SerializeAsPng(
+				/* const char *fileName */	job.fileName,
+				/* const void *data */		job.image,
+				/* int numChannels */		4,
+				/* int width */				job.settings->xReso,
+				/* int height */			job.settings->yReso,
+				/* bool verticalFlip */		true
 			);
 			free(job.image);
 			if (ret == false) {
@@ -317,11 +323,8 @@ bool RecordImageSequence(
 				);
 
 				/* 画像をキャプチャ */
-				size_t bytesPerPixel = 4;
-				size_t imageBufferSizeInBytes = (size_t)(recordImageSequenceSettings->xReso * recordImageSequenceSettings->yReso) * bytesPerPixel;
-				job.image = malloc(imageBufferSizeInBytes);
-				if (job.image == NULL) return false;
-
+				RenderSettings renderSettingsForceUnorm8 = *renderSettings;
+				renderSettingsForceUnorm8.pixelFormat = PixelFormatUnorm8Rgba;
 				CaptureScreenShotSettings captureSettings = {
 					/* char fileName[MAX_PATH]; */	{0},
 					/* int xReso; */				recordImageSequenceSettings->xReso,
@@ -329,12 +332,28 @@ bool RecordImageSequence(
 					/* bool replaceAlphaByOne; */	recordImageSequenceSettings->replaceAlphaByOne,
 				};
 				snprintf(captureSettings.fileName, sizeof(captureSettings.fileName), "%s", job.fileName);
-				GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
+				size_t numBitsPerPixel = PixelFormatToGlPixelFormatInfo(renderSettingsForceUnorm8.pixelFormat).numBitsPerPixel;
+				size_t imageBufferSizeInBytes = (size_t)(recordImageSequenceSettings->xReso * recordImageSequenceSettings->yReso) * numBitsPerPixel / 8;
+				job.image = malloc(imageBufferSizeInBytes);
+				if (job.image == NULL) return false;
+
+				CurrentFrameParams params = {0};
+				params.waveOutPos				= waveOutPos;
+				params.frameCount				= frameCount;
+				params.time						= time;
+				params.xMouse					= 0;
+				params.yMouse					= 0;
+				params.mouseLButtonPressed		= 0;
+				params.mouseMButtonPressed		= 0;
+				params.mouseRButtonPressed		= 0;
+				params.xReso					= recordImageSequenceSettings->xReso;
+				params.yReso					= recordImageSequenceSettings->yReso;
+				params.fovYInRadians			= fovYInRadians;
+				Mat4x4Copy(params.mat4x4CameraInWorld,		mat4x4CameraInWorld);
+				Mat4x4Copy(params.mat4x4PrevCameraInWorld,	mat4x4CameraInWorld);
+				GraphicsCaptureScreenShotOnMemory(
 					job.image, imageBufferSizeInBytes,
-					waveOutPos, frameCount, time,
-					fovYInRadians, mat4x4CameraInWorld,
-					renderSettings,
-					&captureSettings
+					&params, &renderSettingsForceUnorm8, &captureSettings
 				);
 			}
 

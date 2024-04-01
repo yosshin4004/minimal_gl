@@ -2,29 +2,40 @@
 
 
 #include "dds_parser.h"
+#include "pixel_format.h"
 
 
 #ifndef _DDS_UTIL_H_
 #define _DDS_UTIL_H_
 
 
-/* DxgiFormat から OpenGL のフォーマット情報に変換 */
-struct DdsGlFormat {
-	GLenum internalformat;
-	GLenum format;
-	GLenum type;
-};
-DdsGlFormat
-DdsDxgiFormatToGlFormat(
-	DxgiFormat format
+/* PixelFormat から DxgiFormat に変換 */
+DxgiFormat PixelFormatToDxgiFormat(
+	PixelFormat pixelFormat
 );
 
-/* raw 画像データを FP32RGBA 形式のキューブマップとして dds ファイルに保存する */
-bool SerializeAsFp32RgbaCubemapDds(
+/* DxgiFormat から OpenGL のピクセルフォーマット情報に変換 */
+GlPixelFormatInfo DxgiFormatToGlPixelFormatInfo(
+	DxgiFormat dxgiFormat
+);
+
+/* raw 画像データを 2D テクスチャとして dds ファイルに保存する */
+bool SerializeAsDdsTexture2d(
 	const char *fileName,
-	float *(data[6]),
+	DxgiFormat dxgiFormat,
+	const void *data,
 	int width,
-	int height
+	int height,
+	bool verticalFlip
+);
+
+/* raw 画像データをキューブマップとして dds ファイルに保存する */
+bool SerializeAsDdsCubemap(
+	const char *fileName,
+	DxgiFormat dxgiFormat,
+	const void *(data[6]),
+	int reso,
+	bool verticalFlip
 );
 
 

@@ -13,6 +13,48 @@
 #include "resource/resource.h"
 
 
+bool
+IsValidNoRenamingList(
+	const char *noRenamingList
+){
+	const char *p = noRenamingList;
+
+	/* 空文字列はエラー */
+	if (*p == '\0') return false;
+
+	/* シンボル名に利用できないかつカンマ以外の文字を検出したらエラー */
+	while (*p != '\0') {
+		if (
+			!(
+				('a' <= *p && *p <= 'z')
+			||	('A' <= *p && *p <= 'Z')
+			||	('0' <= *p && *p <= '9')
+			||	(*p == '_')
+			||	(*p == '$')
+			||	(*p == ',')
+			)
+		) {
+			return false;
+		}
+		p++;
+	}
+
+	/* ここまで到達すれば妥当 */
+	return true;
+}
+
+
+static void UpdateButtonState(HWND hDwnd){
+	bool shaderMinifierEnableNoRenamingList = GetDlgItemCheck(
+		hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_NO_RENAMING_LIST
+	);
+	EnableWindow(
+		GetDlgItem(hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING_LIST_EDITBOX),
+		shaderMinifierEnableNoRenamingList
+	);
+}
+
+
 static LRESULT CALLBACK DialogFunc(
 	HWND hDwnd,
 	UINT uMsg,
@@ -58,6 +100,21 @@ static LRESULT CALLBACK DialogFunc(
 				AppExportExecutableGetShaderMinifierOptionsNoRenaming()
 			);
 
+			/* ShaderMinifier の no-renaming-list 有効化フラグをチェックボックスに設定 */
+			SetDlgItemCheck(
+				hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_NO_RENAMING_LIST,
+				AppExportExecutableGetShaderMinifierOptionsEnableNoRenamingList()
+			);
+
+			/* ShaderMinifier の no-renaming-list をエディットボックスに設定 */
+			{
+				const char *noRenamingList = AppExportExecutableGetShaderMinifierOptionsNoRenamingList();
+				SetDlgItemText(
+					hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING_LIST_EDITBOX,
+					noRenamingList
+				);
+			}
+
 			/* ShaderMinifier の no-sequence フラグをチェックボックスに設定 */
 			SetDlgItemCheck(
 				hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_SEQUENCE,
@@ -74,6 +131,9 @@ static LRESULT CALLBACK DialogFunc(
 			{
 				int nIDDlgItem = 0;
 				switch (AppExportExecutableGetCrinklerOptionsCompMode()) {
+					case CrinklerCompModeDisable: {
+						nIDDlgItem = IDD_EXPORT_EXECUTABLE_CRINKLER_COMPMODE_DISABLE;
+					} break;
 					case CrinklerCompModeInstant: {
 						nIDDlgItem = IDD_EXPORT_EXECUTABLE_CRINKLER_COMPMODE_INSTANT;
 					} break;
@@ -86,7 +146,7 @@ static LRESULT CALLBACK DialogFunc(
 					case CrinklerCompModeVerySlow: {
 						nIDDlgItem = IDD_EXPORT_EXECUTABLE_CRINKLER_COMPMODE_VERYSLOW;
 					} break;
-					default : {
+					default: {
 						assert(false);
 					} break;
 				}
@@ -115,6 +175,9 @@ static LRESULT CALLBACK DialogFunc(
 					);
 				}
 			}
+
+			/* ボタン有効/無効ステート更新 */
+			UpdateButtonState(hDwnd);
 
 			/* メッセージは処理された */
 			return 1;
@@ -197,7 +260,7 @@ static LRESULT CALLBACK DialogFunc(
 						return 0;	/* メッセージは処理されなかった */
 					}
 
-					/* frameCount uniform 有効化フラグをチェックボックスに設定 */
+					/* frameCount uniform 有効化フラグをチェックボックスから取得 */
 					bool enableFrameCountUniform = GetDlgItemCheck(
 						hDwnd, IDD_EXPORT_EXECUTABLE_ENABLE_FRAME_COUNT_UNIFORM
 					);
@@ -212,6 +275,19 @@ static LRESULT CALLBACK DialogFunc(
 						hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING
 					);
 
+					/* ShaderMinifier の no-renaming-list 有効化フラグをチェックボックスから取得 */
+					bool shaderMinifierEnableNoRenamingList = GetDlgItemCheck(
+						hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_NO_RENAMING_LIST
+					);
+
+					/* ShaderMinifier の no-renaming-list をエディットボックスから取得 */
+					char shaderMinifierNoRenamingList[SHADER_MINIFIER_NO_RENAMING_LIST_MAX] = {0};
+					GetDlgItemText(
+						hDwnd,
+						IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING_LIST_EDITBOX,
+						shaderMinifierNoRenamingList, sizeof(shaderMinifierNoRenamingList)
+					);
+
 					/* ShaderMinifier の no-sequence フラグをチェックボックスから取得 */
 					bool shaderMinifierNoSequence = GetDlgItemCheck(
 						hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_SEQUENCE
@@ -223,8 +299,11 @@ static LRESULT CALLBACK DialogFunc(
 					);
 
 					/* Crinkler の CompMode をラジオボタンから取得 */
-					CrinklerCompMode crinklerCompMode = CrinklerCompModeInstant;
+					CrinklerCompMode crinklerCompMode = CrinklerCompModeDisable;
 					{
+						if (GetDlgItemCheck(hDwnd, IDD_EXPORT_EXECUTABLE_CRINKLER_COMPMODE_DISABLE)) {
+							crinklerCompMode = CrinklerCompModeDisable;
+						} else
 						if (GetDlgItemCheck(hDwnd, IDD_EXPORT_EXECUTABLE_CRINKLER_COMPMODE_INSTANT)) {
 							crinklerCompMode = CrinklerCompModeInstant;
 						} else
@@ -237,7 +316,7 @@ static LRESULT CALLBACK DialogFunc(
 						if (GetDlgItemCheck(hDwnd, IDD_EXPORT_EXECUTABLE_CRINKLER_COMPMODE_VERYSLOW)) {
 							crinklerCompMode = CrinklerCompModeVerySlow;
 						} else {
-							AppErrorMessageBox(APP_NAME, "Invalid compression mode.");
+							AppErrorMessageBox(APP_NAME, "Invalid compression mode");
 						}
 					}
 
@@ -251,6 +330,14 @@ static LRESULT CALLBACK DialogFunc(
 						hDwnd, IDD_EXPORT_EXECUTABLE_CRINKLER_USE_TINYIMPORT
 					);
 
+					/* 妥当性検証 */
+					if (shaderMinifierEnableNoRenamingList) {
+						if (IsValidNoRenamingList(shaderMinifierNoRenamingList) == false) {
+							AppErrorMessageBox(APP_NAME, "Invalid no-renaming-list");
+							return 0;	/* メッセージは処理されなかった */
+						}
+					}
+
 					/* App に通知 */
 					AppExportExecutableSetResolution(xReso, yReso);
 					AppExportExecutableSetDurationInSeconds(duration);
@@ -258,6 +345,8 @@ static LRESULT CALLBACK DialogFunc(
 					AppExportExecutableSetEnableSoundDispatchWaitFlag(enableSoundDispatchWait);
 					AppExportExecutableSetCurrentOutputFileName(outputFileName);
 					AppExportExecutableSetShaderMinifierOptionsNoRenaming(shaderMinifierNoRenaming);
+					AppExportExecutableSetShaderMinifierOptionsEnableNoRenamingList(shaderMinifierEnableNoRenamingList);
+					AppExportExecutableSetShaderMinifierOptionsNoRenamingList(shaderMinifierNoRenamingList);
 					AppExportExecutableSetShaderMinifierOptionsNoSequence(shaderMinifierNoSequence);
 					AppExportExecutableSetShaderMinifierOptionsSmoothstep(shaderMinifierSmoothstep);
 					AppExportExecutableSetCrinklerOptionsCompMode(crinklerCompMode);
@@ -278,6 +367,12 @@ static LRESULT CALLBACK DialogFunc(
 
 					/* メッセージは処理された */
 					return 1;
+				} break;
+
+				/* ShaderMinifier の no-renaming-list 有効化フラグをチェックボックスの更新  */
+				case IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_NO_RENAMING_LIST: {
+					/* ボタン有効/無効ステート更新 */
+					UpdateButtonState(hDwnd);
 				} break;
 			}
 		} break;

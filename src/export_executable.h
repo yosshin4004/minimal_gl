@@ -7,11 +7,16 @@
 #include "graphics.h"
 
 
+/* ShaderMinifier の NoRenamingList 最大文字数 */
+#define SHADER_MINIFIER_NO_RENAMING_LIST_MAX	0x1000
+
+
 typedef enum {
 	CrinklerCompModeInstant,
 	CrinklerCompModeFast,
 	CrinklerCompModeSlow,
 	CrinklerCompModeVerySlow,
+	CrinklerCompModeDisable,
 } CrinklerCompMode;
 
 struct ExecutableExportSettings {
@@ -26,6 +31,8 @@ struct ExecutableExportSettings {
 	bool enableSoundDispatchWait;
 	struct ShaderMinifierOptions {
 		bool noRenaming;
+		bool enableNoRenamingList;
+		char noRenamingList[SHADER_MINIFIER_NO_RENAMING_LIST_MAX];
 		bool noSequence;
 		bool smoothstep;
 	} shaderMinifierOptions;

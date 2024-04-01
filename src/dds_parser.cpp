@@ -163,7 +163,7 @@ static const int s_tblNumBitsPerPixel[] = {
 	/* DxgiFormat_V408 */					0,	/* ??? */
 	/* DxgiFormat_ForceUint */				0,	/* ??? */
 };
-static int GetBytesNumBitsPerPixelsFromDxgiFormat(DxgiFormat dxgiFormat){
+static int GetNumBitsPerPixelsFromDxgiFormat(DxgiFormat dxgiFormat){
 	if (dxgiFormat >= SIZE_OF_ARRAY(s_tblNumBitsPerPixel)) return 0;
 	return s_tblNumBitsPerPixel[dxgiFormat];
 }
@@ -186,8 +186,8 @@ static const DdsHeaderDx10 *DdsParser_GetHeaderDx10(
 	const DdsHeader *header = DdsParser_GetHeader(parser);
 	if (header == NULL) return NULL;
 	uint32_t pfFlags = header->ddspf.dwFlags;
-	uint32_t fourCC = header->ddspf.dwFourCC;
-	if ((pfFlags & Ddpf_FourCC) == 0 || fourCC != DdsdFourCC_Dx10) return NULL;
+	uint32_t fourCc = header->ddspf.dwFourCc;
+	if ((pfFlags & Ddpf_FourCc) == 0 || fourCc != DdsdFourCc_Dx10) return NULL;
 	if (parser->fileSizeInBytes < sizeof(DdsHeader) + sizeof(DdsHeaderDx10)) return NULL;
 	const DdsHeaderDx10 *headerDx10 = (const DdsHeaderDx10 *)(header + 1);
 	return headerDx10;
@@ -203,19 +203,19 @@ static DxgiFormat DdsParser_GetDxgiFormat(
 	if (headerDx10) return (DxgiFormat)headerDx10->dxgiFormat;
 
 	uint32_t pfFlags = header->ddspf.dwFlags;
-	uint32_t fourCC = header->ddspf.dwFourCC;
+	uint32_t fourCc = header->ddspf.dwFourCc;
 	DxgiFormat dxgiFormat = DxgiFormat_Unknown;
 
 	#undef	MACRO
 	#define	MACRO(\
-		header, RGBBitCount, RBitMask, GBitMask, BBitMask, ABitMask\
+		header, rgbBitCount, rBitMask, gBitMask, bBitMask, aBitMask\
 	)(\
-		header->ddspf.dwRGBBitCount == RGBBitCount\
+		header->ddspf.dwRgbBitCount == rgbBitCount\
 	&&	(\
-			header->ddspf.dwRBitMask == RBitMask\
-		&&	header->ddspf.dwGBitMask == GBitMask\
-		&&	header->ddspf.dwBBitMask == BBitMask\
-		&&	header->ddspf.dwABitMask == ABitMask\
+			header->ddspf.dwRBitMask == rBitMask\
+		&&	header->ddspf.dwGBitMask == gBitMask\
+		&&	header->ddspf.dwBBitMask == bBitMask\
+		&&	header->ddspf.dwABitMask == aBitMask\
 		)\
 	)\
 
@@ -260,7 +260,7 @@ static DxgiFormat DdsParser_GetDxgiFormat(
 		}
 	} else
 	if (pfFlags & Ddpf_Alpha) {
-		if (header->ddspf.dwRGBBitCount == 8) {
+		if (header->ddspf.dwRgbBitCount == 8) {
 			dxgiFormat = DxgiFormat_A8Unorm;
 		}
 	} else
@@ -275,30 +275,30 @@ static DxgiFormat DdsParser_GetDxgiFormat(
 			dxgiFormat = DxgiFormat_R16G16Snorm;
 		}
 	} else
-	if (pfFlags & Ddpf_FourCC) {
-		switch (fourCC) {
-			case DdsdFourCC_Dxt1:			dxgiFormat = DxgiFormat_Bc1Unorm; break;
-			case DdsdFourCC_Dxt2:
-			case DdsdFourCC_Dxt3:			dxgiFormat = DxgiFormat_Bc2Unorm; break;
-			case DdsdFourCC_Dxt4:
-			case DdsdFourCC_Dxt5:			dxgiFormat = DxgiFormat_Bc3Unorm; break;
-			case DdsdFourCC_3dcAti1:
-			case DdsdFourCC_Bc4Unorm:		dxgiFormat = DxgiFormat_Bc4Unorm; break;
-			case DdsdFourCC_Bc4Snorm:		dxgiFormat = DxgiFormat_Bc4Snorm; break;
-			case DdsdFourCC_3dcAti2:
-			case DdsdFourCC_Bc5Unorm:		dxgiFormat = DxgiFormat_Bc5Unorm; break;
-			case DdsdFourCC_Bc5Snorm:		dxgiFormat = DxgiFormat_Bc5Snorm; break;
-			case DdsdFourCC_Rgbg:			dxgiFormat = DxgiFormat_R8G8B8G8Unorm; break;
-			case DdsdFourCC_Grgb:			dxgiFormat = DxgiFormat_G8R8G8B8Unorm; break;
-			case DdsdFourCC_Yuy2:			dxgiFormat = DxgiFormat_Yuy2; break;
-			case DdsdFourCC_A16B16G16R16:	dxgiFormat = DxgiFormat_R16G16B16A16Unorm; break;
-			case DdsdFourCC_Q16W16V16U16:	dxgiFormat = DxgiFormat_R16G16B16A16Snorm; break;
-			case DdsdFourCC_R16F:			dxgiFormat = DxgiFormat_R16Float; break;
-			case DdsdFourCC_G16R16F:		dxgiFormat = DxgiFormat_R16G16Float; break;
-			case DdsdFourCC_A16B16G16R16F:	dxgiFormat = DxgiFormat_R16G16B16A16Float; break;
-			case DdsdFourCC_R32F:			dxgiFormat = DxgiFormat_R32Float; break;
-			case DdsdFourCC_G32R32F:		dxgiFormat = DxgiFormat_R32G32Float; break;
-			case DdsdFourCC_A32B32G32R32F:	dxgiFormat = DxgiFormat_R32G32B32A32Float; break;
+	if (pfFlags & Ddpf_FourCc) {
+		switch (fourCc) {
+			case DdsdFourCc_Dxt1:			dxgiFormat = DxgiFormat_Bc1Unorm; break;
+			case DdsdFourCc_Dxt2:
+			case DdsdFourCc_Dxt3:			dxgiFormat = DxgiFormat_Bc2Unorm; break;
+			case DdsdFourCc_Dxt4:
+			case DdsdFourCc_Dxt5:			dxgiFormat = DxgiFormat_Bc3Unorm; break;
+			case DdsdFourCc_3dcAti1:
+			case DdsdFourCc_Bc4Unorm:		dxgiFormat = DxgiFormat_Bc4Unorm; break;
+			case DdsdFourCc_Bc4Snorm:		dxgiFormat = DxgiFormat_Bc4Snorm; break;
+			case DdsdFourCc_3dcAti2:
+			case DdsdFourCc_Bc5Unorm:		dxgiFormat = DxgiFormat_Bc5Unorm; break;
+			case DdsdFourCc_Bc5Snorm:		dxgiFormat = DxgiFormat_Bc5Snorm; break;
+			case DdsdFourCc_Rgbg:			dxgiFormat = DxgiFormat_R8G8B8G8Unorm; break;
+			case DdsdFourCc_Grgb:			dxgiFormat = DxgiFormat_G8R8G8B8Unorm; break;
+			case DdsdFourCc_Yuy2:			dxgiFormat = DxgiFormat_Yuy2; break;
+			case DdsdFourCc_A16B16G16R16:	dxgiFormat = DxgiFormat_R16G16B16A16Unorm; break;
+			case DdsdFourCc_Q16W16V16U16:	dxgiFormat = DxgiFormat_R16G16B16A16Snorm; break;
+			case DdsdFourCc_R16F:			dxgiFormat = DxgiFormat_R16Float; break;
+			case DdsdFourCc_G16R16F:		dxgiFormat = DxgiFormat_R16G16Float; break;
+			case DdsdFourCc_A16B16G16R16F:	dxgiFormat = DxgiFormat_R16G16B16A16Float; break;
+			case DdsdFourCc_R32F:			dxgiFormat = DxgiFormat_R32Float; break;
+			case DdsdFourCc_G32R32F:		dxgiFormat = DxgiFormat_R32G32Float; break;
+			case DdsdFourCc_A32B32G32R32F:	dxgiFormat = DxgiFormat_R32G32B32A32Float; break;
 		}
 	}
 	return dxgiFormat;
@@ -354,7 +354,7 @@ bool DdsParser_Initialize(
 	||	parser->info.dxgiFormat == DxgiFormat_Bc7Unorm
 	||	parser->info.dxgiFormat == DxgiFormat_Bc7UnormSrgb
 	)? 1: 0;
-	parser->info.numBitsPerPixel = GetBytesNumBitsPerPixelsFromDxgiFormat(parser->info.dxgiFormat);
+	parser->info.numBitsPerPixel = GetNumBitsPerPixelsFromDxgiFormat(parser->info.dxgiFormat);
 
 	return true;
 }

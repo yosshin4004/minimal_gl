@@ -76,6 +76,8 @@ static LRESULT CALLBACK DialogFunc(
 					ofn.hwndOwner = NULL;
 					ofn.lpstrFilter =
 						"PNG file (*.png)\0*.png\0"
+						"DDS file (*.dds)\0*.dds\0"
+						"All files (*.*)\0*.*\0"
 						"\0";
 					ofn.lpstrFile = outputFileName;
 					ofn.nMaxFile = sizeof(outputFileName);

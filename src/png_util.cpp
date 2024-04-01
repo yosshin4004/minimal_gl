@@ -10,36 +10,44 @@
 #include "external/stb/stb_image_write.h"
 #include "png_util.h"
 
-bool SerializeAsUnorm8RgbaPng(
+bool SerializeAsPng(
 	const char *fileName,
 	const void *data,
+	int numChannels,
 	int width,
-	int height
+	int height,
+	bool verticalFlip
 ){
-	int numChannel = 4;
-	stbi_flip_vertically_on_write(1);
+	stbi_flip_vertically_on_write(verticalFlip? 1: 0);
 	int ret = stbi_write_png(
 		/* char const *filename */	(char const *)fileName,
 		/* int w */					width,
 		/* int h */					height,
-		/* int comp */				numChannel,
+		/* int comp */				numChannels,
 		/* const void  *data */		data,
-		/* int stride_in_bytes */	width * numChannel
+		/* int stride_in_bytes */	width * numChannels
 	);
 
 	return ret? true: false;
 }
 
-bool ReadImageFileAsUnorm8RgbaPng(
+bool ReadImageFileAsPng(
 	const char *fileName,
 	void **dataRet,
 	int *numComponentsRet,
 	int *widthRet,
-	int *heightRet
+	int *heightRet,
+	bool verticalFlip
 ){
 	unsigned char *pixels;
-	stbi_set_flip_vertically_on_load(1);
-	pixels = stbi_load(fileName, widthRet, heightRet, numComponentsRet, 0);
+	stbi_set_flip_vertically_on_load(verticalFlip? 1: 0);
+	pixels = stbi_load(
+		/* char const *filename */	fileName,
+		/* int *x */				widthRet,
+		/* int *y */				heightRet,
+		/* int *comp */				numComponentsRet,
+		/* int req_comp */			0
+	);
 	if (pixels == NULL) return false;
 	*dataRet = pixels;
 	return true;

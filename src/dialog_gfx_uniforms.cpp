@@ -73,10 +73,10 @@ static LRESULT CALLBACK DialogFunc(
 				"layout(location = 8) uniform mat4 prevCameraInWorld;\r\n"
 				"\r\n"
 				"// user textures.\r\n"
-				"layout(binding =  8) uniform sampler2D userTexture0;\r\n"
-				"layout(binding =  9) uniform sampler2D userTexture1;\r\n"
-				"layout(binding = 10) uniform sampler2D userTexture2;\r\n"
-				"layout(binding = 11) uniform sampler2D userTexture3;\r\n"
+				"layout(binding =  8) uniform sampler2D|samplerCube userTexture0;\r\n"
+				"layout(binding =  9) uniform sampler2D|samplerCube userTexture1;\r\n"
+				"layout(binding = 10) uniform sampler2D|samplerCube userTexture2;\r\n"
+				"layout(binding = 11) uniform sampler2D|samplerCube userTexture3;\r\n"
 				"\r\n"
 				;
 			SetDlgItemText(hDwnd, IDD_GRAPHICS_SHADER_UNIFORMS_AVAILABLE_ON_EXE, string1);

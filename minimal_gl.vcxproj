@@ -177,9 +177,11 @@
     <ClCompile Include="src\graphics.cpp" />
     <ClCompile Include="src\high_precision_timer.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\pixel_format.cpp" />
     <ClCompile Include="src\png_util.cpp" />
     <ClCompile Include="src\record_image_sequence.cpp" />
     <ClCompile Include="src\sound.cpp" />
+    <ClCompile Include="src\tiny_vmath.cpp" />
     <ClCompile Include="src\wav_util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -213,9 +215,11 @@
     <ClInclude Include="src\GL\gl3w.h" />
     <ClInclude Include="src\graphics.h" />
     <ClInclude Include="src\high_precision_timer.h" />
+    <ClInclude Include="src\pixel_format.h" />
     <ClInclude Include="src\png_util.h" />
     <ClInclude Include="src\record_image_sequence.h" />
     <ClInclude Include="src\sound.h" />
+    <ClInclude Include="src\tiny_vmath.h" />
     <ClInclude Include="src\wav_util.h" />
   </ItemGroup>
   <ItemGroup>

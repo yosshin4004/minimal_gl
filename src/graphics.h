@@ -1,5 +1,10 @@
 ﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
 
+
+#include "common.h"
+#include "pixel_format.h"
+
+
 #ifndef _GRAPHICS_H_
 #define _GRAPHICS_H_
 
@@ -14,15 +19,26 @@ typedef enum {
 	TextureWrapMirroredRepeat,
 } TextureWrap;
 typedef enum {
-	PixelFormatUnorm8Rgba,
-	PixelFormatFp16Rgba,
-	PixelFormatFp32Rgba,
-} PixelFormat;
-typedef enum {
 	SwapIntervalAllowTearing,
 	SwapIntervalHsync,
 	SwapIntervalVsync,
 } SwapInterval;
+
+struct CurrentFrameParams {
+	int waveOutPos;
+	int frameCount;
+	float time;
+	int xMouse;
+	int yMouse;
+	int mouseLButtonPressed;
+	int mouseMButtonPressed;
+	int mouseRButtonPressed;
+	int xReso;
+	int yReso;
+	float fovYInRadians;
+	float mat4x4CameraInWorld[4][4];
+	float mat4x4PrevCameraInWorld[4][4];
+};
 
 struct RenderSettings {
 	PixelFormat pixelFormat;
@@ -79,54 +95,38 @@ bool GraphicsCreateShader(
 bool GraphicsDeleteShader();
 
 /* スクリーンショットキャプチャ */
-bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
+bool GraphicsCaptureScreenShotOnMemory(
 	void *buffer,
 	size_t bufferSizeInBytes,
-	int waveOutPos,
-	int frameCount,
-	float time,
-	float fovYInRadians,
-	const float mat4x4CameraInWorld[4][4],
+	const CurrentFrameParams *params,
 	const RenderSettings *renderSettings,
 	const CaptureScreenShotSettings *captureSettings
 );
 
 /* スクリーンショットキャプチャ */
-bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
-	int waveOutPos,
-	int frameCount,
-	float time,
-	float fovYInRadians,
-	const float mat4x4CameraInWorld[4][4],
+bool GraphicsCaptureScreenShotAsPngTexture2d(
+	const CurrentFrameParams *params,
+	const RenderSettings *renderSettings,
+	const CaptureScreenShotSettings *captureSettings
+);
+
+/* スクリーンショットキャプチャ */
+bool GraphicsCaptureScreenShotAsDdsTexture2d(
+	const CurrentFrameParams *params,
 	const RenderSettings *renderSettings,
 	const CaptureScreenShotSettings *captureSettings
 );
 
 /* キューブマップキャプチャ */
-bool GraphicsCaptureCubemap(
-	int waveOutPos,
-	int frameCount,
-	float time,
-	const float mat4x4CameraInWorld[4][4],
+bool GraphicsCaptureAsDdsCubemap(
+	const CurrentFrameParams *params,
 	const RenderSettings *renderSettings,
 	const CaptureCubemapSettings *captureSettings
 );
 
 /* グラフィクスの更新 */
 void GraphicsUpdate(
-	int waveOutPos,
-	int frameCount,
-	float time,
-	int xMouse,
-	int yMouse,
-	int mouseLButtonPressed,
-	int mouseMButtonPressed,
-	int mouseRButtonPressed,
-	int xReso,
-	int yReso,
-	float fovYInRadians,
-	const float mat4x4CameraInWorld[4][4],
-	const float mat4x4PrevCameraInWorld[4][4],
+	const CurrentFrameParams *params,
 	const RenderSettings *settings
 );
 

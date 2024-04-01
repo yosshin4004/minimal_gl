@@ -9,6 +9,7 @@
 #include "dds_util.h"
 #include "png_util.h"
 #include "sound.h"
+#include "tiny_vmath.h"
 #include "dds_parser.h"
 
 
@@ -67,7 +68,7 @@ static void GraphicsCreateFrameBuffer(
 					internalformat = GL_RGBA32F;
 					type = GL_FLOAT;
 				} break;
-				default : {
+				default: {
 					assert(false);
 				} break;
 			}
@@ -152,12 +153,13 @@ static bool GraphicsLoadUserTextureSubAsPng(
 	int numComponents = 0;
 	int width = 0;
 	int height = 0;
-	bool ret = ReadImageFileAsUnorm8RgbaPng(
+	bool ret = ReadImageFileAsPng(
 		/* const char *fileName */	fileName,
 		/* void **dataRet */		&data,
 		/* int *numComponentsRet */	&numComponents,
 		/* int *widthRet */			&width,
-		/* int *heightRet */		&height
+		/* int *heightRet */		&height,
+		/* bool verticalFlip */		false
 	);
 	if (ret == false) return false;
 
@@ -231,9 +233,9 @@ static bool GraphicsLoadUserTextureSubAsDds(
 		return false;
 	}
 
-	/* DxgiFormat から OpenGL のフォーマット情報に変換 */
-	DdsGlFormat glFormat = DdsDxgiFormatToGlFormat(parser.info.dxgiFormat);
-	if (glFormat.internalformat == 0) {
+	/* DxgiFormat から OpenGL のピクセルフォーマット情報に変換 */
+	GlPixelFormatInfo glPixelFormatInfo = DxgiFormatToGlPixelFormatInfo(parser.info.dxgiFormat);
+	if (glPixelFormatInfo.internalformat == 0) {
 		free(ddsFileImage);
 		return false;
 	}
@@ -283,8 +285,8 @@ static bool GraphicsLoadUserTextureSubAsDds(
 
 	/* テクスチャのバインド */
 	glBindTexture(
-		/* GLenum target */			s_userTextures[userTextureIndex].target,
-		/* GLuint texture */		s_userTextures[userTextureIndex].id
+		/* GLenum target */		s_userTextures[userTextureIndex].target,
+		/* GLuint texture */	s_userTextures[userTextureIndex].id
 	);
 
 	/* ミップレベルの巡回 */
@@ -298,7 +300,7 @@ static bool GraphicsLoadUserTextureSubAsDds(
 				glExtCompressedTexImage2D(
 					/* GLenum target */			targetFace + faceIndex,
 					/* GLint level */			mipLevel,
-					/* GLenum internalformat */	glFormat.internalformat,
+					/* GLenum internalformat */	glPixelFormatInfo.internalformat,
 					/* GLsizei width */			subData.width,
 					/* GLsizei height */		subData.height,
 					/* GLint border */			false,
@@ -311,12 +313,12 @@ static bool GraphicsLoadUserTextureSubAsDds(
 				glTexImage2D(
 					/* GLenum target */			targetFace + faceIndex,
 					/* GLint level */			mipLevel,
-					/* GLint internalformat */	glFormat.internalformat,
+					/* GLint internalformat */	glPixelFormatInfo.internalformat,
 					/* GLsizei width */			subData.width,
 					/* GLsizei height */		subData.height,
 					/* GLint border */			false,
-					/* GLenum format */			glFormat.format,
-					/* GLenum type */			glFormat.type,
+					/* GLenum format */			glPixelFormatInfo.format,
+					/* GLenum type */			glPixelFormatInfo.type,
 					/* const void * data */		subData.buff
 				);
 				CheckGlError("post glTexImage2D");
@@ -331,8 +333,10 @@ static bool GraphicsLoadUserTextureSubAsDds(
 		/* GLint param */	parser.info.numMips - 1
 	);
 
-	/* ミップマップ生成 */
-//	glExtGenerateMipmap(s_userTextures[userTextureIndex].target);
+	/*
+		DDS ファイルの場合ミップマップ情報はファイルに含まれている。
+		自動生成してはいけない。
+	*/
 
 	/* テクスチャのアンバインド */
 	glBindTexture(
@@ -453,7 +457,7 @@ static void GraphicsSetTextureSampler(
 				}
 				magFilter = GL_LINEAR;
 			} break;
-			default : {
+			default: {
 				assert(false);
 			} break;
 		}
@@ -473,7 +477,7 @@ static void GraphicsSetTextureSampler(
 			case TextureWrapMirroredRepeat: {
 				param = GL_MIRRORED_REPEAT;
 			} break;
-			default : {
+			default: {
 				assert(false);
 			} break;
 		}
@@ -488,31 +492,19 @@ static void GraphicsSetTextureSampler(
 
 static void GraphicsDrawFullScreenQuad(
 	GLuint outputFrameBuffer,
-	int waveOutPos,
-	int frameCount,
-	float time,
-	int xMouse,
-	int yMouse,
-	int mouseLButtonPressed,
-	int mouseMButtonPressed,
-	int mouseRButtonPressed,
-	int xReso,
-	int yReso,
-	const float tanFovY,
-	const float mat4x4CameraInWorld[4][4],
-	const float mat4x4PrevCameraInWorld[4][4],
+	const CurrentFrameParams *params,
 	const RenderSettings *settings
 ){
 	/* RenderSettings 更新を認識 */
-	if (s_xReso != xReso
-	||	s_yReso != yReso
+	if (s_xReso != params->xReso
+	||	s_yReso != params->yReso
 	||	memcmp(&s_currentRenderSettings, settings, sizeof(RenderSettings)) != 0
 	) {
-		s_xReso = xReso;
-		s_yReso = yReso;
+		s_xReso = params->xReso;
+		s_yReso = params->yReso;
 		s_currentRenderSettings = *settings;
 		GraphicsDeleteFrameBuffer();
-		GraphicsCreateFrameBuffer(xReso, yReso, settings);
+		GraphicsCreateFrameBuffer(params->xReso, params->yReso, settings);
 	}
 
 	/* シェーダのバインド */
@@ -527,7 +519,7 @@ static void GraphicsDrawFullScreenQuad(
 			glExtActiveTexture(GL_TEXTURE0 + renderTargetIndex);
 			glBindTexture(
 				/* GLenum target */		GL_TEXTURE_2D,
-				/* GLuint texture */	s_mrtTextures[(frameCount & 1) ^ 1] [renderTargetIndex]
+				/* GLuint texture */	s_mrtTextures[(params->frameCount & 1) ^ 1] [renderTargetIndex]
 			);
 
 			/* サンプラの設定 */
@@ -566,47 +558,47 @@ static void GraphicsDrawFullScreenQuad(
 	if (ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_WAVE_OUT_POS, GL_INT)) {
 		glExtUniform1i(
 			/* GLint location */	UNIFORM_LOCATION_WAVE_OUT_POS,
-			/* GLint v0 */			waveOutPos
+			/* GLint v0 */			params->waveOutPos
 		);
 	}
 	if (ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_FRAME_COUNT, GL_INT)) {
 		glExtUniform1i(
 			/* GLint location */	UNIFORM_LOCATION_FRAME_COUNT,
-			/* GLint v0 */			frameCount
+			/* GLint v0 */			params->frameCount
 		);
 	}
 	if (ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_TIME, GL_FLOAT)) {
 		glExtUniform1f(
 			/* GLint location */	UNIFORM_LOCATION_TIME,
-			/* GLfloat v0 */		time
+			/* GLfloat v0 */		params->time
 		);
 	}
 	if (ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_RESO, GL_FLOAT_VEC2)) {
 		glExtUniform2f(
 			/* GLint location */	UNIFORM_LOCATION_RESO,
-			/* GLfloat v0 */		(GLfloat)xReso,
-			/* GLfloat v1 */		(GLfloat)yReso
+			/* GLfloat v0 */		(GLfloat)params->xReso,
+			/* GLfloat v1 */		(GLfloat)params->yReso
 		);
 	}
 	if (ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_MOUSE_POS, GL_FLOAT_VEC2)) {
 		glExtUniform2f(
 			/* GLint location */	UNIFORM_LOCATION_MOUSE_POS,
-			/* GLfloat v0 */		(GLfloat)xMouse / (GLfloat)xReso,
-			/* GLfloat v1 */		1.0f - (GLfloat)yMouse / (GLfloat)yReso
+			/* GLfloat v0 */		(GLfloat)params->xMouse / (GLfloat)params->xReso,
+			/* GLfloat v1 */		1.0f - (GLfloat)params->yMouse / (GLfloat)params->yReso
 		);
 	}
 	if (ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_MOUSE_BUTTONS, GL_INT_VEC3)) {
 		glExtUniform3i(
 			/* GLint location */	UNIFORM_LOCATION_MOUSE_BUTTONS,
-			/* GLint v0 */			mouseLButtonPressed,
-			/* GLint v1 */			mouseMButtonPressed,
-			/* GLint v2 */			mouseRButtonPressed
+			/* GLint v0 */			params->mouseLButtonPressed,
+			/* GLint v1 */			params->mouseMButtonPressed,
+			/* GLint v2 */			params->mouseRButtonPressed
 		);
 	}
 	if (ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_TAN_FOVY, GL_FLOAT)) {
 		glExtUniform1f(
 			/* GLint location */	UNIFORM_LOCATION_TAN_FOVY,
-			/* GLfloat v0 */		tanFovY
+			/* GLfloat v0 */		tanf(params->fovYInRadians)
 		);
 	}
 	if (ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_CAMERA_COORD, GL_FLOAT_MAT4)) {
@@ -614,7 +606,7 @@ static void GraphicsDrawFullScreenQuad(
 			/* GLint location */		UNIFORM_LOCATION_CAMERA_COORD,
 			/* GLsizei count */			1,
 			/* GLboolean transpose */	false,
-			/* const GLfloat *value */	&mat4x4CameraInWorld[0][0]
+			/* const GLfloat *value */	&params->mat4x4CameraInWorld[0][0]
 		);
 	}
 	if (ExistsShaderUniform(s_graphicsProgramId, UNIFORM_LOCATION_PREV_CAMERA_COORD, GL_FLOAT_MAT4)) {
@@ -622,7 +614,7 @@ static void GraphicsDrawFullScreenQuad(
 			/* GLint location */		UNIFORM_LOCATION_PREV_CAMERA_COORD,
 			/* GLsizei count */			1,
 			/* GLboolean transpose */	false,
-			/* const GLfloat *value */	&mat4x4PrevCameraInWorld[0][0]
+			/* const GLfloat *value */	&params->mat4x4PrevCameraInWorld[0][0]
 		);
 	}
 
@@ -633,7 +625,7 @@ static void GraphicsDrawFullScreenQuad(
 	);
 
 	/* ビューポートの設定 */
-	glViewport(0, 0, xReso, yReso);
+	glViewport(0, 0, params->xReso, params->yReso);
 
 	/* MRT の設定 */
 	{
@@ -645,7 +637,7 @@ static void GraphicsDrawFullScreenQuad(
 			glExtFramebufferTexture(
 				/* GLenum target */			GL_FRAMEBUFFER,
 				/* GLenum attachment */		GL_COLOR_ATTACHMENT0 + renderTargetIndex,
-				/* GLuint texture */		s_mrtTextures[frameCount & 1] [renderTargetIndex],
+				/* GLuint texture */		s_mrtTextures[params->frameCount & 1] [renderTargetIndex],
 				/* GLint level */			0
 			);
 			bufs[renderTargetIndex] = GL_COLOR_ATTACHMENT0 + renderTargetIndex;
@@ -665,12 +657,12 @@ static void GraphicsDrawFullScreenQuad(
 		/* GLuint drawFramebuffer */	outputFrameBuffer,
 		/* GLint srcX0 */				0,
 		/* GLint srcY0 */				0,
-		/* GLint srcX1 */				xReso,
-		/* GLint srcY1 */				yReso,
+		/* GLint srcX1 */				params->xReso,
+		/* GLint srcY1 */				params->yReso,
 		/* GLint dstX0 */				0,
 		/* GLint dstY0 */				0,
-		/* GLint dstX1 */				xReso,
-		/* GLint dstY1 */				yReso,
+		/* GLint dstX1 */				params->xReso,
+		/* GLint dstY1 */				params->yReso,
 		/* GLbitfield mask */			GL_COLOR_BUFFER_BIT,
 		/* GLenum filter */				GL_NEAREST
 	);
@@ -712,19 +704,18 @@ static void GraphicsDrawFullScreenQuad(
 	glExtUseProgram(NULL);
 }
 
-bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
+bool GraphicsCaptureScreenShotOnMemory(
 	void *buffer,
 	size_t bufferSizeInBytes,
-	int waveOutPos,
-	int frameCount,
-	float time,
-	float fovYInRadians,
-	const float mat4x4CameraInWorld[4][4],
+	const CurrentFrameParams *params,
 	const RenderSettings *renderSettings,
 	const CaptureScreenShotSettings *captureSettings
 ){
+	/* OpenGL のピクセルフォーマット情報 */
+	GlPixelFormatInfo glPixelFormatInfo = PixelFormatToGlPixelFormatInfo(renderSettings->pixelFormat);
+
 	/* バッファ容量が不足しているならエラー */
-	if (bufferSizeInBytes < (size_t)(captureSettings->xReso * captureSettings->yReso * 4)) return false;
+	if (bufferSizeInBytes < (size_t)(params->xReso * params->yReso * glPixelFormatInfo.numBitsPerPixel / 8)) return false;
 
 	/* FBO 作成 */
 	GLuint offscreenRenderTargetFbo = 0;
@@ -750,9 +741,9 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	glExtTexStorage2D(
 		/* GLenum target */			GL_TEXTURE_2D,
 		/* GLsizei levels */		1,
-		/* GLenum internalformat */	GL_RGBA8,
-		/* GLsizei width */			captureSettings->xReso,
-		/* GLsizei height */		captureSettings->yReso
+		/* GLenum internalformat */	glPixelFormatInfo.internalformat,
+		/* GLsizei width */			params->xReso,
+		/* GLsizei height */		params->yReso
 	);
 
 	/* レンダーターゲットのバインド */
@@ -770,24 +761,7 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	);
 
 	/* 画面全体に四角形を描画 */
-	float tanFovY = tanf(fovYInRadians);
-	GraphicsDrawFullScreenQuad(
-		offscreenRenderTargetFbo,
-		waveOutPos,
-		frameCount,
-		time,
-		0,		/* キャプチャ時はマウス座標は常に 0 */
-		0,		/* キャプチャ時はマウス座標は常に 0 */
-		0,		/* キャプチャ時はマウスボタンは常に 0 */
-		0,		/* キャプチャ時はマウスボタンは常に 0 */
-		0,		/* キャプチャ時はマウスボタンは常に 0 */
-		captureSettings->xReso,
-		captureSettings->yReso,
-		tanFovY,
-		mat4x4CameraInWorld,
-		mat4x4CameraInWorld,	/* キャプチャ時は前回フレームのカメラ＝最新フレームのカメラ */
-		renderSettings
-	);
+	GraphicsDrawFullScreenQuad(offscreenRenderTargetFbo, params, renderSettings);
 
 	/* 描画結果の取得 */
 	glFinish();		/* 不要と信じたいが念のため */
@@ -798,18 +772,28 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	glReadPixels(
 		/* GLint x */				0,
 		/* GLint y */				0,
-		/* GLsizei width */			captureSettings->xReso,
-		/* GLsizei height */		captureSettings->yReso,
-		/* GLenum format */			GL_RGBA,
-		/* GLenum type */			GL_UNSIGNED_BYTE,
+		/* GLsizei width */			params->xReso,
+		/* GLsizei height */		params->yReso,
+		/* GLenum format */			glPixelFormatInfo.format,
+		/* GLenum type */			glPixelFormatInfo.type,
 		/* GLvoid * data */			buffer
 	);
 
 	/* αチャンネルの強制 1.0 置換 */
 	if (captureSettings->replaceAlphaByOne) {
-		for (int y = 0; y < captureSettings->yReso; y++) {
-			for (int x = 0; x < captureSettings->xReso; x++) {
-				((uint8_t *)buffer)[(y * captureSettings->xReso + x) * 4 + 3] = 255;
+		for (int y = 0; y < params->yReso; y++) {
+			for (int x = 0; x < params->xReso; x++) {
+				switch (renderSettings->pixelFormat) {
+					case PixelFormatUnorm8Rgba: {
+						((uint8_t *)buffer)[(y * params->xReso + x) * 4 + 3] = 255;
+					} break;
+					case PixelFormatFp16Rgba: {
+						((uint16_t *)buffer)[(y * params->xReso + x) * 4 + 3] = 0x3c00;
+					} break;
+					case PixelFormatFp32Rgba: {
+						((float *)buffer)[(y * params->xReso + x) * 4 + 3] = 1.0f;
+					} break;
+				}
 			}
 		}
 	}
@@ -827,31 +811,33 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
 	return true;
 }
 
-bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
-	int waveOutPos,
-	int frameCount,
-	float time,
-	float fovYInRadians,
-	const float mat4x4CameraInWorld[4][4],
+bool GraphicsCaptureScreenShotAsPngTexture2d(
+	const CurrentFrameParams *params,
 	const RenderSettings *renderSettings,
 	const CaptureScreenShotSettings *captureSettings
 ){
-	size_t bytesPerPixel = 4;
-	size_t bufferSizeInBytes = (size_t)(captureSettings->xReso * captureSettings->yReso) * bytesPerPixel;
+	RenderSettings renderSettingsForceUnorm8 = *renderSettings;
+	renderSettingsForceUnorm8.pixelFormat = PixelFormatUnorm8Rgba;
+	GlPixelFormatInfo glPixelFormatInfo = PixelFormatToGlPixelFormatInfo(renderSettingsForceUnorm8.pixelFormat);
+	size_t bufferSizeInBytes = (size_t)(params->xReso * params->yReso) * glPixelFormatInfo.numBitsPerPixel / 8;
 	void *buffer = malloc(bufferSizeInBytes);
 	if (
-		GraphicsCaptureScreenShotAsUnorm8RgbaImageMemory(
-			buffer, bufferSizeInBytes, waveOutPos, frameCount, time,
-			fovYInRadians, mat4x4CameraInWorld,
-			renderSettings, captureSettings
+		GraphicsCaptureScreenShotOnMemory(
+			buffer, bufferSizeInBytes,
+			params, &renderSettingsForceUnorm8, captureSettings
 		) == false
 	) {
 		free(buffer);
 		return false;
 	}
 	if (
-		SerializeAsUnorm8RgbaPng(
-			captureSettings->fileName, buffer, captureSettings->xReso, captureSettings->yReso
+		SerializeAsPng(
+			/* const char *fileName */	captureSettings->fileName,
+			/* const void *data */		buffer,
+			/* int numChannels */		4,
+			/* int width */				params->xReso,
+			/* int height */			params->yReso,
+			/* bool verticalFlip */		true
 		) == false
 	) {
 		free(buffer);
@@ -861,14 +847,48 @@ bool GraphicsCaptureScreenShotAsUnorm8RgbaImage(
 	return true;
 }
 
-bool GraphicsCaptureCubemap(
-	int waveOutPos,
-	int frameCount,
-	float time,
-	const float mat4x4CameraInWorld[4][4],
+bool GraphicsCaptureScreenShotAsDdsTexture2d(
+	const CurrentFrameParams *params,
+	const RenderSettings *renderSettings,
+	const CaptureScreenShotSettings *captureSettings
+){
+	GlPixelFormatInfo glPixelFormatInfo = PixelFormatToGlPixelFormatInfo(renderSettings->pixelFormat);
+	size_t bufferSizeInBytes = (size_t)(params->xReso * params->yReso) * glPixelFormatInfo.numBitsPerPixel / 8;
+	void *buffer = malloc(bufferSizeInBytes);
+	if (
+		GraphicsCaptureScreenShotOnMemory(
+			buffer, bufferSizeInBytes,
+			params, renderSettings, captureSettings
+		) == false
+	) {
+		free(buffer);
+		return false;
+	}
+	if (
+		SerializeAsDdsTexture2d(
+			/* const char *fileName */	captureSettings->fileName,
+			/* DxgiFormat dxgiFormat */	PixelFormatToDxgiFormat(renderSettings->pixelFormat),
+			/* const void *data */		buffer,
+			/* int width */				params->xReso,
+			/* int height */			params->yReso,
+			/* bool verticalFlip */		true
+		) == false
+	) {
+		free(buffer);
+		return false;
+	};
+	free(buffer);
+	return true;
+}
+
+bool GraphicsCaptureAsDdsCubemap(
+	const CurrentFrameParams *params,
 	const RenderSettings *renderSettings,
 	const CaptureCubemapSettings *captureSettings
 ){
+	/* OpenGL のピクセルフォーマット情報 */
+	GlPixelFormatInfo glPixelFormatInfo = PixelFormatToGlPixelFormatInfo(renderSettings->pixelFormat);
+
 	/* 先だって全レンダーターゲットのクリア */
 	GraphicsClearAllRenderTargets();
 
@@ -896,9 +916,9 @@ bool GraphicsCaptureCubemap(
 	glExtTexStorage2D(
 		/* GLenum target */			GL_TEXTURE_2D,
 		/* GLsizei levels */		1,
-		/* GLenum internalformat */	GL_RGBA32F,
-		/* GLsizei width */			captureSettings->reso,
-		/* GLsizei height */		captureSettings->reso
+		/* GLenum internalformat */	glPixelFormatInfo.internalformat,
+		/* GLsizei width */			params->xReso,
+		/* GLsizei height */		params->yReso
 	);
 
 	/* レンダーターゲットのバインド */
@@ -910,58 +930,58 @@ bool GraphicsCaptureCubemap(
 	);
 
 	/* キューブマップ各面の描画と結果の取得 */
-	float *(data[6]);
+	void *(data[6]);
 	for (int iFace = 0; iFace < 6; iFace++) {
 		/*
 			dds の cubemap face の配置
 
-		                                 [5]
-		                           +-------------+
-		                          /             /|
-		                         /     [2]     / |
-		       [+y]             /             /  |  face0:+x:right
-		        | /[  ]        +-------------+   |  face1:-x:left
-		        |/             |             |   |  face2:+y:top
-		[  ]----+----[+x]   [1]|             |[0]|  face3:-y:bottom
-		       /|              |             |   |  face4:+z:front
-		  [+z]/ |              |     [4]     |   +  face5:-z:back
-		       [  ]            |             |  /
-		                       |             | /
-		                       |             |/
-		                       +-------------+
-		                             [3]
+			                                 [5]
+			                           +-------------+
+			                          /             /|
+			                         /     [2]     / |
+			       [+y]             /             /  |  face0:+x:right
+			        | /[  ]        +-------------+   |  face1:-x:left
+			        |/             |             |   |  face2:+y:top
+			[  ]----+----[+x]   [1]|             |[0]|  face3:-y:bottom
+			       /|              |             |   |  face4:+z:front
+			  [+z]/ |              |     [4]     |   +  face5:-z:back
+			       [  ]            |             |  /
+			                       |             | /
+			                       |             |/
+			                       +-------------+
+			                             [3]
 
-		                  +-----------------+
-		                  |       [-z]      |
-		                  |        | /[  ]  |
-		                  |        |/       |
-		                  |[  ]----+----[+x]|
-		                  |       /|        |
-		                  |  [+y]/ |        |
-		                  |       [  ]      |
-		                  |                 |
-		                  | face2:+y:top    |
-		+-----------------+-----------------+-----------------+-----------------+
-		|       [+y]      |       [+y]      |       [+y]      |       [+y]      |
-		|        | /[  ]  |        | /[  ]  |        | /[  ]  |        | /[  ]  |
-		|        |/       |        |/       |        |/       |        |/       |
-		|[  ]----+----[+z]|[  ]----+----[+x]|[  ]----+----[-z]|[  ]----+----[-x]|
-		|       /|        |       /|        |       /|        |       /|        |
-		|  [-x]/ |        |  [+z]/ |        |  [+x]/ |        |  [-z]/ |        |
-		|       [  ]      |       [  ]      |       [  ]      |       [  ]      |
-		|                 |                 |                 |                 |
-		| face1:-x:left   | face4:+z:front  | face0:+x:right  | face5:-z:back   |
-		+-----------------+-----------------+-----------------+-----------------+
-		                  |       [+z]      |
-		                  |        | /[  ]  |
-		                  |        |/       |
-		                  |[  ]----+----[+x]|
-		                  |       /|        |
-		                  |  [-y]/ |        |
-		                  |       [  ]      |
-		                  |                 |
-		                  | face3:-y:bottom |
-		                  +-----------------+
+			                  +-----------------+
+			                  |       [-z]      |
+			                  |        | /[  ]  |
+			                  |        |/       |
+			                  |[  ]----+----[+x]|
+			                  |       /|        |
+			                  |  [+y]/ |        |
+			                  |       [  ]      |
+			                  |                 |
+			                  | face2:+y:top    |
+			+-----------------+-----------------+-----------------+-----------------+
+			|       [+y]      |       [+y]      |       [+y]      |       [+y]      |
+			|        | /[  ]  |        | /[  ]  |        | /[  ]  |        | /[  ]  |
+			|        |/       |        |/       |        |/       |        |/       |
+			|[  ]----+----[+z]|[  ]----+----[+x]|[  ]----+----[-z]|[  ]----+----[-x]|
+			|       /|        |       /|        |       /|        |       /|        |
+			|  [-x]/ |        |  [+z]/ |        |  [+x]/ |        |  [-z]/ |        |
+			|       [  ]      |       [  ]      |       [  ]      |       [  ]      |
+			|                 |                 |                 |                 |
+			| face1:-x:left   | face4:+z:front  | face0:+x:right  | face5:-z:back   |
+			+-----------------+-----------------+-----------------+-----------------+
+			                  |       [+z]      |
+			                  |        | /[  ]  |
+			                  |        |/       |
+			                  |[  ]----+----[+x]|
+			                  |       /|        |
+			                  |  [-y]/ |        |
+			                  |       [  ]      |
+			                  |                 |
+			                  | face3:-y:bottom |
+			                  +-----------------+
 		*/
 		const float mat4x4FaceInWorldTbl[6][4][4] = {
 			/*
@@ -1080,41 +1100,24 @@ bool GraphicsCaptureCubemap(
 			}
 		};
 
-		/* キューブマップの指定の面の方向を向き、カメラ位置を原点とする座標系 */
-		float mat4x4FaceInWorld[4][4];
-		memcpy(
-			mat4x4FaceInWorld,
-			mat4x4FaceInWorldTbl[iFace],
-			sizeof(mat4x4FaceInWorld)
-		);
-		memcpy(
-			mat4x4FaceInWorld[3],
-			mat4x4CameraInWorld[3],
-			sizeof(mat4x4FaceInWorld[3])
-		);
+		/* キューブマップ各面のパラメータ */
+		CurrentFrameParams faceParams = *params;
+		{
+			faceParams.fovYInRadians = PI / 4;	/* 垂直方向画角90度 */
+
+			/* キューブマップの指定の面の方向を向き、カメラ位置を原点とする座標系 */
+			Mat4x4Copy(faceParams.mat4x4CameraInWorld, mat4x4FaceInWorldTbl[iFace]);
+			Vec4Copy(faceParams.mat4x4CameraInWorld[3], params->mat4x4CameraInWorld[3]);
+
+			/* キャプチャ時は前回フレームのカメラ＝最新フレームのカメラ */
+			Mat4x4Copy(faceParams.mat4x4PrevCameraInWorld, faceParams.mat4x4CameraInWorld);
+		}
 
 		/* 画面全体に四角形を描画 */
-		float tanFovY = 1.0f;	/* 垂直方向画角90度 */
-		GraphicsDrawFullScreenQuad(
-			offscreenRenderTargetFbo,
-			waveOutPos,
-			frameCount,
-			time,
-			0,		/* キューブマップキャプチャ時はマウス座標は常に 0 */
-			0,		/* キューブマップキャプチャ時はマウス座標は常に 0 */
-			0,		/* キューブマップキャプチャ時はマウスボタンは常に 0 */
-			0,		/* キューブマップキャプチャ時はマウスボタンは常に 0 */
-			0,		/* キューブマップキャプチャ時はマウスボタンは常に 0 */
-			captureSettings->reso,
-			captureSettings->reso,
-			tanFovY,
-			mat4x4FaceInWorld,
-			mat4x4FaceInWorld,	/* キャプチャ時は前回フレームのカメラ＝最新フレームのカメラ */
-			renderSettings
-		);
+		GraphicsDrawFullScreenQuad(offscreenRenderTargetFbo, &faceParams, renderSettings);
 
 		/* 描画結果の取得 */
-		data[iFace] = (float *)malloc(sizeof(float) * 4 * captureSettings->reso * captureSettings->reso);
+		data[iFace] = malloc(sizeof(float) * 4 * params->xReso * params->yReso);
 		glFinish();		/* 不要と信じたいが念のため */
 		glExtBindFramebuffer(
 			/* GLenum target */			GL_FRAMEBUFFER,
@@ -1123,33 +1126,28 @@ bool GraphicsCaptureCubemap(
 		glReadPixels(
 			/* GLint x */				0,
 			/* GLint y */				0,
-			/* GLsizei width */			captureSettings->reso,
-			/* GLsizei height */		captureSettings->reso,
-			/* GLenum format */			GL_RGBA,
-			/* GLenum type */			GL_FLOAT,
+			/* GLsizei width */			params->xReso,
+			/* GLsizei height */		params->yReso,
+			/* GLenum format */			glPixelFormatInfo.format,
+			/* GLenum type */			glPixelFormatInfo.type,
 			/* GLvoid * data */			data[iFace]
 		);
-
-		/* 上下反転 */
-		for (int y = 0; y < captureSettings->reso/2; y++) {
-			for (int x = 0; x < captureSettings->reso; x++) {
-				for (int i = 0; i < 4; i++) {
-					float tmp = data[iFace][(y * captureSettings->reso + x) * 4 + i];
-					data[iFace][(y * captureSettings->reso + x) * 4 + i]
-					=	data[iFace][((captureSettings->reso - y - 1) * captureSettings->reso + x) * 4 + i];
-					data[iFace][((captureSettings->reso - y - 1) * captureSettings->reso + x) * 4 + i] = tmp;
-				}
-			}
-		}
 	}
 
 	/* ファイルに書き出し */
-	bool ret = SerializeAsFp32RgbaCubemapDds(
-		/* const char *fileName */	captureSettings->fileName,
-		/* float *(data[6]) */		data,
-		/* int width */				captureSettings->reso,
-		/* int height */			captureSettings->reso
-	);
+	bool ret;
+	{
+		int cubemapReso = params->xReso;
+		assert(params->xReso == params->yReso);
+		const void *(constData[6]) = {data[0], data[1], data[2], data[3], data[4], data[5]};
+		ret = SerializeAsDdsCubemap(
+			/* const char *fileName */		captureSettings->fileName,
+			/* DxgiFormat dxgiFormat */		PixelFormatToDxgiFormat(renderSettings->pixelFormat),
+			/* const void *(data[6]) */		constData,
+			/* int reso */					cubemapReso,
+			/* bool verticalFlip */			true
+		);
+	}
 
 	/* メモリ破棄 */
 	for (int iFace = 0; iFace < 6; iFace++) {
@@ -1170,38 +1168,13 @@ bool GraphicsCaptureCubemap(
 }
 
 void GraphicsUpdate(
-	int waveOutPos,
-	int frameCount,
-	float time,
-	int xMouse,
-	int yMouse,
-	int mouseLButtonPressed,
-	int mouseMButtonPressed,
-	int mouseRButtonPressed,
-	int xReso,
-	int yReso,
-	float fovYInRadians,
-	const float mat4x4CameraInWorld[4][4],
-	const float mat4x4PrevCameraInWorld[4][4],
+	const CurrentFrameParams *params,
 	const RenderSettings *settings
 ){
 	/* 画面全体に四角形を描画 */
-	float tanFovY = tanf(fovYInRadians);
 	GraphicsDrawFullScreenQuad(
 		0,		/* デフォルトフレームバッファに出力 */
-		waveOutPos,
-		frameCount,
-		time,
-		xMouse,
-		yMouse,
-		mouseLButtonPressed,
-		mouseMButtonPressed,
-		mouseRButtonPressed,
-		xReso,
-		yReso,
-		tanFovY,
-		mat4x4CameraInWorld,
-		mat4x4PrevCameraInWorld,
+		params,
 		settings
 	);
 

@@ -25,11 +25,11 @@
 #include "export_executable.h"
 #include "record_image_sequence.h"
 #include "dialog_confirm_over_write.h"
+#include "tiny_vmath.h"
 #include "app.h"
 
 #include "resource/resource.h"
 
-#define PI 3.14159265359f
 #define WAVEOUT_SEEKSTEP_IN_SAMPLES	(0x4000)
 
 
@@ -93,25 +93,27 @@ static struct PreferenceSettings {
 	true, true
 };
 static ExecutableExportSettings s_executableExportSettings = {
-	/* char fileName[MAX_PATH]; */				{0},
-	/* int xReso; */							DEFAULT_SCREEN_XRESO,
-	/* int yReso; */							DEFAULT_SCREEN_YRESO,
-	/* float durationInSeconds; */				DEFAULT_DURATION_IN_SECONDS,
-	/* int numSoundBufferSamples; */			NUM_SOUND_BUFFER_SAMPLES,
-	/* int numSoundBufferAvailableSamples; */	NUM_SOUND_BUFFER_SAMPLES,
-	/* int numSoundBufferSamplesPerDispatch; */	NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH,
-	/* bool enableFrameCountUniform; */			true,
-	/* bool enableSoundDispatchWait; */			true,
-	/* struct ShaderMinifierOptions { */		{
-	/*  bool noRenaming; */							false,
-	/*  bool noSequence; */							false,
-	/*  bool smoothstep; */							false,
-	/* } shaderMinifierOptions; */				},
-	/* struct CrinklerOptions { */				{
-	/*  CrinklerCompMode compMode; */				DEFAULT_CRINKLER_COMP_MODE,
-	/*  bool useTinyHeader; */						false,
-	/*  bool useTinyImport; */						false,
-	/* } crinklerOptions; */					}
+	/* char fileName[MAX_PATH]; */										{0},
+	/* int xReso; */													DEFAULT_SCREEN_XRESO,
+	/* int yReso; */													DEFAULT_SCREEN_YRESO,
+	/* float durationInSeconds; */										DEFAULT_DURATION_IN_SECONDS,
+	/* int numSoundBufferSamples; */									NUM_SOUND_BUFFER_SAMPLES,
+	/* int numSoundBufferAvailableSamples; */							NUM_SOUND_BUFFER_SAMPLES,
+	/* int numSoundBufferSamplesPerDispatch; */							NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH,
+	/* bool enableFrameCountUniform; */									true,
+	/* bool enableSoundDispatchWait; */									true,
+	/* struct ShaderMinifierOptions { */								{
+	/*  bool noRenaming; */													false,
+	/*  bool enableNoRenamingList; */										false,
+	/*  char noRenamingList[SHADER_MINIFIER_NO_RENAMING_LIST_MAX]; */		"main",
+	/*  bool noSequence; */													false,
+	/*  bool smoothstep; */													false,
+	/* } shaderMinifierOptions; */										},
+	/* struct CrinklerOptions { */										{
+	/*  CrinklerCompMode compMode; */										DEFAULT_CRINKLER_COMP_MODE,
+	/*  bool useTinyHeader; */												false,
+	/*  bool useTinyImport; */												false,
+	/* } crinklerOptions; */											}
 };
 static RecordImageSequenceSettings s_recordImageSequenceSettings = {
 	/* char directoryName[MAX_PATH]; */	{0},
@@ -356,132 +358,6 @@ void AppLastErrorMessageBox(const char *caption){
 		AppErrorMessageBox(caption, "FormatMessage failed. errorCode = %08X\n\n", errorCode);
 	}
 	LocalFree(lpMsgBuf);
-}
-
-/*=============================================================================
-▼	簡易ベクトル演算関連
------------------------------------------------------------------------------*/
-static void
-Vec4Copy(
-	float vec4Dst[4],
-	const float vec4Src[4]
-){
-	for (int i = 0; i < 4; ++i) {
-		vec4Dst[i] = vec4Src[i];
-	}
-}
-
-static void
-Vec4MulScalar(
-	float vec4A[4],
-	const float vec4B[4],
-	float scalar
-){
-	for (int i = 0; i < 4; ++i) {
-		vec4A[i] = vec4B[i] * scalar;
-	}
-}
-
-static void
-Vec4MacScalar(
-	float vec4A[4],
-	const float vec4B[4],
-	const float vec4C[4],
-	float scalar
-){
-	for (int i = 0; i < 4; ++i) {
-		vec4A[i] = vec4B[i] + vec4C[i] * scalar;
-	}
-}
-
-static void
-Vec4Transform(
-	float vec4A[4],
-	const float mat4x4B[4][4],
-	const float vec4C[4]
-){
-	float vec4Tmp[4];
-	Vec4MulScalar(vec4Tmp, mat4x4B[0], vec4C[0]);
-	Vec4MacScalar(vec4Tmp, vec4Tmp, mat4x4B[1], vec4C[1]);
-	Vec4MacScalar(vec4Tmp, vec4Tmp, mat4x4B[2], vec4C[2]);
-	Vec4MacScalar(vec4Tmp, vec4Tmp, mat4x4B[3], vec4C[3]);
-	Vec4Copy(vec4A, vec4Tmp);
-}
-
-static void
-Mat4x4Copy(
-	float mat4x4Dst[4][4],
-	const float mat4x4Src[4][4]
-){
-	for (int i = 0; i < 4; ++i) {
-		Vec4Copy(mat4x4Dst[i], mat4x4Src[i]);
-	}
-}
-
-static void
-Mat4x4SetUnit(
-	float mat4x4[4][4]
-){
-	for (int i = 0; i < 4; ++i) {
-		for (int j = 0; j < 4; ++j) {
-			mat4x4[i][j] = (i == j)? 1.0f : 0.0f;
-		}
-	}
-}
-
-static void
-Mat4x4Mul(
-	float mat4x4A[4][4],
-	float mat4x4B[4][4],
-	float mat4x4C[4][4]
-){
-	float mat4x4Tmp[4][4];
-	for (int i = 0; i < 4; ++i) {
-		Vec4Transform(mat4x4Tmp[i], mat4x4B, mat4x4C[i]);
-	}
-	Mat4x4Copy(mat4x4A, mat4x4Tmp);
-}
-
-static void
-Mat4x4SetAffineRotX(
-	float mat4x4[4][4],
-	float xAng
-){
-	const float s = sinf(xAng);
-	const float c = cosf(xAng);
-	Mat4x4SetUnit(mat4x4);
-	mat4x4[1][1] = c;
-	mat4x4[1][2] = s;
-	mat4x4[2][1] = -s;
-	mat4x4[2][2] = c;
-}
-
-static void
-Mat4x4SetAffineRotY(
-	float mat4x4[4][4],
-	float yAng
-){
-	const float s = sinf(yAng);
-	const float c = cosf(yAng);
-	Mat4x4SetUnit(mat4x4);
-	mat4x4[0][0] = c;
-	mat4x4[0][2] = -s;
-	mat4x4[2][0] = s;
-	mat4x4[2][2] = c;
-}
-
-static void
-Mat4x4SetAffineRotZ(
-	float mat4x4[4][4],
-	float zAng
-){
-	const float s = sinf(zAng);
-	const float c = cosf(zAng);
-	Mat4x4SetUnit(mat4x4);
-	mat4x4[0][0] = c;
-	mat4x4[0][1] = s;
-	mat4x4[1][0] = -s;
-	mat4x4[1][1] = c;
 }
 
 /*=============================================================================
@@ -800,15 +676,37 @@ bool AppCaptureScreenShotGetForceReplaceAlphaByOneFlag(){
 void AppCaptureScreenShot(){
 	if (s_graphicsCreateShaderSucceeded) {
 		if (DialogConfirmOverWrite(s_captureScreenShotSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
-			bool ret = GraphicsCaptureScreenShotAsUnorm8RgbaImage(
-				SoundGetWaveOutPos(), s_frameCount, float(HighPrecisionTimerGet()),
-				s_camera.fovYInRadians, s_camera.mat4x4CameraInWorld,
-				&s_renderSettings, &s_captureScreenShotSettings
-			);
+			CurrentFrameParams params = {0};
+			params.waveOutPos				= SoundGetWaveOutPos();
+			params.frameCount				= s_frameCount;
+			params.time						= float(HighPrecisionTimerGet());
+			params.xMouse					= 0;
+			params.yMouse					= 0;
+			params.mouseLButtonPressed		= 0;
+			params.mouseMButtonPressed		= 0;
+			params.mouseRButtonPressed		= 0;
+			params.xReso					= s_captureScreenShotSettings.xReso;
+			params.yReso					= s_captureScreenShotSettings.yReso;
+			params.fovYInRadians			= s_camera.fovYInRadians;
+			Mat4x4Copy(params.mat4x4CameraInWorld,		s_camera.mat4x4CameraInWorld);
+			Mat4x4Copy(params.mat4x4PrevCameraInWorld,	s_camera.mat4x4PrevCameraInWorld);
+
+			bool ret;
+			if (IsSuffix(s_captureScreenShotSettings.fileName, ".png")) {
+				ret = GraphicsCaptureScreenShotAsPngTexture2d(
+					&params, &s_renderSettings, &s_captureScreenShotSettings
+				);
+			}
+			if (IsSuffix(s_captureScreenShotSettings.fileName, ".dds")) {
+				ret = GraphicsCaptureScreenShotAsDdsTexture2d(
+					&params, &s_renderSettings, &s_captureScreenShotSettings
+				);
+			}
+
 			if (ret) {
-				AppMessageBox(APP_NAME, "Capture screen shot as png file completed successfully.");
+				AppMessageBox(APP_NAME, "Capture screen shot completed successfully.");
 			} else {
-				AppErrorMessageBox(APP_NAME, "Failed to capture screen shot as png file.");
+				AppErrorMessageBox(APP_NAME, "Failed to capture screen shot.");
 			}
 		}
 	} else {
@@ -838,9 +736,23 @@ int AppCaptureCubemapGetResolution(){
 void AppCaptureCubemap(){
 	if (s_graphicsCreateShaderSucceeded) {
 		if (DialogConfirmOverWrite(s_captureCubemapSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
-			bool ret = GraphicsCaptureCubemap(
-				SoundGetWaveOutPos(), s_frameCount, float(HighPrecisionTimerGet()),
-				s_camera.mat4x4CameraInWorld, &s_renderSettings, &s_captureCubemapSettings
+			CurrentFrameParams params = {0};
+			params.waveOutPos				= SoundGetWaveOutPos();
+			params.frameCount				= s_frameCount;
+			params.time						= float(HighPrecisionTimerGet());
+			params.xMouse					= 0;
+			params.yMouse					= 0;
+			params.mouseLButtonPressed		= 0;
+			params.mouseMButtonPressed		= 0;
+			params.mouseRButtonPressed		= 0;
+			params.xReso					= s_captureCubemapSettings.reso;
+			params.yReso					= s_captureCubemapSettings.reso;
+			params.fovYInRadians			= s_camera.fovYInRadians;
+			Mat4x4Copy(params.mat4x4CameraInWorld,		s_camera.mat4x4CameraInWorld);
+			Mat4x4Copy(params.mat4x4PrevCameraInWorld,	s_camera.mat4x4PrevCameraInWorld);
+
+			bool ret = GraphicsCaptureAsDdsCubemap(
+				&params, &s_renderSettings, &s_captureCubemapSettings
 			);
 			if (ret) {
 				AppMessageBox(APP_NAME, "Capture cubemap as dds file completed successfully.");
@@ -938,6 +850,22 @@ void AppExportExecutableSetShaderMinifierOptionsNoRenaming(bool flag){
 }
 bool AppExportExecutableGetShaderMinifierOptionsNoRenaming(){
 	return s_executableExportSettings.shaderMinifierOptions.noRenaming;
+}
+void AppExportExecutableSetShaderMinifierOptionsEnableNoRenamingList(bool flag){
+	s_executableExportSettings.shaderMinifierOptions.enableNoRenamingList = flag;
+}
+bool AppExportExecutableGetShaderMinifierOptionsEnableNoRenamingList(){
+	return s_executableExportSettings.shaderMinifierOptions.enableNoRenamingList;
+}
+void AppExportExecutableSetShaderMinifierOptionsNoRenamingList(const char *noRenamingList){
+	strcpy_s(
+		s_executableExportSettings.shaderMinifierOptions.noRenamingList,
+		sizeof(s_executableExportSettings.shaderMinifierOptions.noRenamingList),
+		noRenamingList
+	);
+}
+const char *AppExportExecutableGetShaderMinifierOptionsNoRenamingList(){
+	return s_executableExportSettings.shaderMinifierOptions.noRenamingList;
 }
 void AppExportExecutableSetShaderMinifierOptionsNoSequence(bool flag){
 	s_executableExportSettings.shaderMinifierOptions.noSequence = flag;
@@ -1240,21 +1168,23 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 	{
 		char relativeFileName[MAX_PATH] = {0};
 
-		JsonGetAsString(jsonRoot, "/executableExportSettings/fileName",                         relativeFileName, sizeof(relativeFileName), "");
-		JsonGetAsInt   (jsonRoot, "/executableExportSettings/xReso",                            &s_executableExportSettings.xReso, DEFAULT_SCREEN_XRESO);
-		JsonGetAsInt   (jsonRoot, "/executableExportSettings/yReso",                            &s_executableExportSettings.yReso, DEFAULT_SCREEN_YRESO);
-		JsonGetAsFloat (jsonRoot, "/executableExportSettings/durationInSeconds",                &s_executableExportSettings.durationInSeconds, DEFAULT_DURATION_IN_SECONDS);
-		JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamples",            &s_executableExportSettings.numSoundBufferSamples, NUM_SOUND_BUFFER_SAMPLES);
-		JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferAvailableSamples",   &s_executableExportSettings.numSoundBufferAvailableSamples, NUM_SOUND_BUFFER_SAMPLES);
-		JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamplesPerDispatch", &s_executableExportSettings.numSoundBufferSamplesPerDispatch, NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH);
-		JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableFrameCountUniform",          &s_executableExportSettings.enableFrameCountUniform, true);
-		JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableSoundDispatchWait",          &s_executableExportSettings.enableSoundDispatchWait, true);
-		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noRenaming", &s_executableExportSettings.shaderMinifierOptions.noRenaming, false);
-		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noSequence", &s_executableExportSettings.shaderMinifierOptions.noSequence, false);
-		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/smoothstep", &s_executableExportSettings.shaderMinifierOptions.smoothstep, false);
-		JsonGetAsInt   (jsonRoot, "/executableExportSettings/crinklerOptions/compMode",         (int *)&s_executableExportSettings.crinklerOptions.compMode, DEFAULT_CRINKLER_COMP_MODE);
-		JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyHeader",    &s_executableExportSettings.crinklerOptions.useTinyHeader, false);
-		JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyImport",    &s_executableExportSettings.crinklerOptions.useTinyImport, false);
+		JsonGetAsString(jsonRoot, "/executableExportSettings/fileName",                                   relativeFileName, sizeof(relativeFileName), "");
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/xReso",                                      &s_executableExportSettings.xReso, DEFAULT_SCREEN_XRESO);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/yReso",                                      &s_executableExportSettings.yReso, DEFAULT_SCREEN_YRESO);
+		JsonGetAsFloat (jsonRoot, "/executableExportSettings/durationInSeconds",                          &s_executableExportSettings.durationInSeconds, DEFAULT_DURATION_IN_SECONDS);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamples",                      &s_executableExportSettings.numSoundBufferSamples, NUM_SOUND_BUFFER_SAMPLES);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferAvailableSamples",             &s_executableExportSettings.numSoundBufferAvailableSamples, NUM_SOUND_BUFFER_SAMPLES);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamplesPerDispatch",           &s_executableExportSettings.numSoundBufferSamplesPerDispatch, NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableFrameCountUniform",                    &s_executableExportSettings.enableFrameCountUniform, true);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableSoundDispatchWait",                    &s_executableExportSettings.enableSoundDispatchWait, true);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noRenaming",           &s_executableExportSettings.shaderMinifierOptions.noRenaming, false);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/enableNoRenamingList", &s_executableExportSettings.shaderMinifierOptions.enableNoRenamingList, false);
+		JsonGetAsString(jsonRoot, "/executableExportSettings/shaderMinifierOptions/noRenamingList",        s_executableExportSettings.shaderMinifierOptions.noRenamingList, sizeof(s_executableExportSettings.shaderMinifierOptions.noRenamingList), "");
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noSequence",           &s_executableExportSettings.shaderMinifierOptions.noSequence, false);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/smoothstep",           &s_executableExportSettings.shaderMinifierOptions.smoothstep, false);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/crinklerOptions/compMode",                   (int *)&s_executableExportSettings.crinklerOptions.compMode, DEFAULT_CRINKLER_COMP_MODE);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyHeader",              &s_executableExportSettings.crinklerOptions.useTinyHeader, false);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/crinklerOptions/useTinyImport",              &s_executableExportSettings.crinklerOptions.useTinyImport, false);
 
 		if (strcmp(relativeFileName, "") == 0) {
 			s_executableExportSettings.fileName[0] = '\0';
@@ -1460,9 +1390,11 @@ static void AppProjectSerializeToJson(cJSON *jsonRoot, const char *projectBasePa
 		cJSON_AddBoolToObject  (jsonSettings, "enableSoundDispatchWait",          s_executableExportSettings.enableSoundDispatchWait);
 		{
 			cJSON *jsonOptions = cJSON_AddObjectToObject(jsonSettings, "shaderMinifierOptions");
-			cJSON_AddBoolToObject(jsonOptions, "noRenaming", s_executableExportSettings.shaderMinifierOptions.noRenaming);
-			cJSON_AddBoolToObject(jsonOptions, "noSequence", s_executableExportSettings.shaderMinifierOptions.noSequence);
-			cJSON_AddBoolToObject(jsonOptions, "smoothstep", s_executableExportSettings.shaderMinifierOptions.smoothstep);
+			cJSON_AddBoolToObject  (jsonOptions, "noRenaming",           s_executableExportSettings.shaderMinifierOptions.noRenaming);
+			cJSON_AddBoolToObject  (jsonOptions, "enableNoRenamingList", s_executableExportSettings.shaderMinifierOptions.enableNoRenamingList);
+			cJSON_AddStringToObject(jsonOptions, "noRenamingList",       s_executableExportSettings.shaderMinifierOptions.noRenamingList);
+			cJSON_AddBoolToObject  (jsonOptions, "noSequence",           s_executableExportSettings.shaderMinifierOptions.noSequence);
+			cJSON_AddBoolToObject  (jsonOptions, "smoothstep",           s_executableExportSettings.shaderMinifierOptions.smoothstep);
 		}
 		{
 			cJSON *jsonOptions = cJSON_AddObjectToObject(jsonSettings, "crinklerOptions");
@@ -2031,15 +1963,21 @@ bool AppUpdate(){
 	/* グラフィクスの更新 */
 	CheckGlError("pre GraphicsUpdate");
 	if (s_graphicsCreateShaderSucceeded) {
-		GraphicsUpdate(
-			SoundGetWaveOutPos(), s_frameCount, float(fp64CurrentTime),
-			s_mouse.x, s_mouse.y,
-			s_mouse.LButtonPressed, s_mouse.MButtonPressed, s_mouse.RButtonPressed,
-			s_xReso, s_yReso,
-			s_camera.fovYInRadians,
-			s_camera.mat4x4CameraInWorld, s_camera.mat4x4PrevCameraInWorld,
-			&s_renderSettings
-		);
+		CurrentFrameParams params = {0};
+		params.waveOutPos				= SoundGetWaveOutPos();
+		params.frameCount				= s_frameCount;
+		params.time						= float(fp64CurrentTime);
+		params.xMouse					= s_mouse.x;
+		params.yMouse					= s_mouse.y;
+		params.mouseLButtonPressed		= s_mouse.LButtonPressed;
+		params.mouseMButtonPressed		= s_mouse.MButtonPressed;
+		params.mouseRButtonPressed		= s_mouse.RButtonPressed;
+		params.xReso					= s_xReso;
+		params.yReso					= s_yReso;
+		params.fovYInRadians			= s_camera.fovYInRadians;
+		Mat4x4Copy(params.mat4x4CameraInWorld,		s_camera.mat4x4CameraInWorld);
+		Mat4x4Copy(params.mat4x4PrevCameraInWorld,	s_camera.mat4x4PrevCameraInWorld);
+		GraphicsUpdate(&params, &s_renderSettings);
 	}
 	CheckGlError("post GraphicsUpdate");
 
@@ -2059,9 +1997,12 @@ bool AppHelpAbout(
 ){
 	AppMessageBox(
 		APP_NAME,
-		"MinimalGL\n\n"
-		"Copyright (c)2020 @yosshin4004\n"
-		"https://github.com/yosshin4004/minimal_gl"
+		"Copyright (c)2023 @yosshin4004\n"
+		"https://github.com/yosshin4004/minimal_gl\n"
+		"Build %s %s\n"
+		,
+		__DATE__,
+		__TIME__
 	);
 	return true;
 }

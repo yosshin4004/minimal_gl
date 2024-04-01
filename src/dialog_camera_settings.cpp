@@ -12,8 +12,6 @@
 #include "dialog_camera_settings.h"
 #include "resource/resource.h"
 
-#define PI 3.14159265359
-
 
 static LRESULT CALLBACK DialogFunc(
 	HWND hDwnd,

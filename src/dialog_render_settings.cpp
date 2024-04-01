@@ -13,7 +13,7 @@
 #include "resource/resource.h"
 
 
-static void updateButtonState(HWND hDwnd){
+static void UpdateButtonState(HWND hDwnd){
 	bool enableMultipleRenderTargets = GetDlgItemCheck(
 		hDwnd, IDD_RENDER_SETTINGS_ENABLE_MULTIPLE_RENDER_TARGETS
 	);
@@ -104,7 +104,7 @@ static LRESULT CALLBACK DialogFunc(
 					case PixelFormatFp32Rgba: {
 						nIDDlgItem = IDR_RENDER_SETTINGS_PIXEL_FORMAT_FP32_RGBA;
 					} break;
-					default : {
+					default: {
 						assert(false);
 					} break;
 				}
@@ -161,7 +161,7 @@ static LRESULT CALLBACK DialogFunc(
 					case TextureFilterLinear: {
 						nIDDlgItem = IDR_RENDER_SETTINGS_TEXTURE_FILTER_LINEAR;
 					} break;
-					default : {
+					default: {
 						assert(false);
 					} break;
 				}
@@ -181,7 +181,7 @@ static LRESULT CALLBACK DialogFunc(
 					case TextureWrapMirroredRepeat: {
 						nIDDlgItem = IDR_RENDER_SETTINGS_TEXTURE_WRAP_MIRRORED_REPEAT;
 					} break;
-					default : {
+					default: {
 						assert(false);
 					} break;
 				}
@@ -207,7 +207,7 @@ static LRESULT CALLBACK DialogFunc(
 					case SwapIntervalVsync :{
 						nIDDlgItem = IDR_RENDER_SETTINGS_SWAP_INTERVAL_VSYNC;
 					} break;
-					default : {
+					default: {
 						assert(false);
 					} break;
 				}
@@ -215,7 +215,7 @@ static LRESULT CALLBACK DialogFunc(
 			}
 
 			/* ボタン有効/無効ステート更新 */
-			updateButtonState(hDwnd);
+			UpdateButtonState(hDwnd);
 
 			/* メッセージは処理された */
 			return 1;
@@ -368,19 +368,19 @@ static LRESULT CALLBACK DialogFunc(
 				/* Enable multiple render targets チェックボックスの更新  */
 				case IDD_RENDER_SETTINGS_ENABLE_MULTIPLE_RENDER_TARGETS: {
 					/* ボタン有効/無効ステート更新 */
-					updateButtonState(hDwnd);
+					UpdateButtonState(hDwnd);
 				} break;
 
 				/* Enable back buffer チェックボックスの更新  */
 				case IDD_RENDER_SETTINGS_ENABLE_BACK_BUFFER: {
 					/* ボタン有効/無効ステート更新 */
-					updateButtonState(hDwnd);
+					UpdateButtonState(hDwnd);
 				} break;
 
 				/* Enable swap interval control チェックボックスの更新  */
 				case IDC_RENDER_SETTINGS_ENABLE_SWAP_INTERVAL_CONTROL: {
 					/* ボタン有効/無効ステート更新 */
-					updateButtonState(hDwnd);
+					UpdateButtonState(hDwnd);
 				} break;
 			}
 		} break;

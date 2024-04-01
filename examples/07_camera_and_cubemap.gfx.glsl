@@ -98,6 +98,8 @@ void main(){
 		vec3 intersectPosition = rayOrg + rayDir * lIntersect;
 		vec3 normal = EstimateSceneNormal(rayOrg + rayDir * lIntersect);
 		color = Shading(intersectPosition, normal);
+
+		color = mix(max(rayDir, 0), color, exp(-lIntersect * .2));
 	}
 
 	outColor = vec4(color, 1);
