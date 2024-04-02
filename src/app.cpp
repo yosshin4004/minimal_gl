@@ -103,6 +103,8 @@ static ExecutableExportSettings s_executableExportSettings = {
 	/* bool enableFrameCountUniform; */									true,
 	/* bool enableSoundDispatchWait; */									true,
 	/* struct ShaderMinifierOptions { */								{
+	/*  bool enableFieldNames; */											false,
+	/*  int fieldNameIndex; */												0,
 	/*  bool noRenaming; */													false,
 	/*  bool enableNoRenamingList; */										false,
 	/*  char noRenamingList[SHADER_MINIFIER_NO_RENAMING_LIST_MAX]; */		"main",
@@ -845,6 +847,18 @@ void AppExportExecutableSetEnableSoundDispatchWaitFlag(bool flag){
 bool AppExportExecutableGetEnableSoundDispatchWaitFlag(){
 	return s_executableExportSettings.enableSoundDispatchWait;
 }
+void AppExportExecutableSetShaderMinifierOptionsEnableFieldNames(bool flag){
+	s_executableExportSettings.shaderMinifierOptions.enableFieldNames = flag;
+}
+bool AppExportExecutableGetShaderMinifierOptionsEnableFieldNames(){
+	return s_executableExportSettings.shaderMinifierOptions.enableFieldNames;
+}
+void AppExportExecutableSetShaderMinifierOptionsFieldNameIndex(int index){
+	s_executableExportSettings.shaderMinifierOptions.fieldNameIndex = index;
+}
+int AppExportExecutableGetShaderMinifierOptionsFieldNameIndex(){
+	return s_executableExportSettings.shaderMinifierOptions.fieldNameIndex;
+}
 void AppExportExecutableSetShaderMinifierOptionsNoRenaming(bool flag){
 	s_executableExportSettings.shaderMinifierOptions.noRenaming = flag;
 }
@@ -1177,6 +1191,8 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 		JsonGetAsInt   (jsonRoot, "/executableExportSettings/numSoundBufferSamplesPerDispatch",           &s_executableExportSettings.numSoundBufferSamplesPerDispatch, NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH);
 		JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableFrameCountUniform",                    &s_executableExportSettings.enableFrameCountUniform, true);
 		JsonGetAsBool  (jsonRoot, "/executableExportSettings/enableSoundDispatchWait",                    &s_executableExportSettings.enableSoundDispatchWait, true);
+		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/enableFieldNames",     &s_executableExportSettings.shaderMinifierOptions.enableFieldNames, false);
+		JsonGetAsInt   (jsonRoot, "/executableExportSettings/shaderMinifierOptions/fieldNameIndex",       &s_executableExportSettings.shaderMinifierOptions.fieldNameIndex, 0);
 		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/noRenaming",           &s_executableExportSettings.shaderMinifierOptions.noRenaming, false);
 		JsonGetAsBool  (jsonRoot, "/executableExportSettings/shaderMinifierOptions/enableNoRenamingList", &s_executableExportSettings.shaderMinifierOptions.enableNoRenamingList, false);
 		JsonGetAsString(jsonRoot, "/executableExportSettings/shaderMinifierOptions/noRenamingList",        s_executableExportSettings.shaderMinifierOptions.noRenamingList, sizeof(s_executableExportSettings.shaderMinifierOptions.noRenamingList), "");
@@ -1390,6 +1406,8 @@ static void AppProjectSerializeToJson(cJSON *jsonRoot, const char *projectBasePa
 		cJSON_AddBoolToObject  (jsonSettings, "enableSoundDispatchWait",          s_executableExportSettings.enableSoundDispatchWait);
 		{
 			cJSON *jsonOptions = cJSON_AddObjectToObject(jsonSettings, "shaderMinifierOptions");
+			cJSON_AddBoolToObject  (jsonOptions, "enableFieldNames",     s_executableExportSettings.shaderMinifierOptions.enableFieldNames);
+			cJSON_AddNumberToObject(jsonOptions, "fieldNameIndex",       s_executableExportSettings.shaderMinifierOptions.fieldNameIndex);
 			cJSON_AddBoolToObject  (jsonOptions, "noRenaming",           s_executableExportSettings.shaderMinifierOptions.noRenaming);
 			cJSON_AddBoolToObject  (jsonOptions, "enableNoRenamingList", s_executableExportSettings.shaderMinifierOptions.enableNoRenamingList);
 			cJSON_AddStringToObject(jsonOptions, "noRenamingList",       s_executableExportSettings.shaderMinifierOptions.noRenamingList);

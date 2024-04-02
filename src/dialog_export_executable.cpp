@@ -49,8 +49,16 @@ static void UpdateButtonState(HWND hDwnd){
 		hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_NO_RENAMING_LIST
 	);
 	EnableWindow(
-		GetDlgItem(hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING_LIST_EDITBOX),
+		GetDlgItem(hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING_LIST),
 		shaderMinifierEnableNoRenamingList
+	);
+
+	bool shaderMinifierEnableFieldNames = GetDlgItemCheck(
+		hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_FIELD_NAMES
+	);
+	EnableWindow(
+		GetDlgItem(hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_FIELD_NAMES),
+		shaderMinifierEnableFieldNames
 	);
 }
 
@@ -94,6 +102,28 @@ static LRESULT CALLBACK DialogFunc(
 				AppExportExecutableGetEnableSoundDispatchWaitFlag()
 			);
 
+			/* ShaderMinifier の field-names 有効化フラグをチェックボックスに設定 */
+			SetDlgItemCheck(
+				hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_FIELD_NAMES,
+				AppExportExecutableGetShaderMinifierOptionsEnableFieldNames()
+			);
+
+			/* ShaderMinifier の field-names をコンボボックスに設定 */
+			{
+				HWND dlgItem = GetDlgItem(hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_FIELD_NAMES);
+
+				/* コンボボックスに項目を送信 */
+				SendMessage(dlgItem, CB_INSERTSTRING, 0, (LPARAM)"rgba");
+				SendMessage(dlgItem, CB_INSERTSTRING, 1, (LPARAM)"xyzw");
+				SendMessage(dlgItem, CB_INSERTSTRING, 2, (LPARAM)"stpq");
+
+				/* 初期状態で選択されている項目の指定 */
+				SendMessage(dlgItem, CB_SETCURSEL,
+					AppExportExecutableGetShaderMinifierOptionsFieldNameIndex(),
+					(LPARAM)0
+				);
+			}
+
 			/* ShaderMinifier の no-renaming フラグをチェックボックスに設定 */
 			SetDlgItemCheck(
 				hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING,
@@ -110,7 +140,7 @@ static LRESULT CALLBACK DialogFunc(
 			{
 				const char *noRenamingList = AppExportExecutableGetShaderMinifierOptionsNoRenamingList();
 				SetDlgItemText(
-					hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING_LIST_EDITBOX,
+					hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING_LIST,
 					noRenamingList
 				);
 			}
@@ -270,6 +300,17 @@ static LRESULT CALLBACK DialogFunc(
 						hDwnd, IDD_EXPORT_EXECUTABLE_ENABLE_SOUND_DISPATCH_WAIT
 					);
 
+					/* ShaderMinifier の field-names 有効化フラグをチェックボックスから取得 */
+					bool shaderMinifierEnableFieldNames = GetDlgItemCheck(
+						hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_FIELD_NAMES
+					);
+
+					/* ShaderMinifier の field-names コンボボックスから取得 */
+					int shaderMinifierFieldNameIndex = (int)SendMessage(
+						GetDlgItem(hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_FIELD_NAMES),
+						CB_GETCURSEL, 0, (LPARAM)0
+					);
+
 					/* ShaderMinifier の no-renaming フラグをチェックボックスから取得 */
 					bool shaderMinifierNoRenaming = GetDlgItemCheck(
 						hDwnd, IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING
@@ -284,7 +325,7 @@ static LRESULT CALLBACK DialogFunc(
 					char shaderMinifierNoRenamingList[SHADER_MINIFIER_NO_RENAMING_LIST_MAX] = {0};
 					GetDlgItemText(
 						hDwnd,
-						IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING_LIST_EDITBOX,
+						IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_NO_RENAMING_LIST,
 						shaderMinifierNoRenamingList, sizeof(shaderMinifierNoRenamingList)
 					);
 
@@ -344,6 +385,8 @@ static LRESULT CALLBACK DialogFunc(
 					AppExportExecutableSetEnableFrameCountUniformFlag(enableFrameCountUniform);
 					AppExportExecutableSetEnableSoundDispatchWaitFlag(enableSoundDispatchWait);
 					AppExportExecutableSetCurrentOutputFileName(outputFileName);
+					AppExportExecutableSetShaderMinifierOptionsEnableFieldNames(shaderMinifierEnableFieldNames);
+					AppExportExecutableSetShaderMinifierOptionsFieldNameIndex(shaderMinifierFieldNameIndex);
 					AppExportExecutableSetShaderMinifierOptionsNoRenaming(shaderMinifierNoRenaming);
 					AppExportExecutableSetShaderMinifierOptionsEnableNoRenamingList(shaderMinifierEnableNoRenamingList);
 					AppExportExecutableSetShaderMinifierOptionsNoRenamingList(shaderMinifierNoRenamingList);
@@ -369,7 +412,13 @@ static LRESULT CALLBACK DialogFunc(
 					return 1;
 				} break;
 
-				/* ShaderMinifier の no-renaming-list 有効化フラグをチェックボックスの更新  */
+				/* ShaderMinifier の field-names 有効化フラグチェックボックスの更新  */
+				case IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_FIELD_NAMES: {
+					/* ボタン有効/無効ステート更新 */
+					UpdateButtonState(hDwnd);
+				} break;
+
+				/* ShaderMinifier の no-renaming-list 有効化フラグチェックボックスの更新  */
 				case IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_NO_RENAMING_LIST: {
 					/* ボタン有効/無効ステート更新 */
 					UpdateButtonState(hDwnd);

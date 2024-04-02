@@ -46,7 +46,11 @@
 		"enableFrameCountUniform":	true,
 		"enableSoundDispatchWait":	true,
 		"shaderMinifierOptions":	{
+			"enableFieldNames":	false,
+			"fieldNameIndex":	0,
 			"noRenaming":	false,
+			"enableNoRenamingList":	false,
+			"noRenamingList":	"",
 			"noSequence":	false,
 			"smoothstep":	false
 		},

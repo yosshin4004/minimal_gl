@@ -30,6 +30,8 @@ struct ExecutableExportSettings {
 	bool enableFrameCountUniform;
 	bool enableSoundDispatchWait;
 	struct ShaderMinifierOptions {
+		bool enableFieldNames;
+		int fieldNameIndex;
 		bool noRenaming;
 		bool enableNoRenamingList;
 		char noRenamingList[SHADER_MINIFIER_NO_RENAMING_LIST_MAX];

@@ -517,16 +517,35 @@ bool ExportExecutableSub(
 				ダイアログボックスから読み取る時点で行われている。
 				ここではパラメータは妥当なものとして扱う。
 			*/
-			bool flag = executableExportSettings->shaderMinifierOptions.enableNoRenamingList;
+			bool enableFieldNames     = executableExportSettings->shaderMinifierOptions.enableFieldNames;
+			bool enableNoRenamingList = executableExportSettings->shaderMinifierOptions.enableNoRenamingList;
+			static const char *s_fieldNames[] = {"rgba", "xyzw", "stpq"};
 			snprintf(
 				shaderMinifierOptions,
 				sizeof(shaderMinifierOptions),
-				"%s%s%s%s%s%s",
+				"%s%s%s"	/* for --field-names */
+				"%s"		/* for --no-renaming */
+				"%s%s%s"	/* for --no-renaming-list */
+				"%s"		/* for --no-sequence */
+				"%s"		/* for --smoothstep */
+				,
+				/* --field-names */
+				(enableFieldNames? "--field-names ": ""),
+				(enableFieldNames? s_fieldNames[executableExportSettings->shaderMinifierOptions.fieldNameIndex]: ""),
+				(enableFieldNames? " ": ""),
+
+				/* --no-renaming */
 				(executableExportSettings->shaderMinifierOptions.noRenaming? "--no-renaming ": ""),
-				(flag? "--no-renaming-list ": ""),
-				(flag? executableExportSettings->shaderMinifierOptions.noRenamingList: ""),
-				(flag? " ": ""),
+
+				/* --no-renaming-list */
+				(enableNoRenamingList? "--no-renaming-list ": ""),
+				(enableNoRenamingList? executableExportSettings->shaderMinifierOptions.noRenamingList: ""),
+				(enableNoRenamingList? " ": ""),
+
+				/* --no-sequence */
 				(executableExportSettings->shaderMinifierOptions.noSequence? "--no-sequence ": ""),
+
+				/* --smoothstep */
 				(executableExportSettings->shaderMinifierOptions.smoothstep? "--smoothstep ": "")
 			);
 		}

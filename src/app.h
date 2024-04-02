@@ -275,6 +275,18 @@ void AppExportExecutableSetEnableSoundDispatchWaitFlag(bool flag);
 /* exe エクスポート : サウンドディスパッチのウェイト実行フラグの取得 */
 bool AppExportExecutableGetEnableSoundDispatchWaitFlag();
 
+/* exe エクスポート : ShaderMinifier の field-names 有効化フラグの設定 */
+void AppExportExecutableSetShaderMinifierOptionsEnableFieldNames(bool flag);
+
+/* exe エクスポート : ShaderMinifier の field-names 有効化フラグの取得 */
+bool AppExportExecutableGetShaderMinifierOptionsEnableFieldNames();
+
+/* exe エクスポート : ShaderMinifier の field-name インデクスの設定 */
+void AppExportExecutableSetShaderMinifierOptionsFieldNameIndex(int index);
+
+/* exe エクスポート : ShaderMinifier の field-name インデクスの取得 */
+int AppExportExecutableGetShaderMinifierOptionsFieldNameIndex();
+
 /* exe エクスポート : ShaderMinifier の no-renaming フラグの設定 */
 void AppExportExecutableSetShaderMinifierOptionsNoRenaming(bool flag);
 
