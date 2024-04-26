@@ -266,17 +266,19 @@ static bool GraphicsLoadUserTextureSubAsDds(
 
 	/* 対応していない形式ならエラー */
 	if (
-		parser.info.depth != 1
-	||	parser.info.arraySize != 1
+		parser.info.arraySize != 1
 	) {
 		free(ddsFileImage);
 		return false;
 	}
 
+	/* GL_TEXTURE の種類を決定 */
+	int glTextureType = (parser.info.depth == 1)? GL_TEXTURE_2D: GL_TEXTURE_3D;
+
 	/* face 数を決定（デフォルトで 1、キューブマップで 6）*/
 	int numFace = 1;
-	GLenum targetFace = GL_TEXTURE_2D;
-	s_userTextures[userTextureIndex].target = GL_TEXTURE_2D;
+	GLenum targetFace = glTextureType;
+	s_userTextures[userTextureIndex].target = glTextureType;
 	if (parser.info.hasCubemap) {
 		numFace = 6;
 		targetFace = GL_TEXTURE_CUBE_MAP_POSITIVE_X;
@@ -296,32 +298,65 @@ static bool GraphicsLoadUserTextureSubAsDds(
 			DdsParser_GetSubData(&parser, 0, faceIndex, mipLevel, &subData);
 
 			if (parser.info.blockCompressed) {
-				CheckGlError("pre glExtCompressedTexImage2D");
-				glExtCompressedTexImage2D(
-					/* GLenum target */			targetFace + faceIndex,
-					/* GLint level */			mipLevel,
-					/* GLenum internalformat */	glPixelFormatInfo.internalformat,
-					/* GLsizei width */			subData.width,
-					/* GLsizei height */		subData.height,
-					/* GLint border */			false,
-					/* GLsizei imageSize */		(GLsizei)subData.sizeInBytes,
-					/* const void * data */		subData.buff
-				);
-				CheckGlError("post glExtCompressedTexImage2D");
+				if (parser.info.depth == 1) {
+					CheckGlError("pre glExtCompressedTexImage2D");
+					glExtCompressedTexImage2D(
+						/* GLenum target */			targetFace + faceIndex,
+						/* GLint level */			mipLevel,
+						/* GLenum internalformat */	glPixelFormatInfo.internalformat,
+						/* GLsizei width */			subData.width,
+						/* GLsizei height */		subData.height,
+						/* GLint border */			false,
+						/* GLsizei imageSize */		(GLsizei)subData.sizeInBytes,
+						/* const void * data */		subData.buff
+					);
+					CheckGlError("post glExtCompressedTexImage2D");
+				} else {
+					CheckGlError("pre glExtCompressedTexImage3D");
+					glExtCompressedTexImage3D(
+						/* GLenum target */			targetFace + faceIndex,
+						/* GLint level */			mipLevel,
+						/* GLenum internalformat */	glPixelFormatInfo.internalformat,
+						/* GLsizei width */			subData.width,
+						/* GLsizei height */		subData.height,
+						/* GLsizei depth */			subData.depth,
+						/* GLint border */			false,
+						/* GLsizei imageSize */		(GLsizei)subData.sizeInBytes,
+						/* const void *data */		subData.buff
+					);
+					CheckGlError("post glExtCompressedTexImage3D");
+				}
 			} else {
-				CheckGlError("pre glTexImage2D");
-				glTexImage2D(
-					/* GLenum target */			targetFace + faceIndex,
-					/* GLint level */			mipLevel,
-					/* GLint internalformat */	glPixelFormatInfo.internalformat,
-					/* GLsizei width */			subData.width,
-					/* GLsizei height */		subData.height,
-					/* GLint border */			false,
-					/* GLenum format */			glPixelFormatInfo.format,
-					/* GLenum type */			glPixelFormatInfo.type,
-					/* const void * data */		subData.buff
-				);
-				CheckGlError("post glTexImage2D");
+				if (parser.info.depth == 1) {
+					CheckGlError("pre glTexImage2D");
+					glTexImage2D(
+						/* GLenum target */			targetFace + faceIndex,
+						/* GLint level */			mipLevel,
+						/* GLint internalformat */	glPixelFormatInfo.internalformat,
+						/* GLsizei width */			subData.width,
+						/* GLsizei height */		subData.height,
+						/* GLint border */			false,
+						/* GLenum format */			glPixelFormatInfo.format,
+						/* GLenum type */			glPixelFormatInfo.type,
+						/* const void * data */		subData.buff
+					);
+					CheckGlError("post glTexImage2D");
+				} else {
+					CheckGlError("pre glTexImage3D");
+					glExtTexImage3D(
+						/* GLenum target */			targetFace + faceIndex,
+						/* GLint level */			mipLevel,
+						/* GLint internalformat */	glPixelFormatInfo.internalformat,
+						/* GLsizei width */			subData.width,
+						/* GLsizei height */		subData.height,
+						/* GLsizei depth */			subData.depth,
+						/* GLint border */			false,
+						/* GLenum format */			glPixelFormatInfo.format,
+						/* GLenum type */			glPixelFormatInfo.type,
+						/* const void * data */		subData.buff
+					);
+					CheckGlError("post glTexImage3D");
+				}
 			}
 		}
 	}
@@ -340,8 +375,8 @@ static bool GraphicsLoadUserTextureSubAsDds(
 
 	/* テクスチャのアンバインド */
 	glBindTexture(
-		/* GLenum target */			s_userTextures[userTextureIndex].target,
-		/* GLuint texture */		0
+		/* GLenum target */		s_userTextures[userTextureIndex].target,
+		/* GLuint texture */	0
 	);
 
 	/* dds ファイルイメージの破棄 */

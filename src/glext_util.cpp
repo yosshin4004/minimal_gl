@@ -60,7 +60,9 @@ static const char s_mergedFunctionName[] =
 	"glGetProgramInterfaceiv\0"
 	"glGetProgramResourceiv\0"
 	"glGetProgramResourceName\0"
+	"glTexImage3D\0"
 	"glCompressedTexImage2D\0"
+	"glCompressedTexImage3D\0"
 	"wglSwapIntervalEXT\0"
 ;
 void *g_glExtFunctions[NUM_GLEXT_FUNCTIONS];
