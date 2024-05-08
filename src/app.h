@@ -466,7 +466,7 @@ bool AppUpdate();
 bool AppHelpAbout();
 
 /* アプリケーション初期化 */
-bool AppInitialize();
+bool AppInitialize(int argc, char **argv);
 
 /* アプリケーション終了処理 */
 bool AppTerminate();

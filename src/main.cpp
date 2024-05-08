@@ -785,6 +785,93 @@ int WINAPI WinMain(
 		freopen("conout$", "w", stderr);
 	}
 
+	/* コマンドライン文字列のコピーを作成 */
+	size_t cmdLineLength = strlen(lpCmdLine) + 1 /* 末端 \0 分 */;
+	char *cmdLineCopy = (char *)malloc(cmdLineLength);
+	if (cmdLineCopy == NULL) return 0;
+	memcpy(cmdLineCopy, lpCmdLine, cmdLineLength);
+
+	/* コマンドライン引数の解析 */
+	#define ARGC_MAX	(256)
+	char *(argv[ARGC_MAX]) = {0};
+	int argc = 1;
+	{
+		/* 実行フルパスファイル名取得 */
+		static char s_appFullPathFileName[MAX_PATH];
+		GetModuleFileName(
+			/* HMODULE hModule    モジュールのハンドル */	NULL,
+			/* LPTSTR lpFileName  モジュールのファイル名 */	s_appFullPathFileName,
+			/* DWORD nSize        バッファのサイズ */		sizeof(s_appFullPathFileName)
+		);
+
+		/* 実行ファイルのパスをカレントディレクトリに設定する */
+		{
+			/* 実行ファイルパス名作成 */
+			char appPath[MAX_PATH] = {0};
+			GetModuleFileName(
+				/* HMODULE hModule		モジュールのハンドル */		NULL,
+				/* LPTSTR lpFileName	モジュールのファイル名 */	appPath,
+				/* DWORD nSize			バッファのサイズ */			sizeof(appPath)
+			);
+			size_t appPathLength = strlen(appPath);		/* 末端 \0 を含まない長さ */
+
+			/* パス文字列末端から検索して最初に見つけた \ を \0 で潰す */
+			for (size_t i = appPathLength; i > 0; i--) {
+				if (appPath[i] == '\\') {
+					appPath[i] = '\0';
+					break;
+				}
+			}
+
+			/* カレントディレクトリ変更 */
+			SetCurrentDirectory(appPath);
+		}
+
+		/* コマンドライン引数のパース */
+		argv[0] = s_appFullPathFileName;
+		{
+			bool inQuote = false;
+			bool isBlank = true;
+			char *p;
+			for (p = cmdLineCopy; p < cmdLineCopy + cmdLineLength; p++) {
+				switch (*p) {
+					case '\0': {
+						/* 終点検出 */
+					} break;
+
+					case ' ':
+					case '\t': {
+						if (inQuote == false) {
+							*p = '\0';
+							isBlank = true;
+						}
+					} break;
+
+					case '\"': {
+						*p = '\0';
+						if (inQuote) {
+							inQuote = false;
+						} else {
+							inQuote = true;
+						}
+					} break;
+
+					default: {
+						if (isBlank) {
+							isBlank = false;
+
+							/* 項目の開始位置と見なす */
+							if (argc < ARGC_MAX) {
+								argv[argc] = p;
+								argc++;
+							}
+						}
+					} break;
+				}
+			}
+		}
+	}
+
 	/* ウィンドウ初期化 */
 	if (WindowInitialize() == false) {
 		AppErrorMessageBox(APP_NAME, "WindowInitialize() failed.");
@@ -792,7 +879,7 @@ int WINAPI WinMain(
 	}
 
 	/* アプリケーション初期化 */
-	if (AppInitialize() == false) {
+	if (AppInitialize(argc, argv) == false) {
 		AppErrorMessageBox(APP_NAME, "AppInitialize() failed.");
 		return 0;
 	}
@@ -910,6 +997,9 @@ int WINAPI WinMain(
 		AppErrorMessageBox(APP_NAME, "WindowTerminate() failed.");
 		return 0;
 	}
+
+	/* コマンドライン文字列のコピーを破棄 */
+	free(cmdLineCopy);
 
     return 0;
 }

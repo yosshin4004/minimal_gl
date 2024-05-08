@@ -2028,7 +2028,7 @@ bool AppHelpAbout(
 /*=============================================================================
 ▼	初期化 & 終了処理
 -----------------------------------------------------------------------------*/
-bool AppInitialize(){
+bool AppInitialize(int argc, char **argv){
 	memset(&s_graphicsShaderFileStat, 0, sizeof(s_graphicsShaderFileStat));
 	memset(&s_soundShaderFileStat, 0, sizeof(s_soundShaderFileStat));
 
@@ -2055,6 +2055,11 @@ bool AppInitialize(){
 	}
 	AppOpenDefaultGraphicsShader();
 	SoundRestartWaveOut();
+
+	/* 第一引数はドラッグドロップ起動ファイル名とみなす */
+	if (argc == 2) {
+		AppOpenDragAndDroppedFile(argv[1]);
+	}
 
 	return true;
 }
