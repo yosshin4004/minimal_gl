@@ -5,7 +5,6 @@
 #include <windows.h>
 #include <Shlwapi.h>	/* for PathRelativePathTo */
 #include "common.h"
-#include "glext_util.h"
 
 
 size_t
@@ -251,7 +250,7 @@ GLuint CreateShader(
 	GLsizei count,
 	const GLchar* const *strings
 ){
-	GLuint programId = glExtCreateShaderProgramv(
+	GLuint programId = glCreateShaderProgramv(
 		/* (GLenum type */					type,
 		/* GLsizei count */					count,
 		/* const GLchar* const *strings */	strings
@@ -260,12 +259,12 @@ GLuint CreateShader(
 	/* エラーチェック */
 	{
 		GLint status;
-		glExtGetProgramiv(programId, GL_LINK_STATUS, &status);
+		glGetProgramiv(programId, GL_LINK_STATUS, &status);
 		if (!status) {
 			char info[0x10000];
-			glExtGetProgramInfoLog(programId, sizeof(info), NULL, info);
+			glGetProgramInfoLog(programId, sizeof(info), NULL, info);
 			printf("	compile error : %s", info);
-			glExtDeleteProgram(programId);
+			glDeleteProgram(programId);
 			return 0;
 		}
 	}
@@ -287,7 +286,7 @@ void DumpShaderInterfaces(
 
 	for (int categoryIndex = 0; categoryIndex < SIZE_OF_ARRAY(s_categories); ++categoryIndex) {
 		GLint numActiveInterfaces = 0;
-		glExtGetProgramInterfaceiv(
+		glGetProgramInterfaceiv(
 			/* GLuint program */			programId,
 			/* GLenum programInterface */	s_categories[categoryIndex].programInterface,
 			/* GLenum pname */				GL_ACTIVE_RESOURCES,
@@ -295,7 +294,7 @@ void DumpShaderInterfaces(
 		);
 		for (int interfaceIndex = 0; interfaceIndex < numActiveInterfaces; ++interfaceIndex) {
 			char resourceName[0x100];
-			glExtGetProgramResourceName(
+			glGetProgramResourceName(
 				/* GLuint program */			programId,
 				/* GLenum programInterface */	s_categories[categoryIndex].programInterface,
 				/* GLuint index */				interfaceIndex,
@@ -312,7 +311,7 @@ void DumpShaderInterfaces(
 						GL_LOCATION,
 					};
 					GLint values[3];
-					glExtGetProgramResourceiv(
+					glGetProgramResourceiv(
 						/* GLuint program */			programId,
 						/* GLenum programInterface */	s_categories[categoryIndex].programInterface,
 						/* GLuint index */				interfaceIndex,
@@ -339,7 +338,7 @@ void DumpShaderInterfaces(
 						GL_BUFFER_DATA_SIZE,
 					};
 					GLint values[2];
-					glExtGetProgramResourceiv(
+					glGetProgramResourceiv(
 						/* GLuint program */			programId,
 						/* GLenum programInterface */	s_categories[categoryIndex].programInterface,
 						/* GLuint index */				interfaceIndex,
@@ -375,14 +374,14 @@ ExistsShaderUniform(
 
 	GLenum programInterface = GL_UNIFORM;
 	GLint numActiveInterfaces = 0;
-	glExtGetProgramInterfaceiv(
+	glGetProgramInterfaceiv(
 		/* GLuint program */			programId,
 		/* GLenum programInterface */	programInterface,
 		/* GLenum pname */				GL_ACTIVE_RESOURCES,
 		/* GLint * params */			&numActiveInterfaces
 	);
 	for (int interfaceIndex = 0; interfaceIndex < numActiveInterfaces; ++interfaceIndex) {
-		glExtGetProgramResourceiv(
+		glGetProgramResourceiv(
 			/* GLuint program */			programId,
 			/* GLenum programInterface */	programInterface,
 			/* GLuint index */				interfaceIndex,

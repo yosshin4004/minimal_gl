@@ -172,7 +172,6 @@
     <ClCompile Include="src\external\imgui\imgui_draw.cpp" />
     <ClCompile Include="src\external\imgui\imgui_widgets.cpp" />
     <ClCompile Include="src\gl3w_work_around.cpp" />
-    <ClCompile Include="src\glext_util.cpp" />
     <ClCompile Include="src\GL\gl3w.c" />
     <ClCompile Include="src\graphics.cpp" />
     <ClCompile Include="src\high_precision_timer.cpp" />
@@ -211,7 +210,6 @@
     <ClInclude Include="src\external\stb\stb_image_write.h" />
     <ClInclude Include="src\gl3w_work_around.h" />
     <ClInclude Include="src\glext.h" />
-    <ClInclude Include="src\glext_util.h" />
     <ClInclude Include="src\GL\gl3w.h" />
     <ClInclude Include="src\graphics.h" />
     <ClInclude Include="src\high_precision_timer.h" />

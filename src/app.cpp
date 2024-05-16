@@ -20,7 +20,6 @@
 #include "config.h"
 #include "sound.h"
 #include "graphics.h"
-#include "glext_util.h"
 #include "high_precision_timer.h"
 #include "export_executable.h"
 #include "record_image_sequence.h"
@@ -1634,8 +1633,10 @@ bool AppGetForceOverWriteFlag(){
 ▼	シェーダファイル関連
 -----------------------------------------------------------------------------*/
 static bool AppReloadGraphicsShader(){
-	GraphicsDeleteShader();
-	s_graphicsCreateShaderSucceeded = GraphicsCreateShader(s_graphicsShaderCode);
+	GraphicsDeleteShaderPipeline();
+	GraphicsDeleteFragmentShader();
+	s_graphicsCreateShaderSucceeded = GraphicsCreateFragmentShader(s_graphicsShaderCode);
+	GraphicsCreateShaderPipeline();
 	if (s_preferenceSettings.enableAutoRestartByGraphicsShader) {
 		AppRestart();
 	}
@@ -2032,10 +2033,6 @@ bool AppInitialize(int argc, char **argv){
 	memset(&s_graphicsShaderFileStat, 0, sizeof(s_graphicsShaderFileStat));
 	memset(&s_soundShaderFileStat, 0, sizeof(s_soundShaderFileStat));
 
-	if (OpenGlExtInitialize() == false) {
-		AppErrorMessageBox(APP_NAME, "OpenGlExtInitialize() failed.");
-		return false;
-	}
 	if (HighPrecisionTimerInitialize() == false) {
 		AppErrorMessageBox(APP_NAME, "HighPrecisionTimerInitialize() failed.");
 		return false;
@@ -2088,10 +2085,6 @@ bool AppTerminate(){
 	}
 	if (HighPrecisionTimerTerminate() == false) {
 		AppErrorMessageBox(APP_NAME, "HighPrecisionTimerTerminate() failed.");
-		return false;
-	}
-	if (OpenGlExtTerminate() == false) {
-		AppErrorMessageBox(APP_NAME, "OpenGlExtTerminate() failed.");
 		return false;
 	}
 	return true;

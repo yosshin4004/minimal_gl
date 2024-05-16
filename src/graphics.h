@@ -86,13 +86,27 @@ bool GraphicsDeleteUserTexture(
 	int userTextureIndex
 );
 
-/* グラフィクス用シェーダの作成 */
-bool GraphicsCreateShader(
+/* 頂点シェーダの作成 */
+bool GraphicsCreateVertexShader(
 	const char *shaderCode
 );
 
-/* グラフィクス用シェーダの削除 */
-bool GraphicsDeleteShader();
+/* 頂点シェーダの削除 */
+bool GraphicsDeleteVertexShader();
+
+/* フラグメントシェーダの作成 */
+bool GraphicsCreateFragmentShader(
+	const char *shaderCode
+);
+
+/* フラグメントシェーダの削除 */
+bool GraphicsDeleteFragmentShader();
+
+/* シェーダパイプラインの作成 */
+bool GraphicsCreateShaderPipeline();
+
+/* シェーダパイプラインの削除 */
+bool GraphicsDeleteShaderPipeline();
 
 /* スクリーンショットキャプチャ */
 bool GraphicsCaptureScreenShotOnMemory(

@@ -16,7 +16,7 @@
 #include <math.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <GL/gl.h>
+#include <GL/gl3w.h>
 #include <GL/glext.h>
 
 #include <imgui.h>

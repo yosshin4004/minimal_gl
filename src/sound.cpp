@@ -3,7 +3,6 @@
 #include "common.h"
 #include "app.h"
 #include "sound.h"
-#include "glext_util.h"
 #include "wav_util.h"
 
 
@@ -20,7 +19,7 @@
 #define NUM_SOUND_MARGIN_SAMPLES				(0x100)
 
 static bool s_paused = false;
-static GLuint s_soundProgramId = 0;
+static GLuint s_soundShaderId = 0;
 static GLuint s_soundOutputSsbo = 0;
 static SOUND_SAMPLE_TYPE *s_mappedSoundOutputSsbo = NULL;
 static bool s_soundShaderSetupSucceeded = false;
@@ -82,7 +81,7 @@ static void SoundSynthesizePartition(
 	int partitionIndex,
 	uint32_t frameCount
 ){
-	if (s_soundProgramId == 0) return;
+	if (s_soundShaderId == 0) return;
 
 	if (0 <= partitionIndex && partitionIndex < NUM_SOUND_BUFFER_PARTITIONS) {
 		/* サウンド合成したフレームカウントの保存 */
@@ -94,19 +93,19 @@ static void SoundSynthesizePartition(
 //			printf("SoundSynthesizePartition #%d\n", partitionIndex);
 
 			/* シェーダをバインド */
-			assert(s_soundProgramId != 0);
-			glExtUseProgram(s_soundProgramId);
+			assert(s_soundShaderId != 0);
+			glUseProgram(s_soundShaderId);
 
 			/* 出力先バッファの指定 */
-			glExtBindBufferBase(
+			glBindBufferBase(
 				/* GLenum target */	GL_SHADER_STORAGE_BUFFER,
 				/* GLuint index */	BUFFER_INDEX_FOR_SOUND_OUTPUT,
 				/* GLuint buffer */	s_soundOutputSsbo
 			);
 
 			/* ユニフォームパラメータの設定 */
-			if (ExistsShaderUniform(s_soundProgramId, UNIFORM_LOCATION_WAVE_OUT_POS, GL_INT)) {
-				glExtUniform1i(
+			if (ExistsShaderUniform(s_soundShaderId, UNIFORM_LOCATION_WAVE_OUT_POS, GL_INT)) {
+				glUniform1i(
 					UNIFORM_LOCATION_WAVE_OUT_POS,
 					NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH * partitionIndex
 				);
@@ -116,20 +115,20 @@ static void SoundSynthesizePartition(
 			CheckGlError("SoundUpdate : pre dispatch");
 
 			/* コンピュートシェーダによるサウンド生成 */
-			glExtDispatchCompute(NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH, 1, 1);
+			glDispatchCompute(NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH, 1, 1);
 
 			/* エラーチェック */
 			CheckGlError("SoundUpdate : post dispatch");
 
 			/* アンバインド */
-			glExtBindBufferBase(
+			glBindBufferBase(
 				/* GLenum target */	GL_SHADER_STORAGE_BUFFER,
 				/* GLuint index */	BUFFER_INDEX_FOR_SOUND_OUTPUT,
 				/* GLuint buffer */	0	/* unbind */
 			);
 
 			/* シェーダをアンバインド */
-			glExtUseProgram(NULL);
+			glUseProgram(NULL);
 		}
 	}
 }
@@ -174,22 +173,22 @@ bool SoundCreateShader(
 	const GLchar *(strings[]) = {
 		SkipBomConst(shaderCode)
 	};
-	assert(s_soundProgramId == 0);
-	s_soundProgramId = CreateShader(GL_COMPUTE_SHADER, SIZE_OF_ARRAY(strings), strings);
-	if (s_soundProgramId == 0) {
+	assert(s_soundShaderId == 0);
+	s_soundShaderId = CreateShader(GL_COMPUTE_SHADER, SIZE_OF_ARRAY(strings), strings);
+	if (s_soundShaderId == 0) {
 		printf("setup the sound shader ... fialed.\n");
 		return false;
 	}
-	DumpShaderInterfaces(s_soundProgramId);
+	DumpShaderInterfaces(s_soundShaderId);
 	printf("setup the sound shader ... done.\n");
 	return true;
 }
 
 bool SoundDeleteShader(){
-	if (s_soundProgramId == 0) return false;
+	if (s_soundShaderId == 0) return false;
 	glFinish();
-	glExtDeleteProgram(s_soundProgramId);
-	s_soundProgramId = 0;
+	glDeleteProgram(s_soundShaderId);
+	s_soundShaderId = 0;
 	return true;
 }
 
@@ -213,11 +212,11 @@ float SoundDetectDurationInSeconds(){
 static bool SoundCreateSoundOutputBuffer(
 ){
 	size_t bufferSizeInBytes = NUM_SOUND_BUFFER_SAMPLES * sizeof(SOUND_SAMPLE_TYPE) * NUM_SOUND_CHANNELS;
-	glExtGenBuffers(
+	glGenBuffers(
 		/* GLsizei n */				1,
 		/* GLuint * buffers */		&s_soundOutputSsbo
 	);
-	glExtBindBuffer(
+	glBindBuffer(
 		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
 		/* GLuint buffer */			s_soundOutputSsbo
 	);
@@ -226,18 +225,18 @@ static bool SoundCreateSoundOutputBuffer(
 		持続的な MAP 状態にできない。GL_MAP_PERSISTENT_BIT を指定するには、
 		glBufferData でなく glBufferStorage を利用する必要がある。
 	*/
-	glExtBufferStorage(
+	glBufferStorage(
 		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
 		/* GLsizeiptr size */		bufferSizeInBytes,
 		/* const void * data */		NULL,
 		/* GLbitfield flags */		GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT | GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT
 	);
-	s_mappedSoundOutputSsbo = (SOUND_SAMPLE_TYPE *)glExtMapBuffer(
+	s_mappedSoundOutputSsbo = (SOUND_SAMPLE_TYPE *)glMapBuffer(
 		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
 		/* GLenum access */			GL_READ_WRITE
 	);
 	assert(s_mappedSoundOutputSsbo != NULL);
-	glExtBindBuffer(
+	glBindBuffer(
 		/* GLenum target */			GL_SHADER_STORAGE_BUFFER,
 		/* GLuint buffer */			0	/* unbind */
 	);
@@ -246,7 +245,7 @@ static bool SoundCreateSoundOutputBuffer(
 
 static bool SoundDeleteSoundOutputBuffer(
 ){
-	glExtDeleteBuffers(
+	glDeleteBuffers(
 		/* GLsizei n */			1,
 		/* GLuint * buffers */	&s_soundOutputSsbo
 	);

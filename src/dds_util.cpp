@@ -101,7 +101,7 @@ static const GlPixelFormatInfo s_tblDxgiFormatToGlPixelFormatInfo[] = {
 	/* DxgiFormat_R8Uint */					{GL_R8UI,											GL_RED_INTEGER,		GL_UNSIGNED_BYTE,					8},
 	/* DxgiFormat_R8Snorm */				{GL_R8_SNORM,										GL_RED,				GL_BYTE,							8},
 	/* DxgiFormat_R8Sint */					{GL_R8I,											GL_RED_INTEGER,		GL_BYTE,							8},
-	/* DxgiFormat_A8Unorm */				{GL_ALPHA8,											GL_RED,				GL_UNSIGNED_BYTE,					8},
+	/* DxgiFormat_A8Unorm */				{GL_R8,												GL_RED,				GL_UNSIGNED_BYTE,					8},
 	/* DxgiFormat_R1Unorm */				{0},
 
 	/* DxgiFormat_R9G9B9E5SharedExp */		{GL_RGB9_E5,										GL_RGB,				GL_UNSIGNED_INT_5_9_9_9_REV,		32},
