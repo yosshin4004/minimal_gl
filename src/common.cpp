@@ -214,17 +214,18 @@ bool IsFileUpdated(
 		}
 	}
 #else
-	/* read open することで書き込み完了待ち */
-	{
-		FILE *file = fopen(fileName, "rb");
-		if (file) fclose(file);
-	}
-
 	/* ファイルステータス取得 */
 	if (stat(fileName, &newStat) == 0 /* 成功 */) {
 		/* 最終修正時刻が異なる？ */
 		if (fileStat->st_mtime != newStat.st_mtime) {
+			/* 更新されたことを確認した */
 			ret = true;
+
+			/* read open することで書き込み完了待ち */
+			{
+				FILE *file = fopen(fileName, "rb");
+				if (file) fclose(file);
+			}
 		}
 		*fileStat = newStat;
 	}
