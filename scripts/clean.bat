@@ -6,6 +6,7 @@ for /F "delims=#" %%E in ('"prompt #$E# & for %%E in (1) do rem"') do set "_ESC=
 
 rmdir /s /q x64 2>nul
 rmdir /s /q .vs 2>nul
+rmdir /s /q minimal_gl 2>nul
 
 del *.vcxproj.user 2>nul
 
