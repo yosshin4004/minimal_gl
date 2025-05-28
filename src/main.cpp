@@ -230,7 +230,7 @@ static LRESULT CALLBACK MainWndProc(
 
 		/* ファイルのドロップを検出 */
 		case WM_DROPFILES: {
-			static char fileName[MAX_PATH];
+			static char fileName[MAX_PATH] = {0};
 			/* UINT */ DragQueryFile(
 				/* HDROP hDrop */		/* ファイル名構造体のハンドル */
 										(HDROP)wParam,
@@ -796,36 +796,13 @@ int WINAPI WinMain(
 	char *(argv[ARGC_MAX]) = {0};
 	int argc = 1;
 	{
-		/* 実行フルパスファイル名取得 */
-		static char s_appFullPathFileName[MAX_PATH];
+		/* 実行ファイル名をフルパスで取得 */
+		static char s_appFullPathFileName[MAX_PATH] = {0};
 		GetModuleFileName(
 			/* HMODULE hModule    モジュールのハンドル */	NULL,
 			/* LPTSTR lpFileName  モジュールのファイル名 */	s_appFullPathFileName,
 			/* DWORD nSize        バッファのサイズ */		sizeof(s_appFullPathFileName)
 		);
-
-		/* 実行ファイルのパスをカレントディレクトリに設定する */
-		{
-			/* 実行ファイルパス名作成 */
-			char appPath[MAX_PATH] = {0};
-			GetModuleFileName(
-				/* HMODULE hModule		モジュールのハンドル */		NULL,
-				/* LPTSTR lpFileName	モジュールのファイル名 */	appPath,
-				/* DWORD nSize			バッファのサイズ */			sizeof(appPath)
-			);
-			size_t appPathLength = strlen(appPath);		/* 末端 \0 を含まない長さ */
-
-			/* パス文字列末端から検索して最初に見つけた \ を \0 で潰す */
-			for (size_t i = appPathLength; i > 0; i--) {
-				if (appPath[i] == '\\') {
-					appPath[i] = '\0';
-					break;
-				}
-			}
-
-			/* カレントディレクトリ変更 */
-			SetCurrentDirectory(appPath);
-		}
 
 		/* コマンドライン引数のパース */
 		argv[0] = s_appFullPathFileName;

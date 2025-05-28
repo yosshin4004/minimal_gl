@@ -2055,7 +2055,14 @@ bool AppInitialize(int argc, char **argv){
 
 	/* 第一引数はドラッグドロップ起動ファイル名とみなす */
 	if (argc == 2) {
-		AppOpenDragAndDroppedFile(argv[1]);
+		char fullPathFileName[MAX_PATH] = {0};
+		GetFullPathNameA(
+			/* LPCSTR lpFileName */		argv[1],
+			/* DWORD  nBufferLength */	sizeof(fullPathFileName),
+			/* LPSTR  lpBuffer */		fullPathFileName,
+			/* LPSTR  *lpFilePart */	NULL
+		);
+		AppOpenDragAndDroppedFile(fullPathFileName);
 	}
 
 	return true;
