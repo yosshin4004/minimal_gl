@@ -22,7 +22,6 @@ static bool s_paused = false;
 static GLuint s_soundShaderId = 0;
 static GLuint s_soundOutputSsbo = 0;
 static SOUND_SAMPLE_TYPE *s_mappedSoundOutputSsbo = NULL;
-static bool s_soundShaderSetupSucceeded = false;
 
 
 static int s_soundCurrentPartitionIndex = 0;
@@ -32,7 +31,7 @@ typedef enum {
 	PartitionState_Copied,
 	PartitionState_Synthesized,
 } PartitionState;
-static PartitionState s_soundBufferPartitionStates[NUM_SOUND_BUFFER_PARTITIONS] = {0};
+static PartitionState s_soundBufferPartitionStates[NUM_SOUND_BUFFER_PARTITIONS] = {(PartitionState)0};
 static uint32_t s_soundBufferPartitionSynthesizedFrameCount[NUM_SOUND_BUFFER_PARTITIONS] = {0};
 static SOUND_SAMPLE_TYPE s_soundBuffer[(NUM_SOUND_BUFFER_SAMPLES + NUM_SOUND_MARGIN_SAMPLES) * NUM_SOUND_CHANNELS];
 static HWAVEOUT s_waveOutHandle = 0;
@@ -67,7 +66,7 @@ static WAVEHDR s_waveHeader = {
 /* 再生位置取得用 */
 static MMTIME s_mmTime = {
 	TIME_SAMPLES,	/* win32 SDK で定義された定数 */
-	0
+	{0}
 };
 
 /*=============================================================================

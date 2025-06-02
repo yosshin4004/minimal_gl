@@ -13,9 +13,6 @@ static int IntMax(int x, int y){
 static int IntCeilAlign(int x, int align){
 	return (x + (align - 1)) & ~(align - 1);
 }
-static size_t SizeTypeCeilAlign(size_t x, size_t align){
-	return (x + (align - 1)) & ~(align - 1);
-}
 
 static const int s_tblNumBitsPerPixel[] = {
 	/* DxgiFormat_Unknown */				0,

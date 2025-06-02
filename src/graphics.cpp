@@ -15,16 +15,16 @@
 #define USER_TEXTURE_START_INDEX				(8)
 #define BUFFER_INDEX_FOR_SOUND_VISUALIZER_INPUT	(0)
 
-static GLuint s_mrtTextures[2 /* 裏表 */][NUM_RENDER_TARGETS] = {0};
+static GLuint s_mrtTextures[2 /* 裏表 */][NUM_RENDER_TARGETS] = {{0}};
 static GLuint s_mrtFrameBuffer = 0;
 static struct {
 	GLenum target;
 	GLuint id;
-} s_userTextures[NUM_USER_TEXTURES] = {0};
+} s_userTextures[NUM_USER_TEXTURES] = {{0}};
 static GLuint s_shaderPipelineId = 0;
 static GLuint s_vertexShaderId = 0;
 static GLuint s_fragmentShaderId = 0;
-static RenderSettings s_currentRenderSettings = {0};
+static RenderSettings s_currentRenderSettings = {(PixelFormat)0};
 static int s_xReso = DEFAULT_SCREEN_XRESO;
 static int s_yReso = DEFAULT_SCREEN_YRESO;
 

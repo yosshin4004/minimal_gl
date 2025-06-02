@@ -61,7 +61,7 @@ static struct Camera {
 	float fovYInRadians;
 	float mat4x4CameraInWorld[4][4];
 	float mat4x4PrevCameraInWorld[4][4];
-} s_camera = {0};
+} s_camera = {{0}};
 static CaptureScreenShotSettings s_captureScreenShotSettings = {
 	/* char fileName[MAX_PATH]; */	{0},
 	/* int xReso; */				DEFAULT_SCREEN_XRESO,
@@ -595,7 +595,7 @@ SwapInterval AppRenderSettingsGetSwapIntervalControl(){
 /*=============================================================================
 ▼	ユーザーテクスチャ関連
 -----------------------------------------------------------------------------*/
-static char s_currentUserTextureFileName[NUM_USER_TEXTURES][MAX_PATH] = {0};
+static char s_currentUserTextureFileName[NUM_USER_TEXTURES][MAX_PATH] = {{0}};
 
 bool AppUserTexturesLoad(int userTextureIndex, const char *fileName){
 	if (userTextureIndex < 0 || NUM_USER_TEXTURES <= userTextureIndex) return false;
@@ -915,7 +915,7 @@ void AppExportExecutable(){
 	if (s_soundCreateShaderSucceeded
 	&&	s_graphicsCreateShaderSucceeded
 	) {
-		bool ret = ExportExecutable(
+		(void) ExportExecutable(
 			s_graphicsShaderCode,
 			s_soundShaderCode,
 			&s_renderSettings,
@@ -976,7 +976,7 @@ void AppRecordImageSequence(){
 	if (s_soundCreateShaderSucceeded
 	&&	s_graphicsCreateShaderSucceeded
 	) {
-		bool ret = RecordImageSequence(
+		(void) RecordImageSequence(
 			&s_renderSettings,
 			&s_recordImageSequenceSettings
 		);
