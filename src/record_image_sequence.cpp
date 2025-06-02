@@ -223,7 +223,7 @@ static bool QueueInitialize(int numWorkers, int numJobs){
 
 static bool QueueTerminate(){
 	for (int i = 0; i < s_queue.numWorkers; i++) {
-		Job job = {0};
+		Job job = {{0}};
 		Enqueue(&job);	/* end mark */
 	}
 
