@@ -11,7 +11,7 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # https://github.com/actions/checkout v4.2.2
 
       - name: Build Artifacts
-        run: cmd.exe /c '.\scripts\make-artifacts.bat'
+        run: cmd.exe /c '.\scripts\make-artifacts.bat' ${{ github.ref_name }}
 
       - name: Archive Artifacts
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # https://github.com/actions/upload-artifact v4.4.3
