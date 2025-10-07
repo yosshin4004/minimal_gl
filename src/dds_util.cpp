@@ -93,7 +93,7 @@ static const GlPixelFormatInfo s_tblDxgiFormatToGlPixelFormatInfo[] = {
 	/* DxgiFormat_D16Unorm */				{0},
 	/* DxgiFormat_R16Unorm */				{GL_R16,											GL_RED,				GL_UNSIGNED_SHORT,					16},
 	/* DxgiFormat_R16Uint */				{GL_R16UI,											GL_RED_INTEGER,		GL_UNSIGNED_SHORT,					16},
-	/* DxgiFormat_R16Snorm */				{GL_R16_SNORM,										GL_RED,				GL_UNSIGNED_SHORT,					16},
+	/* DxgiFormat_R16Snorm */				{GL_R16_SNORM,										GL_RED,				GL_SHORT,							16},
 	/* DxgiFormat_R16Sint */				{GL_R16I,											GL_RED_INTEGER,		GL_SHORT,							16},
 
 	/* DxgiFormat_R8Typeless */				{0},
