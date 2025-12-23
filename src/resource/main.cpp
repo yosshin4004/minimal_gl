@@ -206,7 +206,7 @@ SetTextureSampler(
 static __forceinline void
 CreateTextureResource(
 ){
-#if PREFER_GL_TEX_STORAGE_2D
+#	if PREFER_GL_TEX_STORAGE_2D
 	glExtTexStorage2D(
 		/* GLenum target */			GL_TEXTURE_2D,
 		/* GLsizei levels */		8,
@@ -217,7 +217,7 @@ CreateTextureResource(
 		/* GLsizei width */			SCREEN_WIDTH,
 		/* GLsizei height */		SCREEN_HEIGHT
 	);
-#else
+#	else
 	glTexImage2D(
 		/* GLenum target */			GL_TEXTURE_2D,
 		/* GLint level */			0,
@@ -235,7 +235,7 @@ CreateTextureResource(
 									-1 /* error */,
 		/* const void * data */		NULL
 	);
-#endif
+#	endif
 }
 #endif
 

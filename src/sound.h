@@ -61,6 +61,9 @@ void SoundUpdate(
 	uint32_t frameCount
 );
 
+/* サウンドの完全な更新（ブロッキング）*/
+void SoundFullUpdate();
+
 /* サウンドの初期化 */
 bool SoundInitialize();
 

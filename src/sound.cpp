@@ -192,6 +192,9 @@ bool SoundDeleteShader(){
 }
 
 float SoundDetectDurationInSeconds(){
+	/* サウンドの完全な更新（ブロッキング）*/
+	SoundFullUpdate();
+
 	/* 有効なサンプルの末端位置を求める */
 	int numAvailableSamples = 0;
 	{
@@ -282,9 +285,15 @@ GLuint SoundGetOutputSsbo(
 bool SoundCaptureSound(
 	const CaptureSoundSettings *settings
 ){
+	/* サウンドの完全な更新（ブロッキング）*/
+	SoundFullUpdate();
+
+	/* サウンドの持続時間をサンプル数に変換 */
 	int numSamples = (int)(settings->durationInSeconds * NUM_SOUND_SAMPLES_PER_SEC);
 	if (numSamples < 0) numSamples = 0;
 	if (numSamples >= NUM_SOUND_BUFFER_SAMPLES) numSamples = NUM_SOUND_BUFFER_SAMPLES - 1;
+
+	/* wav ファイルに保存 */
 	return SerializeAsWav(
 		/* const char *fileName */			settings->fileName,
 		/* const void *buffer */			(const void *)(
@@ -390,6 +399,18 @@ void SoundUpdate(
 	/* 現在と次のパーティションのサウンド生成結果を取り出す */
 	SoundGetSynthesizedPartitionResult(s_soundCurrentPartitionIndex, frameCount);
 	SoundGetSynthesizedPartitionResult((s_soundCurrentPartitionIndex + 1) % NUM_SOUND_BUFFER_PARTITIONS, frameCount);
+}
+
+void SoundFullUpdate(
+){
+	SoundClearOutputBuffer();
+	for (int partitionIndex = 0; partitionIndex < NUM_SOUND_BUFFER_PARTITIONS; partitionIndex++) {
+		SoundSynthesizePartition(partitionIndex, 0);
+	}
+	glFinish();
+	for (int partitionIndex = 0; partitionIndex < NUM_SOUND_BUFFER_PARTITIONS; partitionIndex++) {
+		SoundGetSynthesizedPartitionResult(partitionIndex, 0xFFFFFFFF);
+	}
 }
 
 bool SoundInitialize(
