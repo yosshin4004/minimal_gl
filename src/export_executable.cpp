@@ -873,7 +873,7 @@ bool ExportExecutableSub(
 						"/HASHSIZE:300 "
 						"/OVERRIDEALIGNMENTS "
 						"/REUSE:\"%s\" "					/* arg 3 = REUSE ファイル名 */
-						"/REUSEMODE:IMPROVE "
+						"/REUSEMODE:PARTS "
 						"%s"								/* arg 4 = 追加引数 */
 						"/OUT:\"%s\" "						/* arg 5 = 出力 exe ファイル名 */
 #if USE_MAIN_CPP == 0
