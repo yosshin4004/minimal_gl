@@ -449,7 +449,7 @@ bool GraphicsCreateVertexShader(
 	assert(s_vertexShaderId == 0);
 	s_vertexShaderId = CreateShader(GL_VERTEX_SHADER, SIZE_OF_ARRAY(strings), strings);
 	if (s_vertexShaderId == 0) {
-		printf("setup the vertex shader ... fialed.\n");
+		printf("setup the vertex shader ... failed.\n");
 		return false;
 	}
 	DumpShaderInterfaces(s_vertexShaderId);
@@ -477,7 +477,7 @@ bool GraphicsCreateFragmentShader(
 	assert(s_fragmentShaderId == 0);
 	s_fragmentShaderId = CreateShader(GL_FRAGMENT_SHADER, SIZE_OF_ARRAY(strings), strings);
 	if (s_fragmentShaderId == 0) {
-		printf("setup the fragment shader ... fialed.\n");
+		printf("setup the fragment shader ... failed.\n");
 		return false;
 	}
 	DumpShaderInterfaces(s_fragmentShaderId);

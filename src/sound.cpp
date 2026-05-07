@@ -175,7 +175,7 @@ bool SoundCreateShader(
 	assert(s_soundShaderId == 0);
 	s_soundShaderId = CreateShader(GL_COMPUTE_SHADER, SIZE_OF_ARRAY(strings), strings);
 	if (s_soundShaderId == 0) {
-		printf("setup the sound shader ... fialed.\n");
+		printf("setup the sound shader ... failed.\n");
 		return false;
 	}
 	DumpShaderInterfaces(s_soundShaderId);
