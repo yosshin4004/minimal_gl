@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #include <math.h>
 #include "common.h"
@@ -442,18 +442,18 @@ bool GraphicsDeleteUserTexture(
 bool GraphicsCreateVertexShader(
 	const char *shaderCode
 ){
-	printf("setup the vertex shader ...\n");
+	printf("setting up vertex shader ...\n");
 	const GLchar *(strings[]) = {
 		SkipBomConst(shaderCode)
 	};
 	assert(s_vertexShaderId == 0);
 	s_vertexShaderId = CreateShader(GL_VERTEX_SHADER, SIZE_OF_ARRAY(strings), strings);
 	if (s_vertexShaderId == 0) {
-		printf("setup the vertex shader ... failed.\n");
+		printf("setting up vertex shader ... failed.\n");
 		return false;
 	}
 	DumpShaderInterfaces(s_vertexShaderId);
-	printf("setup the vertex shader ... done.\n");
+	printf("setting up vertex shader ... done.\n");
 
 	return true;
 }
@@ -470,18 +470,18 @@ bool GraphicsDeleteVertexShader(
 bool GraphicsCreateFragmentShader(
 	const char *shaderCode
 ){
-	printf("setup the fragment shader ...\n");
+	printf("setting up fragment shader ...\n");
 	const GLchar *(strings[]) = {
 		SkipBomConst(shaderCode)
 	};
 	assert(s_fragmentShaderId == 0);
 	s_fragmentShaderId = CreateShader(GL_FRAGMENT_SHADER, SIZE_OF_ARRAY(strings), strings);
 	if (s_fragmentShaderId == 0) {
-		printf("setup the fragment shader ... failed.\n");
+		printf("setting up fragment shader ... failed.\n");
 		return false;
 	}
 	DumpShaderInterfaces(s_fragmentShaderId);
-	printf("setup the fragment shader ... done.\n");
+	printf("setting up fragment shader ... done.\n");
 
 	return true;
 }

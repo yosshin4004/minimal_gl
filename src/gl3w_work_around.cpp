@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #include <GL/gl3w.h>
 #include "gl3w_work_around.h"

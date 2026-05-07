@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #include <windows.h>
 #include <stdint.h>
@@ -286,7 +286,7 @@ static LRESULT CALLBACK DialogFunc(
 						outputFileName, sizeof(outputFileName)
 					);
 					if (strcmp(outputFileName, "") == 0) {
-						AppErrorMessageBox(APP_NAME, "Invalid output file name");
+						AppErrorMessageBox(APP_NAME, "Invalid output filename");
 						return 0;	/* メッセージは処理されなかった */
 					}
 

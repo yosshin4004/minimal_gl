@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #ifndef _DIALOG_CONFIRM_OVER_WRITE_H_
 #define _DIALOG_CONFIRM_OVER_WRITE_H_

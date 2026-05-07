@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN
@@ -705,9 +705,9 @@ void AppCaptureScreenShot(){
 			}
 
 			if (ret) {
-				AppMessageBox(APP_NAME, "Capture screen shot completed successfully.");
+				AppMessageBox(APP_NAME, "Successfully captured screenshot.");
 			} else {
-				AppErrorMessageBox(APP_NAME, "Failed to capture screen shot.");
+				AppErrorMessageBox(APP_NAME, "Failed to capture screenshot.");
 			}
 		}
 	} else {
@@ -756,9 +756,9 @@ void AppCaptureCubemap(){
 				&params, &s_renderSettings, &s_captureCubemapSettings
 			);
 			if (ret) {
-				AppMessageBox(APP_NAME, "Capture cubemap as dds file completed successfully.");
+				AppMessageBox(APP_NAME, "Successfully captured cubemap to DDS file.");
 			} else {
-				AppErrorMessageBox(APP_NAME, "Failed to capture cubemap as dds file.");
+				AppErrorMessageBox(APP_NAME, "Failed to capture cubemap to DDS file.");
 			}
 		}
 	} else {
@@ -791,9 +791,9 @@ void AppCaptureSound(){
 		if (DialogConfirmOverWrite(s_captureSoundSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
 			bool ret = SoundCaptureSound(&s_captureSoundSettings);
 			if (ret) {
-				AppMessageBox(APP_NAME, "Capture sound as wav file completed successfully.");
+				AppMessageBox(APP_NAME, "Successfully captured sound to WAV file.");
 			} else {
-				AppErrorMessageBox(APP_NAME, "Failed to capture sound as wav file.");
+				AppErrorMessageBox(APP_NAME, "Failed to capture sound to WAV file.");
 			}
 		}
 	} else {
@@ -911,7 +911,7 @@ bool AppExportExecutableGetCrinklerOptionsUseTinyImport(){
 	return s_executableExportSettings.crinklerOptions.useTinyImport;
 }
 void AppExportExecutable(){
-	printf("export an executable file.\n");
+	printf("export executable file.\n");
 	if (s_soundCreateShaderSucceeded
 	&&	s_graphicsCreateShaderSucceeded
 	) {
@@ -922,7 +922,7 @@ void AppExportExecutable(){
 			&s_executableExportSettings
 		);
 	} else {
-		AppErrorMessageBox(APP_NAME, "Please fix shader compile errors before export.");
+		AppErrorMessageBox(APP_NAME, "Please fix shader compilation errors before exporting.");
 	}
 }
 
@@ -981,7 +981,7 @@ void AppRecordImageSequence(){
 			&s_recordImageSequenceSettings
 		);
 	} else {
-		AppErrorMessageBox(APP_NAME, "Please fix shader compile errors before export.");
+		AppErrorMessageBox(APP_NAME, "Please fix shader compilation errors before exporting.");
 	}
 }
 
@@ -1098,7 +1098,7 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 				/* const char *filePath */				graphicsShaderRelativeFileName
 			);
 			if (IsValidFileName(s_graphicsShaderFileName) == false) {
-				AppErrorMessageBox(APP_NAME, "Failed to load graphics shader %s.", s_graphicsShaderFileName);
+				AppErrorMessageBox(APP_NAME, "Failed to load graphics shader \"%s\".", s_graphicsShaderFileName);
 				AppOpenDefaultGraphicsShader();
 				result = false;
 			}
@@ -1115,7 +1115,7 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 				/* const char *filePath */				soundShaderRelativeFileName
 			);
 			if (IsValidFileName(s_soundShaderFileName) == false) {
-				AppErrorMessageBox(APP_NAME, "Failed to load sound shader %s.", s_soundShaderFileName);
+				AppErrorMessageBox(APP_NAME, "Failed to load sound shader \"%s\".", s_soundShaderFileName);
 				AppOpenDefaultSoundShader();
 				result = false;
 			}
@@ -1277,7 +1277,7 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 					/* const char *filePath */				relativeFileName
 				);
 				if (AppUserTexturesLoad(i, fileName) == false) {
-					AppErrorMessageBox(APP_NAME, "Failed to load texture %s.", fileName);
+					AppErrorMessageBox(APP_NAME, "Failed to load texture \"%s\".", fileName);
 					result = false;
 				}
 			}
@@ -1498,7 +1498,7 @@ bool AppProjectImport(const char *fileName){
 	/* シリアライズされたプロジェクトの読み込み */
 	char *text = MallocReadTextFile(fileName);
 	if (text == NULL) {
-		AppErrorMessageBox(APP_NAME, "Failed to import project %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Failed to import project \"%s\".", fileName);
 		return false;
 	}
 
@@ -1518,7 +1518,7 @@ bool AppProjectImport(const char *fileName){
 		/* 現在のプロジェクトファイル名を保存 */
 		strcpy_s(s_projectFileName, sizeof(s_projectFileName), fileName);
 	} else {
-		AppErrorMessageBox(APP_NAME, "Failed to import project %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Failed to import project \"%s\".", fileName);
 	}
 
 	/* タイトルバーの表示を更新 */
@@ -1548,13 +1548,13 @@ bool AppProjectExport(const char *fileName){
 	{
 		FILE *file = fopen(fileName, "wb");
 		if (file == NULL) {
-			AppErrorMessageBox(APP_NAME, "Failed to export project %s.", fileName);
+			AppErrorMessageBox(APP_NAME, "Failed to export project \"%s\".", fileName);
 			result = false;
 		} else {
 			fputs(cJSON_Print(jsonRoot), file);
 			fclose(file);
 			result = true;
-			AppMessageBox(APP_NAME, "Export project successfully.");
+			AppMessageBox(APP_NAME, "Successfully exported project.");
 
 			strcpy_s(s_projectFileName, sizeof(s_projectFileName), fileName);
 			AppUpdateWindowTitleBar();
@@ -1594,7 +1594,7 @@ bool AppProjectAutoExport(bool confirm){
 	/* エクスポート前に確認 */
 	bool flag = true;
 	if (confirm) {
-		if (AppYesNoMessageBox(APP_NAME, "The project has been updated.\n\nDo you want to overwrite %s?", s_projectFileName) == false) {
+		if (AppYesNoMessageBox(APP_NAME, "The project has been updated.\n\nOverwrite \"%s\"?", s_projectFileName) == false) {
 			flag = false;
 		}
 	}
@@ -1605,7 +1605,7 @@ bool AppProjectAutoExport(bool confirm){
 		/* ファイルに保存 */
 		FILE *file = fopen(s_projectFileName, "wb");
 		if (file == NULL) {
-			AppErrorMessageBox(APP_NAME, "Failed to export project %s.", s_projectFileName);
+			AppErrorMessageBox(APP_NAME, "Failed to export project \"%s\".", s_projectFileName);
 			result = false;
 		} else {
 			fputs(cJSON_Print(jsonRoot), file);
@@ -1702,7 +1702,7 @@ bool AppOpenDefaultSoundShader(){
 
 bool AppOpenGraphicsShaderFile(const char *fileName){
 	if (IsValidFileName(fileName) == false) {
-		AppErrorMessageBox(APP_NAME, "Invalid file name %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Invalid file name \"%s\".", fileName);
 		return false;
 	}
 
@@ -1715,11 +1715,11 @@ bool AppOpenGraphicsShaderFile(const char *fileName){
 }
 bool AppOpenSoundShaderFile(const char *fileName){
 	if (IsValidFileName(fileName) == false) {
-		AppErrorMessageBox(APP_NAME, "Invalid file name %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Invalid file name \"%s\".", fileName);
 		return false;
 	}
 
-	printf("open a sound shader file %s.\n", fileName);
+	printf("open sound shader file \"%s\".\n", fileName);
 	strcpy_s(s_soundShaderFileName, sizeof(s_soundShaderFileName), fileName);
 	AppUpdateWindowTitleBar();
 	s_soundShaderFileStat.st_mtime = 0;		/* 強制的に再読み込み */
@@ -1729,7 +1729,7 @@ bool AppOpenSoundShaderFile(const char *fileName){
 
 bool AppOpenDragAndDroppedFile(const char *fileName){
 	if (IsValidFileName(fileName) == false) {
-		AppErrorMessageBox(APP_NAME, "Invalid file name %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Invalid file name \"%s\".", fileName);
 		return false;
 	}
 
@@ -1747,12 +1747,12 @@ bool AppOpenDragAndDroppedFile(const char *fileName){
 	||	IsSuffix(fileName, ".dds")
 	) {
 		if (AppUserTexturesLoad(0, fileName) == false) {
-			AppErrorMessageBox(APP_NAME, "Failed to load texture %s.", fileName);
+			AppErrorMessageBox(APP_NAME, "Failed to load texture \"%s\".", fileName);
 			return false;
 		}
 		return true;
 	} else {
-		AppErrorMessageBox(APP_NAME, "Cannot recognize file type.");
+		AppErrorMessageBox(APP_NAME, "Cannot determine file type.");
 		return false;
 	}
 }
@@ -1930,7 +1930,7 @@ bool AppUpdate(){
 	/* サウンドシェーダの更新 */
 	if (IsValidFileName(s_soundShaderFileName)) {
 		if (IsFileUpdated(s_soundShaderFileName, &s_soundShaderFileStat)) {
-			printf("update the sound shader.\n");
+			printf("update sound shader.\n");
 			if (s_soundShaderCode != NULL) free(s_soundShaderCode);
 			/* ファイルのロック状態が継続していることがあるため、リトライしながら読む */
 			for (int retryCount = 0; retryCount < 10; retryCount++) {
@@ -1940,7 +1940,7 @@ bool AppUpdate(){
 				Sleep(100);
 			}
 			if (s_soundShaderCode == NULL) {
-				AppErrorMessageBox(APP_NAME, "Failed to read %s.\n", s_soundShaderFileName);
+				AppErrorMessageBox(APP_NAME, "Failed to read \"%s\".\n", s_soundShaderFileName);
 			} else {
 				AppReloadSoundShader();
 			}
@@ -1950,7 +1950,7 @@ bool AppUpdate(){
 	/* グラフィクスシェーダの更新 */
 	if (IsValidFileName(s_graphicsShaderFileName)) {
 		if (IsFileUpdated(s_graphicsShaderFileName, &s_graphicsShaderFileStat)) {
-			printf("update the graphics shader.\n");
+			printf("update graphics shader.\n");
 			if (s_graphicsShaderCode != NULL) free(s_graphicsShaderCode);
 			/* ファイルのロック状態が継続していることがあるため、リトライしながら読む */
 			for (int retryCount = 0; retryCount < 10; retryCount++) {
@@ -1960,7 +1960,7 @@ bool AppUpdate(){
 				Sleep(100);
 			}
 			if (s_graphicsShaderCode == NULL) {
-				AppErrorMessageBox(APP_NAME, "Failed to read %s.\n", s_graphicsShaderFileName);
+				AppErrorMessageBox(APP_NAME, "Failed to read \"%s\".\n", s_graphicsShaderFileName);
 			} else {
 				AppReloadGraphicsShader();
 			}
@@ -2016,7 +2016,7 @@ bool AppHelpAbout(
 ){
 	AppMessageBox(
 		APP_NAME,
-		"Copyright (c)2023 @yosshin4004\n"
+		"Copyright (c)2026 @yosshin4004\n"
 		"https://github.com/yosshin4004/minimal_gl\n"
 		"Build %s %s\n"
 		,

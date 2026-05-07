@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #define WIN32_LEAN_AND_MEAN
 #define WIN32_EXTRA_LEAN

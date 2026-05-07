@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #include <windows.h>
 #include <stdint.h>
@@ -145,6 +145,20 @@ void ToggleFullScreen(){
 	}
 }
 
+/* アプリケーションを終了するか確認 */
+static bool ConfirmQuit() {
+	if (s_fullScreen) {
+		ToggleFullScreen();
+	} else {
+		if (AppYesNoMessageBox(APP_NAME, "Quit?") == true) {
+			AppProjectAutoExport(true);
+			return true;
+		}
+	}
+	return false;
+}
+
+
 /* ImGui のウィンドウプロシージャ */
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -166,8 +180,15 @@ static LRESULT CALLBACK MainWndProc(
 			}
 		} break;
 
-		/* [x] で閉じる */
-		case WM_CLOSE:
+		/* [x] で閉じる（要求）*/
+		case WM_CLOSE: {
+			if (ConfirmQuit()) {
+				DestroyWindow(hWnd);
+			}
+			return 0;
+		} break;
+
+		/* [x] で閉じる（完了）*/
 		case WM_DESTROY: {
 			PostQuitMessage(0);
 			return 0;
@@ -570,13 +591,8 @@ static LRESULT CALLBACK MainWndProc(
 
 				/* アプリケーションの終了 */
 				case IDM_QUIT: {
-					if (s_fullScreen) {
-						ToggleFullScreen();
-					} else {
-						if (AppYesNoMessageBox(APP_NAME, "Quit?") == true) {
-							AppProjectAutoExport(true);
-							PostQuitMessage(0);
-						}
+					if (ConfirmQuit()) {
+						DestroyWindow(hWnd);
 					}
 					return 0;
 				} break;

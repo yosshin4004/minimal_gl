@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #include "config.h"
 #include "common.h"
@@ -174,7 +174,7 @@ static unsigned __stdcall WorkerThreadProc(
 		Job job = Dequeue();
 		if (job.image == NULL) break;	/* end mark 検出 */
 		if (error == false) {
-			printf("generate %s.\n", job.fileName);
+			printf("generate \"%s\".\n", job.fileName);
 			bool ret = SerializeAsPng(
 				/* const char *fileName */	job.fileName,
 				/* const void *data */		job.image,
@@ -253,8 +253,8 @@ bool RecordImageSequence(
 	if (
 		AppYesNoMessageBox(
 			APP_NAME,
-			"This process will consume a large amount of free disk space.\n"
-			"Do you wish to continue?"
+			"This process will consume a large amount of disk space.\n"
+			"Do you want to continue?"
 		) == false
 	) {
 		/* ユーザーの同意があるので正常終了扱い */

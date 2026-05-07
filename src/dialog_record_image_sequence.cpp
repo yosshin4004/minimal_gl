@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #include <windows.h>
 #include <stdint.h>
@@ -67,7 +67,7 @@ static LRESULT CALLBACK DialogFunc(
 
 			/* αチャンネル 1.0 強制置換フラグをチェックボックスに設定 */
 			SetDlgItemCheck(
-				hDwnd, IDD_RECORD_IMAGE_SEQUENCE_FORCE_REPLACE_ALPHA_BY_1,
+				hDwnd, IDD_RECORD_IMAGE_SEQUENCE_FORCE_REPLACE_ALPHA_WITH_1,
 				AppRecordImageSequenceGetForceReplaceAlphaByOneFlag()
 			);
 
@@ -177,7 +177,7 @@ static LRESULT CALLBACK DialogFunc(
 
 					/* αチャンネル 1.0 強制置換フラグをチェックボックスから取得 */
 					bool forceReplaceAlphaByOne = GetDlgItemCheck(
-						hDwnd, IDD_RECORD_IMAGE_SEQUENCE_FORCE_REPLACE_ALPHA_BY_1
+						hDwnd, IDD_RECORD_IMAGE_SEQUENCE_FORCE_REPLACE_ALPHA_WITH_1
 					);
 
 					/* App に通知 */

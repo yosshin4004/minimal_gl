@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #include <windows.h>
 #include <stdint.h>
@@ -262,7 +262,7 @@ static LRESULT CALLBACK DialogFunc(
 						if (GetDlgItemCheck(hDwnd, IDR_RENDER_SETTINGS_PIXEL_FORMAT_FP32_RGBA)) {
 							pixelFormat = PixelFormatFp32Rgba;
 						} else {
-							AppErrorMessageBox(APP_NAME, "Invalid frame buffer.");
+							AppErrorMessageBox(APP_NAME, "Invalid frame buffer");
 						}
 					}
 
@@ -296,7 +296,7 @@ static LRESULT CALLBACK DialogFunc(
 						if (GetDlgItemCheck(hDwnd, IDR_RENDER_SETTINGS_TEXTURE_FILTER_LINEAR)) {
 							textureFilter = TextureFilterLinear;
 						} else {
-							AppErrorMessageBox(APP_NAME, "Invalid texture filter.");
+							AppErrorMessageBox(APP_NAME, "Invalid texture filter");
 						}
 					}
 
@@ -312,7 +312,7 @@ static LRESULT CALLBACK DialogFunc(
 						if (GetDlgItemCheck(hDwnd, IDR_RENDER_SETTINGS_TEXTURE_WRAP_MIRRORED_REPEAT)) {
 							textureWrap = TextureWrapMirroredRepeat;
 						} else {
-							AppErrorMessageBox(APP_NAME, "Invalid texture wrap.");
+							AppErrorMessageBox(APP_NAME, "Invalid texture wrap");
 						}
 					}
 
@@ -333,7 +333,7 @@ static LRESULT CALLBACK DialogFunc(
 						if (GetDlgItemCheck(hDwnd, IDR_RENDER_SETTINGS_SWAP_INTERVAL_VSYNC)) {
 							swapInterval = SwapIntervalVsync;
 						} else {
-							AppErrorMessageBox(APP_NAME, "Invalid swap interval.");
+							AppErrorMessageBox(APP_NAME, "Invalid swap interval");
 						}
 					}
 

@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #include "config.h"
 #include "common.h"
@@ -21,7 +21,7 @@ ForceCreateDirectory(
 	BOOL ret = CreateDirectoryA(dirFullPath, NULL);
 	if (ret == FALSE) {
 		if (GetLastError() != ERROR_ALREADY_EXISTS) {
-			AppErrorMessageBox(APP_NAME, "Failed to create %s.", dirFullPath);
+			AppErrorMessageBox(APP_NAME, "Failed to create \"%s\".", dirFullPath);
 			return false;
 		}
 	}
@@ -44,7 +44,7 @@ CopyFileFromResource(
 		/* LPCSTR  lpType */	lpType
 	);
 	if (hResource == NULL) {
-		AppErrorMessageBox(APP_NAME, "Can not find resource %s %s.", lpName, lpType);
+		AppErrorMessageBox(APP_NAME, "Can not find resource \"%s\" \"%s\".", lpName, lpType);
 		return false;
 	}
 	size_t sizeInBytes = SizeofResource(
@@ -57,7 +57,7 @@ CopyFileFromResource(
 	);
 	FILE *file = fopen(dstFullPath, "wb");
 	if (file == NULL) {
-		AppErrorMessageBox(APP_NAME, "Can not open %s.", dstFullPath);
+		AppErrorMessageBox(APP_NAME, "Can not open \"%s\".", dstFullPath);
 		return false;
 	}
 	fwrite((const void *)hGlobal, 1, sizeInBytes, file);
@@ -137,7 +137,7 @@ RemoveComma(
 ){
 	char *fileImage = MallocReadTextFile(fileName);
 	if (fileImage == NULL) {
-		AppErrorMessageBox(APP_NAME, "Failed to open %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Failed to open \"%s\".", fileName);
 		return false;
 	}
 
@@ -151,7 +151,7 @@ RemoveComma(
 	{
 		FILE *file = fopen(fileName, "wt");
 		if (file == NULL) {
-			AppErrorMessageBox(APP_NAME, "Failed to open %s.", fileName);
+			AppErrorMessageBox(APP_NAME, "Failed to open \"%s\".", fileName);
 			return false;
 		}
 		fputs(fileImage, file);
@@ -175,7 +175,7 @@ RemoveAndSaveVersionDirective(
 ){
 	char *fileImage = MallocReadTextFile(fileName);
 	if (fileImage == NULL) {
-		AppErrorMessageBox(APP_NAME, "Failed to open %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Failed to open \"%s\".", fileName);
 		return false;
 	}
 	char *p = fileImage;
@@ -209,7 +209,7 @@ RemoveAndSaveVersionDirective(
 	{
 		FILE *file = fopen(fileName, "wt");
 		if (file == NULL) {
-			AppErrorMessageBox(APP_NAME, "Failed to open %s.", fileName);
+			AppErrorMessageBox(APP_NAME, "Failed to open \"%s\".", fileName);
 			free(fileImage);
 			return false;
 		}
@@ -234,7 +234,7 @@ ApplyWorkAround(
 
 	FILE *file = fopen(fileName, "wt");
 	if (file == NULL) {
-		AppErrorMessageBox(APP_NAME, "Failed to open %s.", fileName);
+		AppErrorMessageBox(APP_NAME, "Failed to open \"%s\".", fileName);
 		free(fileImage);
 		return false;
 	}
@@ -316,7 +316,7 @@ ApplyWorkAround(
 						そのため varName 先頭にスペースを一文字挿入している。
 					*/
 					snprintf(varName, sizeof(varName), " %s", varBegin);
-					printf("work around var name = [%s]\n", varName);
+					printf("workaround var name = [%s]\n", varName);
 
 					/* ワークアラウンドコードに置き換え */
 					if (state == StateInsideWorkAround) {
@@ -1121,7 +1121,7 @@ bool ExportExecutable(
 		size_t exeFileSize = GetFileSize(executableExportSettings->fileName);
 		int exeFileSizeDiff = (int)(exeFileSize - prevExeFileSize);
 		AppMessageBox(
-			APP_NAME, "Export executable file completed successfully.\n\nFile size = %d bytes. (change %+d bytes)\n\n",
+			APP_NAME, "Successfully exported executable.\n\nFile size: %d bytes. (change: %+d bytes)\n\n",
 			(int)exeFileSize, exeFileSizeDiff
 		);
 	} else {

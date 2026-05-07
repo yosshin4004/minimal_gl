@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #ifndef _HIGH_PRECISION_TIMER_H_
 #define _HIGH_PRECISION_TIMER_H_

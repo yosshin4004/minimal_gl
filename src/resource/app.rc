@@ -1,4 +1,4 @@
-/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 /*
 	注意：このファイルは SJIS CRLF で記述されている必要がある。
 */
@@ -40,7 +40,7 @@ MYMENU MENU
 		MENUITEM "&Open Graphics Shader...",			IDM_OPEN_GRAPHICS_SHADER
 		MENUITEM "&Open Sound Shader...",				IDM_OPEN_SOUND_SHADER
 		MENUITEM SEPARATOR
-		MENUITEM "&Capture Screen Shot...\tCtrl+P",		IDM_CAPTURE_SCREEN_SHOT
+		MENUITEM "&Capture Screenshot...\tCtrl+P",		IDM_CAPTURE_SCREEN_SHOT
 		MENUITEM "&Capture Cubemap...\tCtrl+C",			IDM_CAPTURE_CUBEMAP
 		MENUITEM "&Capture Sound...\tCtrl+S",			IDM_CAPTURE_SOUND
 		MENUITEM "&Export Executable...\tCtrl+E",		IDM_EXPORT_EXECUTABLE
@@ -77,7 +77,7 @@ MYMENU MENU
 		MENUITEM "&Load Default Graphics Shader",		IDM_LOAD_DEFAULT_GRAPHICS_SHADER
 		MENUITEM "&Load Default Sound Shader",			IDM_LOAD_DEFAULT_SOUND_SHADER
 		MENUITEM SEPARATOR
-		MENUITEM "&Toggle Full Screen\tAlt+Enter"		IDM_TOGGLE_FULL_SCREEN
+		MENUITEM "&Toggle Fullscreen\tAlt+Enter"		IDM_TOGGLE_FULL_SCREEN
 	}
 
 	POPUP	"&Window (W)"
@@ -186,15 +186,15 @@ CAPTION "Render settings"
 					DESCRIPTION_X + 0x20, DESCRIPTION_Y + 0x30, DIALOG_W, FONT_H,
 					WS_GROUP
 
-			AUTORADIOBUTTON "Fp16RGBA (Increase the executable filesize just as enabling MRT.)",
+			AUTORADIOBUTTON "Fp16RGBA (increases the executable file size as much as enabling MRT)",
 				IDR_RENDER_SETTINGS_PIXEL_FORMAT_FP16_RGBA,
 					DESCRIPTION_X + 0x20, DESCRIPTION_Y + 0x40, DIALOG_W, FONT_H
 
-			AUTORADIOBUTTON "Fp32RGBA (Increase the executable filesize just as enabling MRT.)",
+			AUTORADIOBUTTON "Fp32RGBA (increases the executable file size as much as enabling MRT)",
 				IDR_RENDER_SETTINGS_PIXEL_FORMAT_FP32_RGBA,
 					DESCRIPTION_X + 0x20, DESCRIPTION_Y + 0x50, DIALOG_W, FONT_H
 
-		AUTOCHECKBOX "Enable multiple render targets. (Significantly increase the executable filesize.)",
+		AUTOCHECKBOX "Enables multiple render targets (significantly increases the executable file size).",
 			IDD_RENDER_SETTINGS_ENABLE_MULTIPLE_RENDER_TARGETS,
 				DESCRIPTION_X + 0x10, DESCRIPTION_Y + 0x60, DIALOG_W, FONT_H
 
@@ -207,11 +207,11 @@ CAPTION "Render settings"
 
 	LTEXT "Back buffer settings", IDC_DUMMY, DESCRIPTION_X, DESCRIPTION_Y + 0x80, DESCRIPTION_W, FONT_H
 
-		AUTOCHECKBOX "Enable back buffer. (Significantly increase the executable filesize.)",
+		AUTOCHECKBOX "Enables back buffer (significantly increases the executable file size).",
 			IDD_RENDER_SETTINGS_ENABLE_BACK_BUFFER,
 				DESCRIPTION_X + 0x10, DESCRIPTION_Y + 0x90, DIALOG_W, FONT_H
 
-		AUTOCHECKBOX "Enable mipmap generation. (Increase the executable filesize.)",
+		AUTOCHECKBOX "Enables mipmap generation (increases the executable file size).",
 			IDD_RENDER_SETTINGS_ENABLE_MIPMAP_GENERATION,
 				DESCRIPTION_X + 0x10, DESCRIPTION_Y + 0xA0, DIALOG_W, FONT_H
 
@@ -219,7 +219,7 @@ CAPTION "Render settings"
 
 			LTEXT "Filter", IDC_DUMMY, DESCRIPTION_X + 0x20, DESCRIPTION_Y + 0xC0, DESCRIPTION_W, FONT_H
 
-				AUTORADIOBUTTON "GL_NEAREST (Slightly increase the executable filesize.)",
+				AUTORADIOBUTTON "GL_NEAREST (slightly increases the executable file size)",
 					IDR_RENDER_SETTINGS_TEXTURE_FILTER_NEAREST,
 						DESCRIPTION_X + 0x30, DESCRIPTION_Y + 0xD0, DIALOG_W, FONT_H,
 						WS_GROUP
@@ -235,21 +235,21 @@ CAPTION "Render settings"
 						DESCRIPTION_X + 0x30, DESCRIPTION_Y + 0x100, DIALOG_W, FONT_H,
 						WS_GROUP
 
-				AUTORADIOBUTTON "GL_CLAMP_TO_EDGE (Slightly increase the executable filesize.)",
+				AUTORADIOBUTTON "GL_CLAMP_TO_EDGE (slightly increases the executable file size)",
 					IDR_RENDER_SETTINGS_TEXTURE_WRAP_CLAMP_TO_EDGE,
 						DESCRIPTION_X + 0x30, DESCRIPTION_Y + 0x110, DIALOG_W, FONT_H
 
-				AUTORADIOBUTTON "GL_MIRRORED_REPEAT (Slightly increase the executable filesize.)",
+				AUTORADIOBUTTON "GL_MIRRORED_REPEAT (slightly increases the executable file size)",
 					IDR_RENDER_SETTINGS_TEXTURE_WRAP_MIRRORED_REPEAT,
 						DESCRIPTION_X + 0x30, DESCRIPTION_Y + 0x120, DIALOG_W, FONT_H
 
 	LTEXT "Swap settings", IDC_DUMMY, DESCRIPTION_X, DESCRIPTION_Y + 0x130, DESCRIPTION_W, FONT_H
 
-		AUTOCHECKBOX "Enable swap interval control. (Slightly increase the executable filesize.)",
+		AUTOCHECKBOX "Enables swap interval control (slightly increases the executable file size).",
 			IDC_RENDER_SETTINGS_ENABLE_SWAP_INTERVAL_CONTROL,
 				DESCRIPTION_X + 0x10, DESCRIPTION_Y + 0x140, DIALOG_W, FONT_H
 
-			AUTORADIOBUTTON "Allow tearing flip when frames are dropped.",
+			AUTORADIOBUTTON "Allows tearing flips when frames are dropped.",
 				IDR_RENDER_SETTINGS_SWAP_INTERVAL_ALLOW_TEARING,
 					DESCRIPTION_X + 0x20, DESCRIPTION_Y + 0x150, DIALOG_W, FONT_H,
 					WS_GROUP
@@ -296,11 +296,11 @@ CAPTION "Preference settings"
 			DIALOG_W - MARGIN_W - SUBMIT_BUTTON_W, DESCRIPTION_Y + 0x20, SUBMIT_BUTTON_W, SUBMIT_BUTTON_H,
 			WS_CHILD | WS_VISIBLE | WS_TABSTOP
 
-	AUTOCHECKBOX "Auto restart if graphics shader is updated.",
+	AUTOCHECKBOX "Automatically restart if the graphics shader is updated.",
 		IDD_PREFERENCE_SETTINGS_AUTO_RESTART_BY_GRAPHICS_SHADER,
 			DESCRIPTION_X, DESCRIPTION_Y + 0x00, DIALOG_W, FONT_H
 
-	AUTOCHECKBOX "Auto restart if sound shader is updated.",
+	AUTOCHECKBOX "Automatically restart if sound shader is updated.",
 		IDD_PREFERENCE_SETTINGS_AUTO_RESTART_BY_SOUND_SHADER,
 			DESCRIPTION_X, DESCRIPTION_Y + 0x10, DIALOG_W, FONT_H
 }
@@ -453,8 +453,8 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 			EDITBOX_X + PATH_EDITTEXT_W, EDITBOX_Y + 0x10, PATH_BROWSE_BUTTON_W, FONT_H,
 			WS_CHILD | WS_VISIBLE | WS_TABSTOP
 
-	AUTOCHECKBOX "Force replace alpha value by 1.0.",
-		IDD_CAPTURE_SCREEN_SHOT_FORCE_REPLACE_ALPHA_BY_1,
+	AUTOCHECKBOX "Force replace alpha channel with 1.0.",
+		IDD_CAPTURE_SCREEN_SHOT_FORCE_REPLACE_ALPHA_WITH_1,
 			DESCRIPTION_X, DESCRIPTION_Y + 0x20, 200, FONT_H,
 }
 
@@ -640,17 +640,17 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 			EDITBOX_X, EDITBOX_Y + 0x10, EDITBOX_W, FONT_H,
 			ES_LEFT | ES_AUTOHSCROLL | WS_VISIBLE | WS_BORDER | WS_TABSTOP
 
-	AUTOCHECKBOX "Enable the frameCount uniform. (Slightly increase the filesize.)",
+	AUTOCHECKBOX "Enables the frameCount uniform (slightly increases the file size).",
 		IDD_EXPORT_EXECUTABLE_ENABLE_FRAME_COUNT_UNIFORM,
 			DESCRIPTION_X, DESCRIPTION_Y + 0x20, DIALOG_W, FONT_H
 
-	AUTOCHECKBOX "Enable wait for the sound shader dispatch to avoid GPU timeout. (Slightly increase the filesize.)",
+	AUTOCHECKBOX "Enables waiting for the sound shader dispatch to avoid GPU timeout (slightly increases the file size).",
 		IDD_EXPORT_EXECUTABLE_ENABLE_SOUND_DISPATCH_WAIT,
 			DESCRIPTION_X, DESCRIPTION_Y + 0x30, DIALOG_W, FONT_H
 
 	LTEXT "Shader minifier options", IDC_DUMMY, DESCRIPTION_X, DESCRIPTION_Y + 0x40, DESCRIPTION_W, FONT_H
 
-		AUTOCHECKBOX "--field-names : Choose the field names for vectors: 'rgba', 'xyzw', or 'stpq'.",
+		AUTOCHECKBOX "--field-names : Choose field names for vectors: 'rgba', 'xyzw', or 'stpq'.",
 			IDD_EXPORT_EXECUTABLE_SHADER_MINIFIER_ENABLE_FIELD_NAMES
 				DESCRIPTION_X + 0x10, DESCRIPTION_Y + 0x50, DIALOG_W, FONT_H
 
@@ -705,7 +705,7 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 				IDD_EXPORT_EXECUTABLE_CRINKLER_COMPMODE_VERYSLOW,
 					DESCRIPTION_X + 0x20, DESCRIPTION_Y + 0x120, DIALOG_W, FONT_H
 
-		AUTOCHECKBOX "TINYHEADER : For 1KB Intros. (Decrease the filesize, but increase decompression time.)",
+		AUTOCHECKBOX "TINYHEADER : For 1KB Intros (decreases the file size but increases decompression time).",
 			IDD_EXPORT_EXECUTABLE_CRINKLER_USE_TINYHEADER,
 				DESCRIPTION_X + 0x10, DESCRIPTION_Y + 0x130, DIALOG_W, FONT_H
 
@@ -722,7 +722,7 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 	有効にすれば良い（要レイアウト調整）。ただし全く推奨されない。
 */
 #if 0
-		AUTOCHECKBOX "TINYIMPORT : Sacrifices compatibility. (Decrease the filesize around 75 bytes, but less future-proof.)",
+		AUTOCHECKBOX "TINYIMPORT : Sacrifices compatibility (decreases file size by about 75 bytes, but is less future-proof).",
 			IDD_EXPORT_EXECUTABLE_CRINKLER_USE_TINYIMPORT,
 				DESCRIPTION_X + 0x10, DESCRIPTION_Y + 0x140, DIALOG_W, FONT_H
 #endif
@@ -819,8 +819,8 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 			EDITBOX_X + PATH_EDITTEXT_W, EDITBOX_Y + 0x40, PATH_BROWSE_BUTTON_W, FONT_H,
 			WS_CHILD | WS_VISIBLE | WS_TABSTOP
 
-	AUTOCHECKBOX "Force replace alpha value by 1.0.",
-		IDD_RECORD_IMAGE_SEQUENCE_FORCE_REPLACE_ALPHA_BY_1,
+	AUTOCHECKBOX "Force replace alpha channel with 1.0.",
+		IDD_RECORD_IMAGE_SEQUENCE_FORCE_REPLACE_ALPHA_WITH_1,
 			DESCRIPTION_X, DESCRIPTION_Y + 0x50, 200, FONT_H,
 }
 
@@ -887,7 +887,7 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 		IDC_DUMMY,
 			ICON_X, ICON_Y, ICON_W, ICON_H,
 
-	LTEXT "The file already exists. Over write?",
+	LTEXT "The file already exists. Overwrite?",
 		IDC_DUMMY,
 			DESCRIPTION_X, DESCRIPTION_Y, EDITBOX_W, FONT_H
 
@@ -1132,7 +1132,7 @@ STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 			DIALOG_W - MARGIN_W - SUBMIT_BUTTON_W, EDITBOX_Y + 0x60, SUBMIT_BUTTON_W, SUBMIT_BUTTON_H,
 			WS_CHILD | WS_VISIBLE | WS_TABSTOP
 
-	LTEXT "This feature is for debugging purposes only.\nUser textures are bound to layout(binding=8to11) and are not available in exported executables.",
+	LTEXT "This feature is for debugging purposes only.\nUser textures are bound to layout(binding = 8-11) and are not available in exported executables.",
 		IDC_DUMMY, UI_X, UI_Y + 0x00, UI_W, 0x20
 
 

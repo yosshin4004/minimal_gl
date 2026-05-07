@@ -1,4 +1,4 @@
-﻿/* Copyright (C) 2018 Yosshin(@yosshin4004) */
+﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 #include <windows.h>
 #include <stdint.h>
@@ -50,7 +50,7 @@ static LRESULT CALLBACK DialogFunc(
 
 			/* αチャンネル 1.0 強制置換フラグをチェックボックスに設定 */
 			SetDlgItemCheck(
-				hDwnd, IDD_CAPTURE_SCREEN_SHOT_FORCE_REPLACE_ALPHA_BY_1,
+				hDwnd, IDD_CAPTURE_SCREEN_SHOT_FORCE_REPLACE_ALPHA_WITH_1,
 				AppCaptureScreenShotGetForceReplaceAlphaByOneFlag()
 			);
 
@@ -122,13 +122,13 @@ static LRESULT CALLBACK DialogFunc(
 						outputFileName, sizeof(outputFileName)
 					);
 					if (strcmp(outputFileName, "") == 0) {
-						AppErrorMessageBox(APP_NAME, "Invalid output file name");
+						AppErrorMessageBox(APP_NAME, "Invalid output filename");
 						return 0;	/* メッセージは処理されなかった */
 					}
 
 					/* αチャンネル 1.0 強制置換フラグをチェックボックスから取得 */
 					bool forceReplaceAlphaByOne = GetDlgItemCheck(
-						hDwnd, IDD_CAPTURE_SCREEN_SHOT_FORCE_REPLACE_ALPHA_BY_1
+						hDwnd, IDD_CAPTURE_SCREEN_SHOT_FORCE_REPLACE_ALPHA_WITH_1
 					);
 
 					/* App に通知 */
