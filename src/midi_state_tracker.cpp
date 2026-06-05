@@ -29,10 +29,12 @@ static void CALLBACK MidiInProc(
 		) {
 			uint8_t data1  = (msg >> 8) & 0xff;
 			uint8_t data2  = (msg >> 16) & 0xff;
+#if 0
 			printf(
 				"status=%02X data1=%d data2=%d\n",
 				status, data1, data2
 			);
+#endif
 			s_midiIn.states[data1] = data2;
 		}
 	}
@@ -49,7 +51,7 @@ bool MidiStateTrackerInitialize(){
 	for (int i = 0; i < numDevs; ++i) {
 		MIDIINCAPS caps = {};
 		midiInGetDevCaps(i, &caps, sizeof(caps));
-		printf("%d : %s\n", i, caps.szPname);
+		printf("MIDI device #%d: %s\n", i, caps.szPname);
 	}
 
 	MMRESULT ret = midiInOpen(
