@@ -1,6 +1,5 @@
 ﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
-#include <regex>
 #include <math.h>
 #include "common.h"
 #include "app.h"
