@@ -1,8 +1,9 @@
 ﻿#version 430	/* version ディレクティブが必要な場合は必ず 1 行目に書くこと */
-/* Copyright (C) 2020 Yosshin(@yosshin4004) */
+/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 /*
-	キューブマップ利用サンプルコード。
+	キューブマップ利用サンプルコード
+
 	このサンプルコードを実行するには、12_user_cubemap.json を 
 		File -> Import Project
 	で読み込むか、minimal_gl のウィンドウ上にドラッグ＆ドロップすること。
@@ -10,11 +11,10 @@
 	アサインするキューブマップは
 		File -> Load User Textures
 	で変更できる。
-	0 番テクスチャのみは、minimal_gl のウィンドウ上にファイルを
-	ドラッグ＆ドロップすることでもアサインできる。
+	0 番テクスチャのみは、minimal_gl のウィンドウ上にファイルをドラッグ＆ドロップ
+	することでもアサインできる。
 
-	12_user_cubemap.dds は、07_camera_and_cubemap.gfx.glsl を利用して生成
-	されている。
+	12_user_cubemap.dds は、07_camera_and_cubemap.gfx.glsl を利用して生成されている。
 */
 layout(location = 2) uniform float time;
 layout(location = 3) uniform vec2 resolution;

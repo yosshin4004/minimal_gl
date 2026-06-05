@@ -329,7 +329,7 @@ bool RecordImageSequence(
 					/* char fileName[MAX_PATH]; */	{0},
 					/* int xReso; */				recordImageSequenceSettings->xReso,
 					/* int yReso; */				recordImageSequenceSettings->yReso,
-					/* bool replaceAlphaByOne; */	recordImageSequenceSettings->replaceAlphaByOne,
+					/* bool replaceAlphaWithOne; */	recordImageSequenceSettings->replaceAlphaWithOne,
 				};
 				snprintf(captureSettings.fileName, sizeof(captureSettings.fileName), "%s", job.fileName);
 				size_t numBitsPerPixel = PixelFormatToGlPixelFormatInfo(renderSettingsForceUnorm8.pixelFormat).numBitsPerPixel;

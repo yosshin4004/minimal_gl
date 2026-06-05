@@ -33,14 +33,10 @@ void SoundSeekWaveOut(uint32_t offset);
 /* 再生位置の取得 */
 int SoundGetWaveOutPos();
 
-/* サウンド用シェーダの作成 */
-bool SoundCreateShader(
+/* サウンド用シェーダのセットアップ */
+bool SoundSetupShader(
 	const char *shaderCode
 );
-
-
-/* サウンド用シェーダの削除 */
-bool SoundDeleteShader();
 
 /* サウンドの持続時間を自動検出 */
 float SoundDetectDurationInSeconds();
@@ -57,9 +53,7 @@ bool SoundCaptureSound(
 );
 
 /* サウンドの更新 */
-void SoundUpdate(
-	uint32_t frameCount
-);
+void SoundUpdate();
 
 /* サウンドの完全な更新（ブロッキング）*/
 void SoundFullUpdate();

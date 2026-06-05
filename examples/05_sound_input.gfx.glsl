@@ -1,16 +1,17 @@
 ﻿#version 430	/* version ディレクティブが必要な場合は必ず 1 行目に書くこと */
-/* Copyright (C) 2020 Yosshin(@yosshin4004) */
+/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 /*
-	サウンド入力サンプルコード。
+	サウンド入力サンプルコード
 
 	04_sound_output.snd.glsl と組み合わせることでサウンドが可視化される。
 */
+#define NUM_SAMPLES_PER_SEC 48000.
+#define NUM_SOUND_BUFFER_SAMPLES 0x1000000
 
 layout(location = 0) uniform int waveOutPosition;
 #if defined(EXPORT_EXECUTABLE)
-	vec2 resolution = {SCREEN_XRESO, SCREEN_YRESO};
-	#define NUM_SAMPLES_PER_SEC 48000.
+	#define resolution vec2(SCREEN_XRESO, SCREEN_YRESO)
 	float time = waveOutPosition / NUM_SAMPLES_PER_SEC;
 #else
 	layout(location = 2) uniform float time;
@@ -40,7 +41,7 @@ out vec4 outColor;
 
 void main(){
 	vec2 pos = gl_FragCoord.xy * 2 / resolution - 1;
-	vec2 waveOutSample = waveOutSamples[waveOutPosition + int(gl_FragCoord.x)];
+	vec2 waveOutSample = waveOutSamples[(waveOutPosition + int(gl_FragCoord.x)) % NUM_SOUND_BUFFER_SAMPLES];
 	vec3 color = vec3(0);
 	if (abs(pos.y) < abs(waveOutSample.x)) color += vec3(1, .5, 0);
 	if (abs(pos.y) < abs(waveOutSample.y)) color += vec3(0, .5, 1);

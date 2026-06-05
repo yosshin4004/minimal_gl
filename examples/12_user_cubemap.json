@@ -14,7 +14,7 @@
 		"fileName":	"",
 		"xReso":	1280,
 		"yReso":	720,
-		"replaceAlphaByOne":	true
+		"replaceAlphaWithOne":	true
 	},
 	"captureCubemapSettings":	{
 		"fileName":	"",
@@ -67,7 +67,7 @@
 		"startTimeInSeconds":	0,
 		"durationInSeconds":	120,
 		"framesPerSecond":	60,
-		"replaceAlphaByOne":	true
+		"replaceAlphaWithOne":	true
 	},
 	"captureSoundSettings":	{
 		"fileName":	"",
@@ -85,5 +85,12 @@
 			"fileName":	""
 		}, {
 			"fileName":	""
-		}]
+		}],
+	"userUniformDb":	{
+		"categories":	[{
+				"uniforms":	[]
+			}, {
+				"uniforms":	[]
+			}]
+	}
 }

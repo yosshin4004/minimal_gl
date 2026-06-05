@@ -68,7 +68,7 @@ static LRESULT CALLBACK DialogFunc(
 			/* αチャンネル 1.0 強制置換フラグをチェックボックスに設定 */
 			SetDlgItemCheck(
 				hDwnd, IDD_RECORD_IMAGE_SEQUENCE_FORCE_REPLACE_ALPHA_WITH_1,
-				AppRecordImageSequenceGetForceReplaceAlphaByOneFlag()
+				AppRecordImageSequenceGetForceReplaceAlphaWithOneFlag()
 			);
 
 			/* メッセージは処理された */
@@ -176,7 +176,7 @@ static LRESULT CALLBACK DialogFunc(
 					}
 
 					/* αチャンネル 1.0 強制置換フラグをチェックボックスから取得 */
-					bool forceReplaceAlphaByOne = GetDlgItemCheck(
+					bool forceReplaceAlphaWithOne = GetDlgItemCheck(
 						hDwnd, IDD_RECORD_IMAGE_SEQUENCE_FORCE_REPLACE_ALPHA_WITH_1
 					);
 
@@ -186,7 +186,7 @@ static LRESULT CALLBACK DialogFunc(
 					AppRecordImageSequenceSetDurationInSeconds(duration);
 					AppRecordImageSequenceSetFramesPerSecond(framesPerSecond);
 					AppRecordImageSequenceSetCurrentOutputDirectoryName(outputDirectoryName);
-					AppRecordImageSequenceSetForceReplaceAlphaByOneFlag(forceReplaceAlphaByOne);
+					AppRecordImageSequenceSetForceReplaceAlphaWithOneFlag(forceReplaceAlphaWithOne);
 
 					/* ダイアログボックス終了 */
 					EndDialog(hDwnd, DialogRecordImageSequenceResult_Ok);

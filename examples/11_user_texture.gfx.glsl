@@ -1,8 +1,9 @@
 ﻿#version 430	/* version ディレクティブが必要な場合は必ず 1 行目に書くこと */
-/* Copyright (C) 2020 Yosshin(@yosshin4004) */
+/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 /*
-	テクスチャ利用サンプルコード。
+	テクスチャ利用サンプルコード
+
 	このサンプルコードを実行するには、11_user_texture.json を 
 		File -> Import Project
 	で読み込むか、minimal_gl のウィンドウ上にドラッグ＆ドロップすること。

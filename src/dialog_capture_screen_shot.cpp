@@ -51,7 +51,7 @@ static LRESULT CALLBACK DialogFunc(
 			/* αチャンネル 1.0 強制置換フラグをチェックボックスに設定 */
 			SetDlgItemCheck(
 				hDwnd, IDD_CAPTURE_SCREEN_SHOT_FORCE_REPLACE_ALPHA_WITH_1,
-				AppCaptureScreenShotGetForceReplaceAlphaByOneFlag()
+				AppCaptureScreenShotGetForceReplaceAlphaWithOneFlag()
 			);
 
 			/* メッセージは処理された */
@@ -127,14 +127,14 @@ static LRESULT CALLBACK DialogFunc(
 					}
 
 					/* αチャンネル 1.0 強制置換フラグをチェックボックスから取得 */
-					bool forceReplaceAlphaByOne = GetDlgItemCheck(
+					bool forceReplaceAlphaWithOne = GetDlgItemCheck(
 						hDwnd, IDD_CAPTURE_SCREEN_SHOT_FORCE_REPLACE_ALPHA_WITH_1
 					);
 
 					/* App に通知 */
 					AppCaptureScreenShotSetResolution(xReso, yReso);
 					AppCaptureScreenShotSetCurrentOutputFileName(outputFileName);
-					AppCaptureScreenShotSetForceReplaceAlphaByOneFlag(forceReplaceAlphaByOne);
+					AppCaptureScreenShotSetForceReplaceAlphaWithOneFlag(forceReplaceAlphaWithOne);
 
 					/* ダイアログボックス終了 */
 					EndDialog(hDwnd, DialogCaptureScreenShotResult_Ok);

@@ -1,9 +1,9 @@
 ﻿#version 430	/* version ディレクティブが必要な場合は必ず 1 行目に書くこと */
-/* Copyright (C) 2020 Yosshin(@yosshin4004) */
+/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 
 /*
-	twigl (https://twigl.app/) グラフィクスシェーダ互換サンプルコード。
+	twigl (https://twigl.app/) グラフィクスシェーダ互換サンプルコード
 	geeker (MRT) 対応。
 
 	twigl では #define マクロを利用した minify テクニックが多用されるが、
@@ -17,8 +17,8 @@ layout(location = 0) uniform int waveOutPosition;
 #if defined(EXPORT_EXECUTABLE)
 	#define NUM_SAMPLES_PER_SEC 48000.
 	float t = waveOutPosition / NUM_SAMPLES_PER_SEC;
-	vec2 r = {SCREEN_XRESO, SCREEN_YRESO};
-	vec2 m = vec2(0);
+	#define r vec2(SCREEN_XRESO, SCREEN_YRESO)
+	#define m vec2(0)
 #else
 	layout(location = 2) uniform float t;
 	layout(location = 3) uniform vec2 r;

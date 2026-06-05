@@ -158,7 +158,6 @@ static bool ConfirmQuit() {
 	return false;
 }
 
-
 /* ImGui のウィンドウプロシージャ */
 extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
@@ -604,12 +603,11 @@ static LRESULT CALLBACK MainWndProc(
 }
 
 /* ウィンドウ終了処理 */
-static bool WindowTerminate(
-){
+static bool WindowTerminate(){
 	/* ImGui 関連 */
 	ImGui_ImplOpenGL3_Shutdown();
-	ImGui::DestroyContext();
 	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 
 	/* GL コンテキストの削除 */
 	if (s_hRC) {
@@ -629,10 +627,8 @@ static bool WindowTerminate(
 	return true;
 }
 
-
 /* ウィンドウ初期化 */
-static bool WindowInitialize(
-){
+static bool WindowInitialize(){
 	/* ウィンドウクラスの登録 */
 	{
 		WNDCLASSEX wndClass;
@@ -743,6 +739,31 @@ static bool WindowInitialize(
 	/* ドラッグアンドドロップを受け入れる */
 	DragAcceptFiles(AppGetMainWindowHandle(), TRUE);
 
+	/* メインウィンドウが存在するモニタのリフレッシュレートを取得 */
+	{
+		MONITORINFOEX mi = {};
+		mi.cbSize = sizeof(mi);
+
+		HMONITOR hMonitor = MonitorFromWindow(AppGetMainWindowHandle(), MONITOR_DEFAULTTONEAREST);
+
+		if (GetMonitorInfo(hMonitor, &mi)) {
+			DEVMODE dm = {};
+			dm.dmSize = sizeof(dm);
+
+			if (
+				EnumDisplaySettings(
+					mi.szDevice,
+					ENUM_CURRENT_SETTINGS,
+					&dm
+				)
+			) {
+				DWORD refreshRate = dm.dmDisplayFrequency;
+				printf("refreshRate = %lu Hz\n", refreshRate);
+				AppSetMainWindowRefreshRate((float)refreshRate);
+			}
+		}
+	}
+
 	/* ImGui 関連 */
 	{
 		/* GL 拡張 API の取得 */
@@ -767,6 +788,17 @@ static bool WindowInitialize(
 	return true;
 }
 
+/* dos 窓のコンソール制御イベントハンドラ */
+static BOOL WINAPI MyConsoleHandler(DWORD ctrlType){
+	switch (ctrlType) {
+		case CTRL_CLOSE_EVENT: {
+			printf("console close\n");
+			PostMessage(AppGetMainWindowHandle(), WM_CLOSE, 0, 0);
+			return TRUE;
+		} break;
+	}
+	return FALSE;
+}
 
 /*=============================================================================
 ▼	メイン処理
@@ -799,6 +831,7 @@ int WINAPI WinMain(
 		freopen("conin$", "r", stdin);
 		freopen("conout$", "w", stdout);
 		freopen("conout$", "w", stderr);
+		SetConsoleCtrlHandler(MyConsoleHandler, TRUE);
 	}
 
 	/* コマンドライン文字列のコピーを作成 */

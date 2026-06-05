@@ -1,8 +1,8 @@
 ﻿#version 430	/* version ディレクティブが必要な場合は必ず 1 行目に書くこと */
-/* Copyright (C) 2020 Yosshin(@yosshin4004) */
+/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 /*
-	超基本サンプルコード。
+	超基本サンプルコード
 
 	time は経過時間、resolution は画面の解像度である。
 

@@ -121,7 +121,7 @@ ExecuteBat(
 	snprintf(
 		commandLine,
 		sizeof(commandLine),
-		"cmd.exe /c %s",
+		"cmd.exe /c ""%s""",
 		fileName
 	);
 	return ExecuteCommandLine(commandLine, currentDirectory);
@@ -183,7 +183,7 @@ RemoveAndSaveVersionDirective(
 	/* BOM をスキップ */
 	p = SkipBom(p);
 
-	/* 1 行目に書かれている version デレクティブを探し、除去と保存 */
+	/* 1 行目に書かれている version ディレクティブを探し、除去と保存 */
 	{
 		/* 行頭スペースのスキップ */
 		p = StrSkipChars(p, " \t");
@@ -644,8 +644,8 @@ bool ExportExecutableSub(
 						APP_NAME,
 						"Failed to execute shader_minifier.exe.\n"
 						"\n"
-						"Please install shader_minifier.exe to the directory where the minimal_gl.exe is installed, "
-						"or edit your PATH to include the installed directory of the shader_minifier.exe.\n"
+						"Please install shader_minifier.exe to the directory where minimal_gl.exe is installed, "
+						"or edit your PATH to include the directory where shader_minifier.exe is installed.\n"
 						"\n"
 						"https://github.com/laurentlb/Shader_Minifier"
 					);
@@ -945,8 +945,8 @@ bool ExportExecutableSub(
 						APP_NAME,
 						"Failed to execute crinkler.exe.\n"
 						"\n"
-						"Please install crinkler.exe to the directory where the minimal_gl.exe is installed, "
-						"or edit your PATH to include the installed directory of the crinkler.exe.\n"
+						"Please install crinkler.exe to the directory where minimal_gl.exe is installed, "
+						"or edit your PATH to include the directory where crinkler.exe is installed.\n"
 						"\n"
 						"http://www.crinkler.net/"
 					);

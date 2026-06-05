@@ -20,20 +20,20 @@
 #include "config.h"
 #include "sound.h"
 #include "graphics.h"
+#include "user_uniform.h"
 #include "high_precision_timer.h"
+#include "midi_state_tracker.h"
 #include "export_executable.h"
 #include "record_image_sequence.h"
 #include "dialog_confirm_over_write.h"
 #include "tiny_vmath.h"
+#include "json_util.h"
 #include "app.h"
 
 #include "resource/resource.h"
 
-#define WAVEOUT_SEEKSTEP_IN_SAMPLES	(0x4000)
-
 
 static bool s_paused = false;
-static double s_fp64PausedTime = 0;
 static int s_xReso = DEFAULT_SCREEN_XRESO;
 static int s_yReso = DEFAULT_SCREEN_YRESO;
 static int32_t s_waveOutSampleOffset = 0;
@@ -66,7 +66,7 @@ static CaptureScreenShotSettings s_captureScreenShotSettings = {
 	/* char fileName[MAX_PATH]; */	{0},
 	/* int xReso; */				DEFAULT_SCREEN_XRESO,
 	/* int yReso; */				DEFAULT_SCREEN_YRESO,
-	/* bool replaceAlphaByOne; */	true,
+	/* bool replaceAlphaWithOne; */	true,
 };
 static CaptureCubemapSettings s_captureCubemapSettings = {
 	/* char fileName[MAX_PATH]; */	{0},
@@ -123,7 +123,7 @@ static RecordImageSequenceSettings s_recordImageSequenceSettings = {
 	/* float startTimeInSeconds; */		0.0f,
 	/* float durationInSeconds; */		DEFAULT_DURATION_IN_SECONDS,
 	/* float framesPerSecond; */		DEFAULT_FRAMES_PER_SECOND,
-	/* bool replaceAlphaByOne; */		true,
+	/* bool replaceAlphaWithOne; */		true,
 };
 static CaptureSoundSettings s_captureSoundSettings = {
 	/* char fileName[MAX_PATH]; */	{0},
@@ -158,7 +158,7 @@ static const char s_defaultGraphicsShaderCode[] =
 			以下の記述はシェーダコードとしては正しくないが、shader minifier に認識され
 			minify が適用されたのち、work_around_begin: 以降のコードに置換される。
 			%s は、shader minifier によるリネームが適用されたあとのシンボル名に
-			置き換えらえる。
+			置き換えられる。
 
 			buffer にはレイアウト名を付ける必要がある。ここでは、レイアウト名 = ssbo と
 			している。レイアウト名は shader minifier が生成する他のシンボルと衝突しては
@@ -186,8 +186,8 @@ static const char s_defaultGraphicsShaderCode[] =
 	"void main(){\n"
 	"	vec3 vec3Col = vec3(0);\n"
 
-	"	int pos0 = g_waveOutPos + int(gl_FragCoord.x);\n"
-	"	int pos1 = g_waveOutPos + int(gl_FragCoord.x) + 1;\n"
+	"	int pos0 = (g_waveOutPos + int(gl_FragCoord.x)    ) % " TO_STRING(NUM_SOUND_BUFFER_SAMPLES) ";\n"
+	"	int pos1 = (g_waveOutPos + int(gl_FragCoord.x) + 1) % " TO_STRING(NUM_SOUND_BUFFER_SAMPLES) ";\n"
 	"	int sample0L = int((g_avec2Sample[pos0].x * .5 + .5) * (g_vec2Reso.y - 1.) + .5);\n"
 	"	int sample0R = int((g_avec2Sample[pos0].y * .5 + .5) * (g_vec2Reso.y - 1.) + .5);\n"
 	"	int sample1L = int((g_avec2Sample[pos1].x * .5 + .5) * (g_vec2Reso.y - 1.) + .5);\n"
@@ -255,6 +255,7 @@ static const char s_defaultSoundShaderCode[] =
 -----------------------------------------------------------------------------*/
 static HINSTANCE s_hCurrentInstance = 0;
 static HWND s_hMainWindow = 0;
+static float s_refreshRate = DEFAULT_FRAMES_PER_SECOND;
 
 void AppSetCurrentInstance(HINSTANCE hInstance){
 	s_hCurrentInstance = hInstance;
@@ -270,6 +271,14 @@ void AppSetMainWindowHandle(HWND hWindow){
 
 HWND AppGetMainWindowHandle(){
 	return s_hMainWindow;
+}
+
+void AppSetMainWindowRefreshRate(float refreshRate){
+	s_refreshRate = refreshRate;
+}
+
+float AppGetMainWindowRefreshRate(){
+	return s_refreshRate;
 }
 
 void AppGetWindowFocus(){
@@ -668,19 +677,20 @@ void AppCaptureScreenShotGetResolution(int *xResoRet, int *yResoRet){
 	*xResoRet = s_captureScreenShotSettings.xReso;
 	*yResoRet = s_captureScreenShotSettings.yReso;
 }
-void AppCaptureScreenShotSetForceReplaceAlphaByOneFlag(bool flag){
-	s_captureScreenShotSettings.replaceAlphaByOne = flag;
+void AppCaptureScreenShotSetForceReplaceAlphaWithOneFlag(bool flag){
+	s_captureScreenShotSettings.replaceAlphaWithOne = flag;
 }
-bool AppCaptureScreenShotGetForceReplaceAlphaByOneFlag(){
-	return s_captureScreenShotSettings.replaceAlphaByOne;
+bool AppCaptureScreenShotGetForceReplaceAlphaWithOneFlag(){
+	return s_captureScreenShotSettings.replaceAlphaWithOne;
 }
 void AppCaptureScreenShot(){
 	if (s_graphicsCreateShaderSucceeded) {
 		if (DialogConfirmOverWrite(s_captureScreenShotSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
+			int32_t waveOutPos = SoundGetWaveOutPos();
 			CurrentFrameParams params = {0};
-			params.waveOutPos				= SoundGetWaveOutPos();
+			params.waveOutPos				= waveOutPos;
 			params.frameCount				= s_frameCount;
-			params.time						= float(HighPrecisionTimerGet());
+			params.time						= (float)((double)waveOutPos / NUM_SOUND_SAMPLES_PER_SEC);
 			params.xMouse					= 0;
 			params.yMouse					= 0;
 			params.mouseLButtonPressed		= 0;
@@ -737,10 +747,11 @@ int AppCaptureCubemapGetResolution(){
 void AppCaptureCubemap(){
 	if (s_graphicsCreateShaderSucceeded) {
 		if (DialogConfirmOverWrite(s_captureCubemapSettings.fileName) == DialogConfirmOverWriteResult_Yes) {
+			int32_t waveOutPos = SoundGetWaveOutPos();
 			CurrentFrameParams params = {0};
-			params.waveOutPos				= SoundGetWaveOutPos();
+			params.waveOutPos				= waveOutPos;
 			params.frameCount				= s_frameCount;
-			params.time						= float(HighPrecisionTimerGet());
+			params.time						= (float)((double)waveOutPos / NUM_SOUND_SAMPLES_PER_SEC);
 			params.xMouse					= 0;
 			params.yMouse					= 0;
 			params.mouseLButtonPressed		= 0;
@@ -965,11 +976,11 @@ void AppRecordImageSequenceSetFramesPerSecond(float framesPerSecond){
 float AppRecordImageSequenceGetFramesPerSecond(){
 	return s_recordImageSequenceSettings.framesPerSecond;
 }
-void AppRecordImageSequenceSetForceReplaceAlphaByOneFlag(bool flag){
-	s_recordImageSequenceSettings.replaceAlphaByOne = flag;
+void AppRecordImageSequenceSetForceReplaceAlphaWithOneFlag(bool flag){
+	s_recordImageSequenceSettings.replaceAlphaWithOne = flag;
 }
-bool AppRecordImageSequenceGetForceReplaceAlphaByOneFlag(){
-	return s_recordImageSequenceSettings.replaceAlphaByOne;
+bool AppRecordImageSequenceGetForceReplaceAlphaWithOneFlag(){
+	return s_recordImageSequenceSettings.replaceAlphaWithOne;
 }
 void AppRecordImageSequence(){
 	printf("record image sequence.\n");
@@ -983,93 +994,6 @@ void AppRecordImageSequence(){
 	} else {
 		AppErrorMessageBox(APP_NAME, "Please fix shader compilation errors before exporting.");
 	}
-}
-
-/*=============================================================================
-▼	JSON ユーティリティ関連
------------------------------------------------------------------------------*/
-static bool JsonGetAsString(
-	cJSON *json,
-	const char *pointer,
-	char *dstString,
-	size_t dstStringSizeInBytes,
-	const char *defaultString
-){
-	strcpy_s(dstString, dstStringSizeInBytes, defaultString);
-	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
-	if (jsonFound == NULL) return false;
-	if (cJSON_IsString(jsonFound) == false || (jsonFound->valuestring == NULL)) return false;
-	if (strlen(jsonFound->valuestring) + 1 /* 末端 \0 分 */ > dstStringSizeInBytes) return false;
-	strcpy_s(dstString, dstStringSizeInBytes, jsonFound->valuestring);
-	return true;
-}
-
-static bool JsonGetAsInt(
-	cJSON *json,
-	const char *pointer,
-	int *dst,
-	int defaultValue
-){
-	*dst = defaultValue;
-	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
-	if (jsonFound == NULL) return false;
-	if (cJSON_IsNumber(jsonFound) == false) return false;
-	*dst = (int)jsonFound->valuedouble;
-	return true;
-}
-
-static bool JsonGetAsFloat(
-	cJSON *json,
-	const char *pointer,
-	float *dst,
-	float defaultValue
-){
-	*dst = defaultValue;
-	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
-	if (jsonFound == NULL) return false;
-	if (cJSON_IsNumber(jsonFound) == false) return false;
-	*dst = (float)jsonFound->valuedouble;
-	return true;
-}
-
-static bool JsonGetAsBool(
-	cJSON *json,
-	const char *pointer,
-	bool *dst,
-	bool defaultValue
-){
-	*dst = defaultValue;
-	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
-	if (jsonFound == NULL) return false;
-	if (cJSON_IsBool(jsonFound) == false) return false;
-	*dst = cJSON_IsTrue(jsonFound);
-	return true;
-}
-
-static bool JsonGetAsVec3(
-	cJSON *json,
-	const char *pointer,
-	float vec3Dst[3],
-	const float vec3Default[3]
-){
-	vec3Dst[0] = vec3Default[0];
-	vec3Dst[1] = vec3Default[1];
-	vec3Dst[2] = vec3Default[2];
-	cJSON *jsonFound = cJSONUtils_GetPointer(json, pointer);
-	if (jsonFound == NULL) return false;
-
-	if (cJSON_IsArray(jsonFound) == false) return false;
-	if (cJSON_GetArraySize(jsonFound) != 3) return false;
-	cJSON *jsonFoundElement0 = cJSON_GetArrayItem(jsonFound, 0);
-	cJSON *jsonFoundElement1 = cJSON_GetArrayItem(jsonFound, 1);
-	cJSON *jsonFoundElement2 = cJSON_GetArrayItem(jsonFound, 2);
-	if (cJSON_IsNumber(jsonFoundElement0) == false) return false;
-	if (cJSON_IsNumber(jsonFoundElement1) == false) return false;
-	if (cJSON_IsNumber(jsonFoundElement2) == false) return false;
-	vec3Dst[0] = (float)jsonFoundElement0->valuedouble;
-	vec3Dst[1] = (float)jsonFoundElement1->valuedouble;
-	vec3Dst[2] = (float)jsonFoundElement2->valuedouble;
-	return true;
 }
 
 /*=============================================================================
@@ -1087,35 +1011,41 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 		JsonGetAsInt   (jsonRoot, "/app/xReso",                 &s_xReso, DEFAULT_SCREEN_XRESO);
 		JsonGetAsInt   (jsonRoot, "/app/yReso",                 &s_yReso, DEFAULT_SCREEN_YRESO);
 
+		s_graphicsShaderFileName[0] = '\0';
 		if (strcmp(graphicsShaderRelativeFileName, "") == 0) {
-			s_graphicsShaderFileName[0] = '\0';
 			AppOpenDefaultGraphicsShader();
 		} else {
+			char graphicsShaderFileName[MAX_PATH] = {0};
 			GenerateCombinedPath(
-				/* char *combinedPath */				s_graphicsShaderFileName,
-				/* size_t combinedPathSizeInBytes */	sizeof(s_graphicsShaderFileName),
+				/* char *combinedPath */				graphicsShaderFileName,
+				/* size_t combinedPathSizeInBytes */	sizeof(graphicsShaderFileName),
 				/* const char *directoryPath */			projectBasePath,
 				/* const char *filePath */				graphicsShaderRelativeFileName
 			);
-			if (IsValidFileName(s_graphicsShaderFileName) == false) {
-				AppErrorMessageBox(APP_NAME, "Failed to load graphics shader \"%s\".", s_graphicsShaderFileName);
+			if (IsValidFileName(graphicsShaderFileName)) {
+				AppOpenGraphicsShaderFile(graphicsShaderFileName);
+			} else {
+				AppErrorMessageBox(APP_NAME, "Failed to load graphics shader \"%s\".", graphicsShaderFileName);
 				AppOpenDefaultGraphicsShader();
 				result = false;
 			}
 		}
 
+		s_soundShaderFileName[0] = '\0';
 		if (strcmp(soundShaderRelativeFileName, "") == 0) {
-			s_soundShaderFileName[0] = '\0';
 			AppOpenDefaultSoundShader();
 		} else {
+			char soundShaderFileName[MAX_PATH] = {0};
 			GenerateCombinedPath(
-				/* char *combinedPath */				s_soundShaderFileName,
-				/* size_t combinedPathSizeInBytes */	sizeof(s_soundShaderFileName),
+				/* char *combinedPath */				soundShaderFileName,
+				/* size_t combinedPathSizeInBytes */	sizeof(soundShaderFileName),
 				/* const char *directoryPath */			projectBasePath,
 				/* const char *filePath */				soundShaderRelativeFileName
 			);
-			if (IsValidFileName(s_soundShaderFileName) == false) {
-				AppErrorMessageBox(APP_NAME, "Failed to load sound shader \"%s\".", s_soundShaderFileName);
+			if (IsValidFileName(soundShaderFileName)) {
+				AppOpenSoundShaderFile(soundShaderFileName);
+			} else {
+				AppErrorMessageBox(APP_NAME, "Failed to load sound shader \"%s\".", soundShaderFileName);
 				AppOpenDefaultSoundShader();
 				result = false;
 			}
@@ -1130,10 +1060,10 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 	{
 		char relativeFileName[MAX_PATH] = {0};
 
-		JsonGetAsString(jsonRoot, "/captureScreenShotSettings/fileName",          relativeFileName, sizeof(relativeFileName), "");
-		JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/xReso",             &s_captureScreenShotSettings.xReso, DEFAULT_SCREEN_XRESO);
-		JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/yReso",             &s_captureScreenShotSettings.yReso, DEFAULT_SCREEN_YRESO);
-		JsonGetAsBool  (jsonRoot, "/captureScreenShotSettings/replaceAlphaByOne", &s_captureScreenShotSettings.replaceAlphaByOne, true);
+		JsonGetAsString(jsonRoot, "/captureScreenShotSettings/fileName",            relativeFileName, sizeof(relativeFileName), "");
+		JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/xReso",               &s_captureScreenShotSettings.xReso, DEFAULT_SCREEN_XRESO);
+		JsonGetAsInt   (jsonRoot, "/captureScreenShotSettings/yReso",               &s_captureScreenShotSettings.yReso, DEFAULT_SCREEN_YRESO);
+		JsonGetAsBool  (jsonRoot, "/captureScreenShotSettings/replaceAlphaWithOne", &s_captureScreenShotSettings.replaceAlphaWithOne, true);
 
 		if (strcmp(relativeFileName, "") == 0) {
 			s_captureScreenShotSettings.fileName[0] = '\0';
@@ -1215,13 +1145,13 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 	{
 		char relativeDirectoryName[MAX_PATH] = {0};
 
-		JsonGetAsString(jsonRoot, "/recordImageSequenceSettings/directoryName",      relativeDirectoryName, sizeof(relativeDirectoryName), "");
-		JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/xReso",              &s_recordImageSequenceSettings.xReso, DEFAULT_SCREEN_XRESO);
-		JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/yReso",              &s_recordImageSequenceSettings.yReso, DEFAULT_SCREEN_YRESO);
-		JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/startTimeInSeconds", &s_recordImageSequenceSettings.startTimeInSeconds, 0.0f);
-		JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/durationInSeconds",  &s_recordImageSequenceSettings.durationInSeconds, DEFAULT_DURATION_IN_SECONDS);
-		JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/framesPerSecond",    &s_recordImageSequenceSettings.framesPerSecond, DEFAULT_FRAMES_PER_SECOND);
-		JsonGetAsBool  (jsonRoot, "/recordImageSequenceSettings/replaceAlphaByOne",  &s_recordImageSequenceSettings.replaceAlphaByOne, true);
+		JsonGetAsString(jsonRoot, "/recordImageSequenceSettings/directoryName",        relativeDirectoryName, sizeof(relativeDirectoryName), "");
+		JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/xReso",                &s_recordImageSequenceSettings.xReso, DEFAULT_SCREEN_XRESO);
+		JsonGetAsInt   (jsonRoot, "/recordImageSequenceSettings/yReso",                &s_recordImageSequenceSettings.yReso, DEFAULT_SCREEN_YRESO);
+		JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/startTimeInSeconds",   &s_recordImageSequenceSettings.startTimeInSeconds, 0.0f);
+		JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/durationInSeconds",    &s_recordImageSequenceSettings.durationInSeconds, DEFAULT_DURATION_IN_SECONDS);
+		JsonGetAsFloat (jsonRoot, "/recordImageSequenceSettings/framesPerSecond",      &s_recordImageSequenceSettings.framesPerSecond, DEFAULT_FRAMES_PER_SECOND);
+		JsonGetAsBool  (jsonRoot, "/recordImageSequenceSettings/replaceAlphaWithOne",  &s_recordImageSequenceSettings.replaceAlphaWithOne, true);
 
 		if (strcmp(relativeDirectoryName, "") == 0) {
 			s_recordImageSequenceSettings.directoryName[0] = '\0';
@@ -1284,6 +1214,8 @@ static bool AppProjectDeserializeFromJson(cJSON *jsonRoot, const char *projectBa
 		}
 	}
 
+	UserUniformDeserializeFromJson(jsonRoot);
+
 	return result;
 }
 
@@ -1310,10 +1242,10 @@ static void AppProjectSerializeToJson(cJSON *jsonRoot, const char *projectBasePa
 			);
 		}
 
-		cJSON_AddStringToObject(jsonApp, "graphicsShaderFileName" , graphicsShaderRelativeFileName);
-		cJSON_AddStringToObject(jsonApp, "soundShaderFileName"    , soundShaderRelativeFileName);
-		cJSON_AddNumberToObject(jsonApp, "xReso"                  , s_xReso);
-		cJSON_AddNumberToObject(jsonApp, "yReso"                  , s_yReso);
+		cJSON_AddStringToObject(jsonApp, "graphicsShaderFileName", graphicsShaderRelativeFileName);
+		cJSON_AddStringToObject(jsonApp, "soundShaderFileName",    soundShaderRelativeFileName);
+		cJSON_AddNumberToObject(jsonApp, "xReso",                  s_xReso);
+		cJSON_AddNumberToObject(jsonApp, "yReso",                  s_yReso);
 	}
 	{
 		cJSON *jsonCamera = cJSON_AddObjectToObject(jsonRoot, "camera");
@@ -1343,10 +1275,10 @@ static void AppProjectSerializeToJson(cJSON *jsonRoot, const char *projectBasePa
 			);
 		}
 
-		cJSON_AddStringToObject(jsonSettings, "fileName"         , relativeFileName);
-		cJSON_AddNumberToObject(jsonSettings, "xReso"            , s_captureScreenShotSettings.xReso);
-		cJSON_AddNumberToObject(jsonSettings, "yReso"            , s_captureScreenShotSettings.yReso);
-		cJSON_AddBoolToObject  (jsonSettings, "replaceAlphaByOne", s_captureScreenShotSettings.replaceAlphaByOne);
+		cJSON_AddStringToObject(jsonSettings, "fileName",            relativeFileName);
+		cJSON_AddNumberToObject(jsonSettings, "xReso",               s_captureScreenShotSettings.xReso);
+		cJSON_AddNumberToObject(jsonSettings, "yReso",               s_captureScreenShotSettings.yReso);
+		cJSON_AddBoolToObject  (jsonSettings, "replaceAlphaWithOne", s_captureScreenShotSettings.replaceAlphaWithOne);
 	}
 	{
 		cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureCubemapSettings");
@@ -1433,13 +1365,13 @@ static void AppProjectSerializeToJson(cJSON *jsonRoot, const char *projectBasePa
 			);
 		}
 
-		cJSON_AddStringToObject(jsonSettings, "directoryName",      relativeDirectoryName);
-		cJSON_AddNumberToObject(jsonSettings, "xReso",              s_recordImageSequenceSettings.xReso);
-		cJSON_AddNumberToObject(jsonSettings, "yReso",              s_recordImageSequenceSettings.yReso);
-		cJSON_AddNumberToObject(jsonSettings, "startTimeInSeconds", s_recordImageSequenceSettings.startTimeInSeconds);
-		cJSON_AddNumberToObject(jsonSettings, "durationInSeconds",  s_recordImageSequenceSettings.durationInSeconds);
-		cJSON_AddNumberToObject(jsonSettings, "framesPerSecond",    s_recordImageSequenceSettings.framesPerSecond);
-		cJSON_AddBoolToObject  (jsonSettings, "replaceAlphaByOne",  s_recordImageSequenceSettings.replaceAlphaByOne);
+		cJSON_AddStringToObject(jsonSettings, "directoryName",        relativeDirectoryName);
+		cJSON_AddNumberToObject(jsonSettings, "xReso",                s_recordImageSequenceSettings.xReso);
+		cJSON_AddNumberToObject(jsonSettings, "yReso",                s_recordImageSequenceSettings.yReso);
+		cJSON_AddNumberToObject(jsonSettings, "startTimeInSeconds",   s_recordImageSequenceSettings.startTimeInSeconds);
+		cJSON_AddNumberToObject(jsonSettings, "durationInSeconds",    s_recordImageSequenceSettings.durationInSeconds);
+		cJSON_AddNumberToObject(jsonSettings, "framesPerSecond",      s_recordImageSequenceSettings.framesPerSecond);
+		cJSON_AddBoolToObject  (jsonSettings, "replaceAlphaWithOne",  s_recordImageSequenceSettings.replaceAlphaWithOne);
 	}
 	{
 		cJSON *jsonSettings = cJSON_AddObjectToObject(jsonRoot, "captureSoundSettings");
@@ -1481,6 +1413,7 @@ static void AppProjectSerializeToJson(cJSON *jsonRoot, const char *projectBasePa
 			cJSON_AddStringToObject(jsonUserTexture, "fileName", relativeFileName);
 		}
 	}
+	UserUniformSerializeToJson(jsonRoot);
 }
 
 /*=============================================================================
@@ -1524,10 +1457,6 @@ bool AppProjectImport(const char *fileName){
 	/* タイトルバーの表示を更新 */
 	AppUpdateWindowTitleBar();
 
-	/* シェーダは強制的に再読み込み */
-	s_soundShaderFileStat.st_mtime = 0;
-	s_graphicsShaderFileStat.st_mtime = 0;
-
 	/* リソース解放して終了 */
 	cJSON_Delete(jsonRoot);
 	free(text);
@@ -1551,7 +1480,9 @@ bool AppProjectExport(const char *fileName){
 			AppErrorMessageBox(APP_NAME, "Failed to export project \"%s\".", fileName);
 			result = false;
 		} else {
-			fputs(cJSON_Print(jsonRoot), file);
+			char *print = cJSON_Print(jsonRoot);
+			fputs(print, file);
+			free(print);
 			fclose(file);
 			result = true;
 			AppMessageBox(APP_NAME, "Successfully exported project.");
@@ -1582,7 +1513,9 @@ bool AppProjectAutoExport(bool confirm){
 	{
 		char *text = MallocReadTextFile(s_projectFileName);
 		if (text != NULL) {
-			bool compareResult = strcmp(cJSON_Print(jsonRoot), text);
+			char *print = cJSON_Print(jsonRoot);
+			bool compareResult = strcmp(print, text);
+			free(print);
 			free(text);
 			if (compareResult == 0) {
 				cJSON_Delete(jsonRoot);
@@ -1608,7 +1541,9 @@ bool AppProjectAutoExport(bool confirm){
 			AppErrorMessageBox(APP_NAME, "Failed to export project \"%s\".", s_projectFileName);
 			result = false;
 		} else {
+			char *print = cJSON_Print(jsonRoot);
 			fputs(cJSON_Print(jsonRoot), file);
+			free(print);
 			fclose(file);
 			result = true;
 		}
@@ -1632,36 +1567,78 @@ bool AppGetForceOverWriteFlag(){
 /*=============================================================================
 ▼	シェーダファイル関連
 -----------------------------------------------------------------------------*/
-static bool AppReloadGraphicsShader(){
-	GraphicsDeleteShaderPipeline();
-	GraphicsDeleteFragmentShader();
-	s_graphicsCreateShaderSucceeded = GraphicsCreateFragmentShader(s_graphicsShaderCode);
-	GraphicsCreateShaderPipeline();
+static bool AppSetupCurrentGraphicsShader(){
+	s_graphicsCreateShaderSucceeded = GraphicsSetupFragmentShader(s_graphicsShaderCode);
+	if (s_graphicsCreateShaderSucceeded == false) {
+		return false;
+	}
+	UserUniformParseShaderAnnotations(UserUniformCategoryIndex_Graphics, s_graphicsShaderCode);
+	GraphicsSetupShaderPipeline();
 	if (s_preferenceSettings.enableAutoRestartByGraphicsShader) {
 		AppRestart();
 	}
-	return s_graphicsCreateShaderSucceeded;
+	return true;
 }
 
-static bool AppReloadSoundShader(){
+static bool AppSetupCurrentSoundShader(){
 	/*
-		シェーダリロード時のサウンド周りのリセットは厄介な問題。
 		シェーダコンパイル中にも再生位置は進んでしまう。
 		一時停止して先頭にシーク、サウンド生成が完了したのち再生する。
 	*/
 
-	SoundDeleteShader();
-	s_soundCreateShaderSucceeded = SoundCreateShader(s_soundShaderCode);
+	s_soundCreateShaderSucceeded = SoundSetupShader(s_soundShaderCode);
+	if (s_soundCreateShaderSucceeded == false) {
+		return false;
+	}
+	UserUniformParseShaderAnnotations(UserUniformCategoryIndex_Sound, s_soundShaderCode);
 	if (s_preferenceSettings.enableAutoRestartBySoundShader) {
 		SoundPauseWaveOut();
 		SoundSeekWaveOut(0);
 	}
 	SoundClearOutputBuffer();
-	SoundUpdate(s_frameCount);
+	SoundUpdate();
 	if (s_preferenceSettings.enableAutoRestartBySoundShader) {
 		AppRestart();
 	}
-	return s_soundCreateShaderSucceeded;
+	return true;
+}
+
+static bool AppLoadAndSetupCurrentGraphicsShaderFile() {
+	if (s_graphicsShaderCode != NULL) free(s_graphicsShaderCode);
+	/* ファイルのロック状態が継続していることがあるため、リトライしながら読む */
+	for (int retryCount = 0; retryCount < 10; retryCount++) {
+		s_graphicsShaderCode = MallocReadTextFile(s_graphicsShaderFileName);
+		if (s_graphicsShaderCode != NULL) break;
+		printf("retry %d ... \n", retryCount);
+		Sleep(100);
+	}
+	if (s_graphicsShaderCode == NULL) {
+		AppErrorMessageBox(APP_NAME, "Failed to read \"%s\".\n", s_graphicsShaderFileName);
+		return false;
+	} else {
+		stat(s_graphicsShaderFileName, &s_graphicsShaderFileStat);
+		AppSetupCurrentGraphicsShader();
+	}
+	return true;
+}
+
+static bool AppLoadAndSetupCurrentSoundShaderFile() {
+	if (s_soundShaderCode != NULL) free(s_soundShaderCode);
+	/* ファイルのロック状態が継続していることがあるため、リトライしながら読む */
+	for (int retryCount = 0; retryCount < 10; retryCount++) {
+		s_soundShaderCode = MallocReadTextFile(s_soundShaderFileName);
+		if (s_soundShaderCode != NULL) break;
+		printf("retry %d ... \n", retryCount);
+		Sleep(100);
+	}
+	if (s_soundShaderCode == NULL) {
+		AppErrorMessageBox(APP_NAME, "Failed to read \"%s\".\n", s_soundShaderFileName);
+		return false;
+	} else {
+		stat(s_soundShaderFileName, &s_soundShaderFileStat);
+		AppSetupCurrentSoundShader();
+	}
+	return true;
 }
 
 void AppGetDefaultDirectoryName(char *directoryName, size_t directoryNameSizeInBytes){
@@ -1690,14 +1667,14 @@ bool AppOpenDefaultGraphicsShader(){
 	memset(s_graphicsShaderFileName, 0, sizeof(s_graphicsShaderFileName));
 	if (s_graphicsShaderCode != NULL) free(s_graphicsShaderCode);
 	s_graphicsShaderCode = MallocCopyString(s_defaultGraphicsShaderCode);
-	return AppReloadGraphicsShader();
+	return AppSetupCurrentGraphicsShader();
 }
 
 bool AppOpenDefaultSoundShader(){
 	memset(s_soundShaderFileName, 0, sizeof(s_soundShaderFileName));
 	if (s_soundShaderCode != NULL) free(s_soundShaderCode);
 	s_soundShaderCode = MallocCopyString(s_defaultSoundShaderCode);
-	return AppReloadSoundShader();
+	return AppSetupCurrentSoundShader();
 }
 
 bool AppOpenGraphicsShaderFile(const char *fileName){
@@ -1706,10 +1683,11 @@ bool AppOpenGraphicsShaderFile(const char *fileName){
 		return false;
 	}
 
-	printf("open a graphics shader file %s.\n", fileName);
+	printf("open graphics shader file %s.\n", fileName);
 	strcpy_s(s_graphicsShaderFileName, sizeof(s_graphicsShaderFileName), fileName);
+	UserUniformClear(UserUniformCategoryIndex_Graphics);
+	AppLoadAndSetupCurrentGraphicsShaderFile();
 	AppUpdateWindowTitleBar();
-	s_graphicsShaderFileStat.st_mtime = 0;	/* 強制的に再読み込み */
 
 	return true;
 }
@@ -1721,8 +1699,9 @@ bool AppOpenSoundShaderFile(const char *fileName){
 
 	printf("open sound shader file \"%s\".\n", fileName);
 	strcpy_s(s_soundShaderFileName, sizeof(s_soundShaderFileName), fileName);
+	UserUniformClear(UserUniformCategoryIndex_Sound);
+	AppLoadAndSetupCurrentSoundShaderFile();
 	AppUpdateWindowTitleBar();
-	s_soundShaderFileStat.st_mtime = 0;		/* 強制的に再読み込み */
 
 	return true;
 }
@@ -1779,7 +1758,6 @@ void AppClearAllRenderTargets(){
 
 void AppRestart(){
 	printf("restart.\n");
-	HighPrecisionTimerReset(0);
 	SoundRestartWaveOut();
 	s_paused = false;
 	s_frameCount = 0;
@@ -1803,7 +1781,6 @@ void AppPause(){
 		printf("pause.\n");
 		s_paused = true;
 		SoundPauseWaveOut();
-		s_fp64PausedTime = HighPrecisionTimerGet();
 	}
 }
 
@@ -1812,104 +1789,109 @@ void AppResume(){
 		printf("resume.\n");
 		s_paused = false;
 		SoundResumeWaveOut();
-		HighPrecisionTimerReset(s_fp64PausedTime);
 	}
 }
 
 static void AppSeekInSamples(int samples){
 	s_waveOutSampleOffset = SoundGetWaveOutPos() + samples;
 	if (s_waveOutSampleOffset < 0) s_waveOutSampleOffset = 0;
-	double fp64OffsetInSeconds = s_waveOutSampleOffset / (double)NUM_SOUND_SAMPLES_PER_SEC;
-	HighPrecisionTimerReset(fp64OffsetInSeconds);
 	SoundSeekWaveOut(s_waveOutSampleOffset);
-	if (s_paused) {
-		s_fp64PausedTime = fp64OffsetInSeconds;
-	}
 }
 
 void AppSlowForward(){
 	AppPause();
-	AppSeekInSamples(0x100);
+	AppSeekInSamples((int)(NUM_SOUND_SAMPLES_PER_SEC / AppGetMainWindowRefreshRate()));
 	s_frameCount++;
 }
 
 void AppSlowBackward(){
 	AppPause();
-	AppSeekInSamples(-0x100);
+	AppSeekInSamples(-(int)(NUM_SOUND_SAMPLES_PER_SEC / AppGetMainWindowRefreshRate()));
 	s_frameCount--;
 }
 
 void AppFastForward(){
-	AppSeekInSamples(WAVEOUT_SEEKSTEP_IN_SAMPLES);
+	AppSeekInSamples(NUM_SOUND_SAMPLES_PER_SEC);
 	s_frameCount++;
 }
 
 void AppFastBackward(){
-	AppSeekInSamples(-WAVEOUT_SEEKSTEP_IN_SAMPLES);
+	AppSeekInSamples(-NUM_SOUND_SAMPLES_PER_SEC);
 	s_frameCount--;
 }
 
 
 bool AppUpdate(){
 	/* 経過時間を取得 */
-	double fp64CurrentTime;
-	if (s_paused) {
-		fp64CurrentTime = s_fp64PausedTime;
-	} else {
-		fp64CurrentTime = HighPrecisionTimerGet();
-	}
+	double fp64CurrentTime = HighPrecisionTimerGet();
 
 	/* FPS 算出 */
-	if (s_graphicsCreateShaderSucceeded
-	&&	s_soundCreateShaderSucceeded
-	) {
+	static double s_fp64Fps = DEFAULT_FRAMES_PER_SECOND;
+	{
 		static int s_frameSkip = 0;
 		static double s_fp64PrevTime = 0.0;
-		static double s_fp64Fps = 60.0;
 		++s_frameSkip;
 
-		/* pause 中でなければ 1 秒ごとに FPS を求める */
-		if (s_paused == false) {
-			if (floor(fp64CurrentTime) > floor(s_fp64PrevTime)) {
-				if (s_graphicsCreateShaderSucceeded) {
-					s_fp64Fps = (double)s_frameSkip / (fp64CurrentTime - s_fp64PrevTime);
-				}
-				s_fp64PrevTime = fp64CurrentTime;
-				s_frameSkip = 0;
+		/* 1 秒ごとに FPS を求める */
+		if (floor(fp64CurrentTime) > floor(s_fp64PrevTime)) {
+			if (s_graphicsCreateShaderSucceeded) {
+				s_fp64Fps = (double)s_frameSkip / (fp64CurrentTime - s_fp64PrevTime);
 			}
+			s_fp64PrevTime = fp64CurrentTime;
+			s_frameSkip = 0;
 		}
 
 		/* 時間が巻き戻っているなら修正 */
 		if (fp64CurrentTime < s_fp64PrevTime) {
 			s_fp64PrevTime = fp64CurrentTime;
 		}
+	}
 
-		/* ステートを ImGui で表示 */
-		if (s_imGuiStatus.displayCurrentStatus) {
-			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoSavedSettings;
-			ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
-			if (ImGui::Begin("Current Status", NULL, window_flags)) {
-				ImGui::Text(
-					"time       %.2f\n"
-					"FPS        %.2f\n"
-					"frameCount %d\n"
-					"waveOutPos 0x%08x\n"
-					,
-					fp64CurrentTime,
-					s_fp64Fps,
-					s_frameCount,
-					SoundGetWaveOutPos()
-				);
+	/* ステートを ImGui で表示 */
+	if (s_imGuiStatus.displayCurrentStatus) {
+		ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize;
+		ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_FirstUseEver);
+		if (ImGui::Begin("Current Status", NULL, window_flags)) {
+			int32_t waveOutPos = SoundGetWaveOutPos();
+			ImGui::Text(
+				"time       %.2f\n"
+				"FPS        %.2f\n"
+				"frameCount %d\n"
+				"waveOutPos 0x%08x\n"
+				,
+				(double)waveOutPos / NUM_SOUND_SAMPLES_PER_SEC,
+				s_fp64Fps,
+				s_frameCount,
+				waveOutPos
+			);
+			if (s_graphicsCreateShaderSucceeded) {
+				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
+				ImGui::Text("gfx shader : OK");
+				ImGui::PopStyleColor();
+			} else {
+				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+				ImGui::Text("gfx shader : ERROR");
+				ImGui::PopStyleColor();
 			}
-			ImGui::End();
+			if (s_soundCreateShaderSucceeded) {
+				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 255, 0, 255));
+				ImGui::Text("snd shader : OK");
+				ImGui::PopStyleColor();
+			} else {
+				ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255, 0, 0, 255));
+				ImGui::Text("snd shader : ERROR");
+				ImGui::PopStyleColor();
+			}
 		}
+		ImGui::End();
 	}
 
 	/* カメラコントロールを要求するシェーダでは、カメラの設定を ImGui で表示 */
 	if (GraphicsShaderRequiresCameraControlUniforms()) {
 		if (s_imGuiStatus.displayCameraSettings) {
-			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoSavedSettings;
-			ImGui::SetNextWindowPos(ImVec2(200, 0), ImGuiCond_FirstUseEver);
+			ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize;
+			ImGuiIO &io = ImGui::GetIO();
+			ImGui::SetNextWindowPos(ImVec2(0, io.DisplaySize.y), ImGuiCond_FirstUseEver, ImVec2(0.0f, 1.0f)/* 画面左下を起点とする */);
 			if (ImGui::Begin("Camera Settings", NULL, window_flags)) {
 				ImGui::PushItemWidth(ImGui::GetFontSize() * 16);
 
@@ -1927,23 +1909,14 @@ bool AppUpdate(){
 		}
 	}
 
+	/* uniform gui の更新と表示 */
+	UserUniformApplyToImgui();
+
 	/* サウンドシェーダの更新 */
 	if (IsValidFileName(s_soundShaderFileName)) {
 		if (IsFileUpdated(s_soundShaderFileName, &s_soundShaderFileStat)) {
 			printf("update sound shader.\n");
-			if (s_soundShaderCode != NULL) free(s_soundShaderCode);
-			/* ファイルのロック状態が継続していることがあるため、リトライしながら読む */
-			for (int retryCount = 0; retryCount < 10; retryCount++) {
-				s_soundShaderCode = MallocReadTextFile(s_soundShaderFileName);
-				if (s_soundShaderCode != NULL) break;
-				printf("retry %d ... \n", retryCount);
-				Sleep(100);
-			}
-			if (s_soundShaderCode == NULL) {
-				AppErrorMessageBox(APP_NAME, "Failed to read \"%s\".\n", s_soundShaderFileName);
-			} else {
-				AppReloadSoundShader();
-			}
+			AppLoadAndSetupCurrentSoundShaderFile();
 		}
 	}
 
@@ -1951,19 +1924,7 @@ bool AppUpdate(){
 	if (IsValidFileName(s_graphicsShaderFileName)) {
 		if (IsFileUpdated(s_graphicsShaderFileName, &s_graphicsShaderFileStat)) {
 			printf("update graphics shader.\n");
-			if (s_graphicsShaderCode != NULL) free(s_graphicsShaderCode);
-			/* ファイルのロック状態が継続していることがあるため、リトライしながら読む */
-			for (int retryCount = 0; retryCount < 10; retryCount++) {
-				s_graphicsShaderCode = MallocReadTextFile(s_graphicsShaderFileName);
-				if (s_graphicsShaderCode != NULL) break;
-				printf("retry %d ... \n", retryCount);
-				Sleep(100);
-			}
-			if (s_graphicsShaderCode == NULL) {
-				AppErrorMessageBox(APP_NAME, "Failed to read \"%s\".\n", s_graphicsShaderFileName);
-			} else {
-				AppReloadGraphicsShader();
-			}
+			AppLoadAndSetupCurrentGraphicsShaderFile();
 		}
 	}
 
@@ -1973,19 +1934,20 @@ bool AppUpdate(){
 	}
 
 	/* サウンドの更新 */
-	CheckGlError("pre SoundUpdate");
-	if (s_soundCreateShaderSucceeded) {
-		SoundUpdate(s_frameCount);
+	CheckGlError(__FUNCTION__" : pre SoundUpdate");
+	{
+		SoundUpdate();
 	}
-	CheckGlError("post SoundUpdate");
+	CheckGlError(__FUNCTION__" : post SoundUpdate");
 
 	/* グラフィクスの更新 */
-	CheckGlError("pre GraphicsUpdate");
-	if (s_graphicsCreateShaderSucceeded) {
+	CheckGlError(__FUNCTION__" : pre GraphicsUpdate");
+	{
+		int32_t waveOutPos = SoundGetWaveOutPos();
 		CurrentFrameParams params = {0};
-		params.waveOutPos				= SoundGetWaveOutPos();
+		params.waveOutPos				= waveOutPos;
 		params.frameCount				= s_frameCount;
-		params.time						= float(fp64CurrentTime);
+		params.time						= (float)((double)waveOutPos / NUM_SOUND_SAMPLES_PER_SEC);
 		params.xMouse					= s_mouse.x;
 		params.yMouse					= s_mouse.y;
 		params.mouseLButtonPressed		= s_mouse.LButtonPressed;
@@ -1998,12 +1960,12 @@ bool AppUpdate(){
 		Mat4x4Copy(params.mat4x4PrevCameraInWorld,	s_camera.mat4x4PrevCameraInWorld);
 		GraphicsUpdate(&params, &s_renderSettings);
 	}
-	CheckGlError("post GraphicsUpdate");
+	CheckGlError(__FUNCTION__" : post GraphicsUpdate");
 
 	/* フレームの終わり */
-	CheckGlError("pre glFlush");
+	CheckGlError(__FUNCTION__" : pre glFlush");
 	glFlush();
-	CheckGlError("post glFlush");
+	CheckGlError(__FUNCTION__" : post glFlush");
 
 	if (s_paused == false) s_frameCount++;
 	return true;
@@ -2037,8 +1999,16 @@ bool AppInitialize(int argc, char **argv){
 		AppErrorMessageBox(APP_NAME, "HighPrecisionTimerInitialize() failed.");
 		return false;
 	}
+	if (MidiStateTrackerInitialize() == false) {
+		AppErrorMessageBox(APP_NAME, "MidiStateTrackerInitialize() failed.");
+		return false;
+	}
 	if (CameraInitialize() == false) {
 		AppErrorMessageBox(APP_NAME, "CameraInitialize() failed.");
+		return false;
+	}
+	if (UserUniformInitialize() == false) {
+		AppErrorMessageBox(APP_NAME, "UserUniformInitialize() failed.");
 		return false;
 	}
 	if (SoundInitialize() == false) {
@@ -2086,8 +2056,16 @@ bool AppTerminate(){
 		AppErrorMessageBox(APP_NAME, "SoundTerminate() failed.");
 		return false;
 	}
+	if (UserUniformTerminate() == false) {
+		AppErrorMessageBox(APP_NAME, "UserUniformTerminate() failed.");
+		return false;
+	}
 	if (CameraTerminate() == false) {
 		AppErrorMessageBox(APP_NAME, "CameraTerminate() failed.");
+		return false;
+	}
+	if (MidiStateTrackerTerminate() == false) {
+		AppErrorMessageBox(APP_NAME, "MidiStateTrackerTerminate() failed.");
 		return false;
 	}
 	if (HighPrecisionTimerTerminate() == false) {

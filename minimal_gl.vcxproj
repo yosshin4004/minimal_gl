@@ -29,13 +29,13 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
-    <PlatformToolset>v143</PlatformToolset>
+    <PlatformToolset>v145</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
@@ -165,22 +165,28 @@
     <ClCompile Include="src\export_executable.cpp" />
     <ClCompile Include="src\external\cJSON\cJSON.c" />
     <ClCompile Include="src\external\cJSON\cJSON_Utils.c" />
-    <ClCompile Include="src\external\imgui\examples\imgui_impl_opengl3.cpp" />
-    <ClCompile Include="src\external\imgui\examples\imgui_impl_win32.cpp" />
+    <ClCompile Include="src\external\imgui\backends\imgui_impl_opengl3.cpp" />
+    <ClCompile Include="src\external\imgui\backends\imgui_impl_win32.cpp" />
     <ClCompile Include="src\external\imgui\imgui.cpp" />
     <ClCompile Include="src\external\imgui\imgui_demo.cpp" />
     <ClCompile Include="src\external\imgui\imgui_draw.cpp" />
+    <ClCompile Include="src\external\imgui\imgui_tables.cpp" />
     <ClCompile Include="src\external\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="src\external\simple_regex\re.c" />
     <ClCompile Include="src\gl3w_work_around.cpp" />
     <ClCompile Include="src\GL\gl3w.c" />
     <ClCompile Include="src\graphics.cpp" />
     <ClCompile Include="src\high_precision_timer.cpp" />
+    <ClCompile Include="src\json_util.cpp" />
     <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\midi_state_tracker.cpp" />
     <ClCompile Include="src\pixel_format.cpp" />
     <ClCompile Include="src\png_util.cpp" />
     <ClCompile Include="src\record_image_sequence.cpp" />
     <ClCompile Include="src\sound.cpp" />
     <ClCompile Include="src\tiny_vmath.cpp" />
+    <ClCompile Include="src\user_uniform.cpp" />
+    <ClCompile Include="src\wasapi.cpp" />
     <ClCompile Include="src\wav_util.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -206,6 +212,7 @@
     <ClInclude Include="src\external\cJSON\cJSON.h" />
     <ClInclude Include="src\external\cJSON\cJSON_Utils.h" />
     <ClInclude Include="src\external\imgui\imgui.h" />
+    <ClInclude Include="src\external\simple_regex\re.h" />
     <ClInclude Include="src\external\stb\stb_image.h" />
     <ClInclude Include="src\external\stb\stb_image_write.h" />
     <ClInclude Include="src\gl3w_work_around.h" />
@@ -213,11 +220,15 @@
     <ClInclude Include="src\GL\gl3w.h" />
     <ClInclude Include="src\graphics.h" />
     <ClInclude Include="src\high_precision_timer.h" />
+    <ClInclude Include="src\json_util.h" />
+    <ClInclude Include="src\midi_state_tracker.h" />
     <ClInclude Include="src\pixel_format.h" />
     <ClInclude Include="src\png_util.h" />
     <ClInclude Include="src\record_image_sequence.h" />
     <ClInclude Include="src\sound.h" />
     <ClInclude Include="src\tiny_vmath.h" />
+    <ClInclude Include="src\user_uniform.h" />
+    <ClInclude Include="src\wasapi.h" />
     <ClInclude Include="src\wav_util.h" />
   </ItemGroup>
   <ItemGroup>

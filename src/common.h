@@ -20,8 +20,8 @@
 #include <GL/glext.h>
 
 #include <imgui.h>
-#include <imgui_impl_win32.h>
-#include <imgui_impl_opengl3.h>
+#include <backends/imgui_impl_win32.h>
+#include <backends/imgui_impl_opengl3.h>
 #include <imgui_internal.h>
 
 /* レガシー API に対する警告の抑制 */
@@ -37,6 +37,15 @@ size_t strlcpy(
 	const	char	*src,
 			size_t	siz
 );
+
+/* atomic な 32bit 値書き込み */
+int32_t AtomicSet32(volatile int32_t *p, int32_t x);
+
+/* atomic な 32bit 値読み取り */
+int32_t AtomicGet32(volatile int32_t *p);
+
+/* atomic な 32bit 値加算 */
+int32_t AtomicAdd32(volatile int32_t *p, int32_t x);
 
 /* ceil アライメント */
 int CeilAlign(
@@ -106,11 +115,10 @@ bool IsValidDirectoryName(
 /*
 	ファイルは更新されたか？
 	*fileStat と現在のタイムスタンプを比較する。
-	*fileStat は現在のファイルの状態で上書きされる。
 */
 bool IsFileUpdated(
 	const char *fileName,
-	struct stat *fileStat
+	const struct stat *fileStat
 );
 
 /* ファイルの拡張子を検査 */
@@ -234,6 +242,9 @@ void SetMenuItemCheck(
 	UINT idCheckItem,
 	bool flag
 );
+
+/* システム起動からの経過時間をμ秒単位で取得 */
+uint64_t GetSystemTimeInUsec();
 
 #define SIZE_OF_ARRAY(a) (sizeof(a) / sizeof(a[0]))
 

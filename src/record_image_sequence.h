@@ -14,7 +14,7 @@ struct RecordImageSequenceSettings {
 	float startTimeInSeconds;
 	float durationInSeconds;
 	float framesPerSecond;
-	bool replaceAlphaByOne;
+	bool replaceAlphaWithOne;
 };
 
 /* 連番画像の保存 */

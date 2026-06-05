@@ -1,0 +1,159 @@
+{
+	"app":	{
+		"graphicsShaderFileName":	".\\13_user_uniform.gfx.glsl",
+		"soundShaderFileName":	".\\13_user_uniform.snd.glsl",
+		"xReso":	1280,
+		"yReso":	722
+	},
+	"camera":	{
+		"vec3Pos":	[0, 0, 0],
+		"vec3Ang":	[0, 0, 0],
+		"fovYInRadians":	0.39269909262657166
+	},
+	"captureScreenShotSettings":	{
+		"fileName":	"",
+		"xReso":	1280,
+		"yReso":	720,
+		"replaceAlphaWithOne":	true
+	},
+	"captureCubemapSettings":	{
+		"fileName":	"",
+		"reso":	512
+	},
+	"renderSettings":	{
+		"pixelFormat":	0,
+		"enableMultipleRenderTargets":	true,
+		"numEnabledRenderTargets":	4,
+		"enableBackBuffer":	true,
+		"enableMipmapGeneration":	true,
+		"textureFilter":	1,
+		"textureWrap":	1,
+		"enableSwapIntervalControl":	true,
+		"swapInterval":	2
+	},
+	"preferenceSettings":	{
+		"enableAutoRestartByGraphicsShader":	true,
+		"enableAutoRestartBySoundShader":	true
+	},
+	"executableExportSettings":	{
+		"fileName":	"",
+		"xReso":	1280,
+		"yReso":	720,
+		"durationInSeconds":	120,
+		"numSoundBufferSamples":	16777216,
+		"numSoundBufferAvailableSamples":	16777216,
+		"numSoundBufferSamplesPerDispatch":	32768,
+		"enableFrameCountUniform":	true,
+		"enableSoundDispatchWait":	true,
+		"shaderMinifierOptions":	{
+			"enableFieldNames":	false,
+			"fieldNameIndex":	0,
+			"noRenaming":	false,
+			"enableNoRenamingList":	false,
+			"noRenamingList":	"main",
+			"noSequence":	false,
+			"smoothstep":	false
+		},
+		"crinklerOptions":	{
+			"compMode":	2,
+			"useTinyHeader":	false,
+			"useTinyImport":	false
+		}
+	},
+	"recordImageSequenceSettings":	{
+		"directoryName":	"",
+		"xReso":	1280,
+		"yReso":	720,
+		"startTimeInSeconds":	0,
+		"durationInSeconds":	120,
+		"framesPerSecond":	60,
+		"replaceAlphaWithOne":	true
+	},
+	"captureSoundSettings":	{
+		"fileName":	"",
+		"durationInSeconds":	120
+	},
+	"imGuiStatus":	{
+		"displayCurrentStatus":	true,
+		"displayCameraSettings":	true
+	},
+	"userTextures":	[{
+			"fileName":	""
+		}, {
+			"fileName":	""
+		}, {
+			"fileName":	""
+		}, {
+			"fileName":	""
+		}],
+	"userUniformDb":	{
+		"categories":	[{
+				"uniforms":	[{
+						"location":	16,
+						"name":	"myCheckbox",
+						"checkbox":	false
+					}, {
+						"location":	17,
+						"name":	"myInputInt",
+						"inputInt":	123
+					}, {
+						"location":	18,
+						"name":	"myInputFloat",
+						"inputFloat":	123
+					}, {
+						"location":	19,
+						"name":	"mySliderInt",
+						"sliderInt":	5
+					}, {
+						"location":	20,
+						"name":	"mySliderFloat",
+						"sliderFloat":	5
+					}, {
+						"location":	21,
+						"name":	"myColor3",
+						"colorEdit3":	[1, 1, 1]
+					}, {
+						"location":	22,
+						"name":	"myColor4",
+						"colorEdit4":	[1, 1, 1, 0.5]
+					}, {
+						"location":	23,
+						"name":	"myMidiInInt"
+					}, {
+						"location":	24,
+						"name":	"myMidiInFloat"
+					}]
+			}, {
+				"uniforms":	[{
+						"location":	25,
+						"name":	"key",
+						"sliderInt":	8
+					}, {
+						"location":	26,
+						"name":	"algo",
+						"sliderInt":	2
+					}, {
+						"location":	27,
+						"name":	"midiInt0"
+					}, {
+						"location":	28,
+						"name":	"midiInt1"
+					}, {
+						"location":	29,
+						"name":	"midiInt2"
+					}, {
+						"location":	30,
+						"name":	"midiInt3"
+					}, {
+						"location":	31,
+						"name":	"midiFloat0"
+					}, {
+						"location":	32,
+						"name":	"midiFloat1"
+					}, {
+						"location":	33,
+						"name":	"midiFloat2"
+					}]
+			}]
+	}
+}

@@ -278,22 +278,20 @@ static bool SerializeAsDdsSub(
 
 			/* 上下反転した画像の作成 */
 			for (int y = 0; y < height; y++) {
-				for (int x = 0; x < width; x++) {
-					memcpy(
-						(void *)      (((uintptr_t)flippedFaceData) + (y                * width + x) * numBytesPerPixel),
-						(const void *)(((uintptr_t)data[iFace])     + ((height - y - 1) * width + x) * numBytesPerPixel),
-						numBytesPerPixel
-					);
-				}
+				memcpy(
+					(void *)      (((uintptr_t)flippedFaceData) + (y                * width) * numBytesPerPixel),
+					(const void *)(((uintptr_t)data[iFace])     + ((height - y - 1) * width) * numBytesPerPixel),
+					numBytesPerPixel * width
+				);
 			}
 
-			/* 1 スキャンライン分の書き出し */
+			/* 上下反転した画像の書き出し */
 			fwrite(flippedFaceData, 1, width * height * numBytesPerPixel, file);
 
 			/* ワークメモリ破棄 */
 			free(flippedFaceData);
 		} else {
-			/* 1 スキャンライン分の書き出し */
+			/* 画像の書き出し */
 			fwrite(data[iFace], 1, width * height * numBytesPerPixel, file);
 		}
 	}

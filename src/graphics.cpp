@@ -1,5 +1,6 @@
 ﻿/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
+#include <regex>
 #include <math.h>
 #include "common.h"
 #include "app.h"
@@ -10,6 +11,7 @@
 #include "sound.h"
 #include "tiny_vmath.h"
 #include "dds_parser.h"
+#include "user_uniform.h"
 
 
 #define USER_TEXTURE_START_INDEX				(8)
@@ -27,7 +29,6 @@ static GLuint s_fragmentShaderId = 0;
 static RenderSettings s_currentRenderSettings = {(PixelFormat)0};
 static int s_xReso = DEFAULT_SCREEN_XRESO;
 static int s_yReso = DEFAULT_SCREEN_YRESO;
-
 
 static void GraphicsCreateFrameBuffer(
 	int xReso,
@@ -90,8 +91,7 @@ static void GraphicsCreateFrameBuffer(
 	}
 }
 
-static void GraphicsDeleteFrameBuffer(
-){
+static void GraphicsDeleteFrameBuffer(){
 	/* フレームバッファアンバインド */
 	glBindFramebuffer(
 		/* GLenum target */			GL_FRAMEBUFFER,
@@ -175,18 +175,23 @@ static bool GraphicsLoadUserTextureSubAsPng(
 
 	/* テクスチャの設定 */
 	GLint internalformat = 0;
+	GLenum format = 0;
 	switch (numComponents) {
 		case 1: {
-			internalformat = GL_RED;
+			internalformat = GL_R8;
+			format = GL_RED;
 		} break;
 		case 2: {
-			internalformat = GL_RG;
+			internalformat = GL_RG8;
+			format = GL_RG;
 		} break;
 		case 3: {
-			internalformat = GL_RGB;
+			internalformat = GL_RGB8;
+			format = GL_RGB;
 		} break;
 		case 4: {
-			internalformat = GL_RGBA;
+			internalformat = GL_RGBA8;
+			format = GL_RGBA;
 		} break;
 	}
 	if (internalformat != 0) {
@@ -197,7 +202,7 @@ static bool GraphicsLoadUserTextureSubAsPng(
 			/* GLsizei width */			width,
 			/* GLsizei height */		height,
 			/* GLint border */			0,
-			/* GLenum format */			internalformat,
+			/* GLenum format */			format,
 			/* GLenum type */			GL_UNSIGNED_BYTE,
 			/* const void * data */		data
 		);
@@ -226,10 +231,13 @@ static bool GraphicsLoadUserTextureSubAsDds(
 	/* dds ファイルの読み込み */
 	size_t ddsFileSizeInBytes;
 	void *ddsFileImage = MallocReadFile(fileName, &ddsFileSizeInBytes);
+	if (ddsFileImage == NULL) {
+		return false;
+	}
 
 	/* dds ファイルのパース */
 	DdsParser parser;
-	if (DdsParser_Initialize(&parser, ddsFileImage, (int)ddsFileSizeInBytes) == false) {
+	if (DdsParser_Initialize(&parser, ddsFileImage, ddsFileSizeInBytes) == false) {
 		free(ddsFileImage);
 		return false;
 	}
@@ -300,7 +308,7 @@ static bool GraphicsLoadUserTextureSubAsDds(
 
 			if (parser.info.blockCompressed) {
 				if (parser.info.depth == 1) {
-					CheckGlError("pre glCompressedTexImage2D");
+					CheckGlError(__FUNCTION__" : pre glCompressedTexImage2D");
 					glCompressedTexImage2D(
 						/* GLenum target */			targetFace + faceIndex,
 						/* GLint level */			mipLevel,
@@ -311,9 +319,9 @@ static bool GraphicsLoadUserTextureSubAsDds(
 						/* GLsizei imageSize */		(GLsizei)subData.sizeInBytes,
 						/* const void * data */		subData.buff
 					);
-					CheckGlError("post glCompressedTexImage2D");
+					CheckGlError(__FUNCTION__" : post glCompressedTexImage2D");
 				} else {
-					CheckGlError("pre glCompressedTexImage3D");
+					CheckGlError(__FUNCTION__" : pre glCompressedTexImage3D");
 					glCompressedTexImage3D(
 						/* GLenum target */			targetFace + faceIndex,
 						/* GLint level */			mipLevel,
@@ -325,11 +333,11 @@ static bool GraphicsLoadUserTextureSubAsDds(
 						/* GLsizei imageSize */		(GLsizei)subData.sizeInBytes,
 						/* const void *data */		subData.buff
 					);
-					CheckGlError("post glCompressedTexImage3D");
+					CheckGlError(__FUNCTION__" : post glCompressedTexImage3D");
 				}
 			} else {
 				if (parser.info.depth == 1) {
-					CheckGlError("pre glTexImage2D");
+					CheckGlError(__FUNCTION__" : pre glTexImage2D");
 					glTexImage2D(
 						/* GLenum target */			targetFace + faceIndex,
 						/* GLint level */			mipLevel,
@@ -341,9 +349,9 @@ static bool GraphicsLoadUserTextureSubAsDds(
 						/* GLenum type */			glPixelFormatInfo.type,
 						/* const void * data */		subData.buff
 					);
-					CheckGlError("post glTexImage2D");
+					CheckGlError(__FUNCTION__" : post glTexImage2D");
 				} else {
-					CheckGlError("pre glTexImage3D");
+					CheckGlError(__FUNCTION__" : pre glTexImage3D");
 					glTexImage3D(
 						/* GLenum target */			targetFace + faceIndex,
 						/* GLint level */			mipLevel,
@@ -356,7 +364,7 @@ static bool GraphicsLoadUserTextureSubAsDds(
 						/* GLenum type */			glPixelFormatInfo.type,
 						/* const void * data */		subData.buff
 					);
-					CheckGlError("post glTexImage3D");
+					CheckGlError(__FUNCTION__" : post glTexImage3D");
 				}
 			}
 		}
@@ -439,83 +447,92 @@ bool GraphicsDeleteUserTexture(
 	return true;
 }
 
-bool GraphicsCreateVertexShader(
+static bool GraphicsDeleteVertexShader(GLuint vertexShaderId){
+	if (vertexShaderId == 0) return false;
+	glFinish();
+	glDeleteProgram(vertexShaderId);
+	return true;
+}
+
+bool GraphicsSetupVertexShader(
 	const char *shaderCode
 ){
 	printf("setting up vertex shader ...\n");
+
 	const GLchar *(strings[]) = {
 		SkipBomConst(shaderCode)
 	};
-	assert(s_vertexShaderId == 0);
-	s_vertexShaderId = CreateShader(GL_VERTEX_SHADER, SIZE_OF_ARRAY(strings), strings);
-	if (s_vertexShaderId == 0) {
+	GLuint vertexShaderId = 0;
+	vertexShaderId = CreateShader(GL_VERTEX_SHADER, SIZE_OF_ARRAY(strings), strings);
+	if (vertexShaderId == 0) {
 		printf("setting up vertex shader ... failed.\n");
 		return false;
 	}
+	GraphicsDeleteVertexShader(s_vertexShaderId);
+	s_vertexShaderId = vertexShaderId;
 	DumpShaderInterfaces(s_vertexShaderId);
+
 	printf("setting up vertex shader ... done.\n");
-
 	return true;
 }
 
-bool GraphicsDeleteVertexShader(
-){
-	if (s_vertexShaderId == 0) return false;
+static bool GraphicsDeleteFragmentShader(GLuint fragmentShaderId){
+	if (fragmentShaderId == 0) return false;
 	glFinish();
-	glDeleteProgram(s_vertexShaderId);
-	s_vertexShaderId = 0;
+	glDeleteProgram(fragmentShaderId);
 	return true;
 }
 
-bool GraphicsCreateFragmentShader(
+bool GraphicsSetupFragmentShader(
 	const char *shaderCode
 ){
 	printf("setting up fragment shader ...\n");
+
 	const GLchar *(strings[]) = {
 		SkipBomConst(shaderCode)
 	};
-	assert(s_fragmentShaderId == 0);
-	s_fragmentShaderId = CreateShader(GL_FRAGMENT_SHADER, SIZE_OF_ARRAY(strings), strings);
-	if (s_fragmentShaderId == 0) {
+	GLuint fragmentShaderId = 0;
+	fragmentShaderId = CreateShader(GL_FRAGMENT_SHADER, SIZE_OF_ARRAY(strings), strings);
+	if (fragmentShaderId == 0) {
 		printf("setting up fragment shader ... failed.\n");
 		return false;
 	}
+	GraphicsDeleteFragmentShader(s_fragmentShaderId);
+	s_fragmentShaderId = fragmentShaderId;
 	DumpShaderInterfaces(s_fragmentShaderId);
+
 	printf("setting up fragment shader ... done.\n");
-
 	return true;
 }
 
-bool GraphicsDeleteFragmentShader(
-){
-	if (s_fragmentShaderId == 0) return false;
-	glFinish();
-	glDeleteProgram(s_fragmentShaderId);
-	s_fragmentShaderId = 0;
-	return true;
-}
-
-bool GraphicsCreateShaderPipeline(
-){
-	assert(s_shaderPipelineId == 0);
-	glGenProgramPipelines(
-		/* GLsizei n */			1,
-		/* GLuint *pipelines */	&s_shaderPipelineId
-	);
-	glUseProgramStages(s_shaderPipelineId, GL_VERTEX_SHADER_BIT, s_vertexShaderId);
-	glUseProgramStages(s_shaderPipelineId, GL_FRAGMENT_SHADER_BIT, s_fragmentShaderId);
-	return true;
-}
-
-bool GraphicsDeleteShaderPipeline(
-){
-	if (s_shaderPipelineId == 0) return false;
+static bool GraphicsDeleteShaderPipeline(GLuint shaderPipelineId){
+	if (shaderPipelineId == 0) return false;
 	glFinish();
 	glDeleteProgramPipelines(
 		/* GLsizei n */					1,
-		/* const GLuint *pipelines */	&s_shaderPipelineId
+		/* const GLuint *pipelines */	&shaderPipelineId
 	);
-	s_shaderPipelineId = 0;
+	return true;
+}
+
+bool GraphicsSetupShaderPipeline(){
+	printf("setting up shader pipeline ...\n");
+
+	GLuint shaderPipelineId = 0;
+	glGenProgramPipelines(
+		/* GLsizei n */			1,
+		/* GLuint *pipelines */	&shaderPipelineId
+	);
+	if (shaderPipelineId == 0) {
+		printf("setting up shader pipeline ... failed.\n");
+		return false;
+	}
+	GraphicsDeleteShaderPipeline(s_shaderPipelineId);
+	s_shaderPipelineId = shaderPipelineId;
+	glUseProgramStages(s_shaderPipelineId, GL_VERTEX_SHADER_BIT, s_vertexShaderId);
+	glUseProgramStages(s_shaderPipelineId, GL_FRAGMENT_SHADER_BIT, s_fragmentShaderId);
+
+	printf("setting up shader pipeline ... done.\n");
 	return true;
 }
 
@@ -710,6 +727,9 @@ static void GraphicsDrawFullScreenQuad(
 		}
 	}
 
+	/* ユーザーユニフォームパラメータを設定 */
+	UserUniformApplyToShader(s_fragmentShaderId, UserUniformCategoryIndex_Graphics);
+
 	/* MRT フレームバッファのバインド */
 	glBindFramebuffer(
 		/* GLenum target */			GL_FRAMEBUFFER,
@@ -832,6 +852,7 @@ bool GraphicsCaptureScreenShotOnMemory(
 	const CurrentFrameParams *params,
 	const RenderSettings *renderSettings,
 	const CaptureScreenShotSettings *captureSettings
+	
 ){
 	/* OpenGL のピクセルフォーマット情報 */
 	GlPixelFormatInfo glPixelFormatInfo = PixelFormatToGlPixelFormatInfo(renderSettings->pixelFormat);
@@ -902,7 +923,7 @@ bool GraphicsCaptureScreenShotOnMemory(
 	);
 
 	/* αチャンネルの強制 1.0 置換 */
-	if (captureSettings->replaceAlphaByOne) {
+	if (captureSettings->replaceAlphaWithOne) {
 		for (int y = 0; y < params->yReso; y++) {
 			for (int x = 0; x < params->xReso; x++) {
 				switch (renderSettings->pixelFormat) {
@@ -1322,8 +1343,7 @@ void GraphicsUpdate(
 	}
 }
 
-bool GraphicsInitialize(
-){
+bool GraphicsInitialize(){
 	GraphicsCreateFrameBuffer(s_xReso, s_yReso, &s_currentRenderSettings);
 
 	/* glRects() 相当の動作を模倣する簡単な頂点シェーダを作成 */
@@ -1335,17 +1355,16 @@ bool GraphicsInitialize(
 	        "    gl_Position = vec4(position, 0.0, 1.0);\n"
 	        "}\0"
 		;
- 		GraphicsCreateVertexShader(shaderCode);
+ 		GraphicsSetupVertexShader(shaderCode);
 	}
 
 	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 	return true;
 }
 
-bool GraphicsTerminate(
-){
-	GraphicsDeleteFragmentShader();	/* false が得られてもエラー扱いとしない */
-	GraphicsDeleteVertexShader();	/* false が得られてもエラー扱いとしない */
+bool GraphicsTerminate(){
+	GraphicsDeleteFragmentShader(s_fragmentShaderId);
+	GraphicsDeleteVertexShader(s_vertexShaderId);
 	GraphicsDeleteFrameBuffer();
 	return true;
 }

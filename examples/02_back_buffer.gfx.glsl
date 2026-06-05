@@ -1,17 +1,17 @@
 ﻿#version 430	/* version ディレクティブが必要な場合は必ず 1 行目に書くこと */
-/* Copyright (C) 2020 Yosshin(@yosshin4004) */
+/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 /*
-	バックバッファ利用サンプルコード。
+	バックバッファ利用サンプルコード
 
 	バックバッファを利用する場合は、Render Settings の Enable back buffer の
-	チェックボックスが有効である必要がある（デフォルトで有効）。
+	チェックボックスを有効にすること（デフォルトで有効）。
 */
 
 layout(binding = 0) uniform sampler2D backBuffer;
 layout(location = 0) uniform int waveOutPosition;
 #if defined(EXPORT_EXECUTABLE)
-	vec2 resolution = {SCREEN_XRESO, SCREEN_YRESO};
+	#define resolution vec2(SCREEN_XRESO, SCREEN_YRESO)
 	#define NUM_SAMPLES_PER_SEC 48000.
 	float time = waveOutPosition / NUM_SAMPLES_PER_SEC;
 #else

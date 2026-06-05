@@ -1,11 +1,13 @@
 ﻿#version 430	/* version ディレクティブが必要な場合は必ず 1 行目に書くこと */
-/* Copyright (C) 2020 Yosshin(@yosshin4004) */
+/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 
 /*
-	twigl (https://twigl.app/) サウンドシェーダ互換サンプルコード。
+	twigl (https://twigl.app/) サウンドシェーダ互換サンプルコード
 	geeker (300 es) 対応。
 */
+#define NUM_SAMPLES_PER_SEC 48000.
+#define NUM_SOUND_BUFFER_SAMPLES 0x1000000
 
 layout(location = 0) uniform int waveOutPosition;
 #if defined(EXPORT_EXECUTABLE)
@@ -14,7 +16,7 @@ layout(location = 0) uniform int waveOutPosition;
 		以下の記述はシェーダコードとしては正しくないが、shader minifier に認識され
 		minify が適用されたのち、work_around_begin: 以降のコードに置換される。
 		%s は、shader minifier によるリネームが適用されたあとのシンボル名に
-		置き換えらえる。
+		置き換えられる。
 
 		buffer にはレイアウト名を付ける必要がある。ここでは、レイアウト名 = ssbo と
 		している。レイアウト名は shader minifier が生成する他のシンボルと衝突しては
@@ -36,10 +38,9 @@ vec2 mainSound(float time){
 	return vec2(sin(6.2831*440.*time)*exp(-3.*time));
 }
 
-#define NUM_SAMPLES_PER_SEC 48000.
 void main(){
 	int offset = int(gl_GlobalInvocationID.x) + waveOutPosition;
-	waveOutSamples[offset] = mainSound(offset / NUM_SAMPLES_PER_SEC);
+	waveOutSamples[offset % NUM_SOUND_BUFFER_SAMPLES] = mainSound(offset / NUM_SAMPLES_PER_SEC);
 }
 
 

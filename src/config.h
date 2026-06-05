@@ -5,38 +5,38 @@
 
 
 /* デフォルトスクリーン解像度 */
-#define DEFAULT_SCREEN_XRESO					(1280)
-#define DEFAULT_SCREEN_YRESO					(720)
+#define DEFAULT_SCREEN_XRESO					1280
+#define DEFAULT_SCREEN_YRESO					720
 
 /* カメラのデフォルト画角 */
-#define DEFAULT_CAMERA_FOVY_IN_DEGREES			(22.5)
+#define DEFAULT_CAMERA_FOVY_IN_DEGREES			22.5
 
 /* キューブマップのデフォルト解像度 */
-#define DEFAULT_CUBEMAP_RESO					(512)
+#define DEFAULT_CUBEMAP_RESO					512
 
 /* デフォルトピクセルフォーマット */
-#define DEFAULT_PIXEL_FORMAT					(PixelFormatUnorm8Rgba)
+#define DEFAULT_PIXEL_FORMAT					PixelFormatUnorm8Rgba
 
 /* デフォルトテクスチャフィルタ */
-#define DEFAULT_TEXTURE_FILTER					(TextureFilterLinear)
+#define DEFAULT_TEXTURE_FILTER					TextureFilterLinear
 
 /* デフォルトテクスチャラップ */
-#define DEFAULT_TEXTURE_WRAP					(TextureWrapClampToEdge)
+#define DEFAULT_TEXTURE_WRAP					TextureWrapClampToEdge
 
 /* デフォルトスワップインターバル */
-#define DEFAULT_SWAP_INTERVAL					(SwapIntervalVsync)
+#define DEFAULT_SWAP_INTERVAL					SwapIntervalVsync
 
 /* デフォルトのデモの尺 */
-#define DEFAULT_DURATION_IN_SECONDS				(120.0f)
+#define DEFAULT_DURATION_IN_SECONDS				120.0f
 
 /* デフォルトの crinkler 圧縮モード */
-#define DEFAULT_CRINKLER_COMP_MODE				(CrinklerCompModeSlow)
+#define DEFAULT_CRINKLER_COMP_MODE				CrinklerCompModeSlow
 
 /* デフォルトのフレームレート */
-#define DEFAULT_FRAMES_PER_SECOND				(60.0f)
+#define DEFAULT_FRAMES_PER_SECOND				60.0f
 
 /* 解像度の上限 */
-#define MAX_RESO								(8192)
+#define MAX_RESO								8192
 
 /* uniform の location */
 #define UNIFORM_LOCATION_WAVE_OUT_POS			0
@@ -48,12 +48,13 @@
 #define UNIFORM_LOCATION_TAN_FOVY				6
 #define UNIFORM_LOCATION_CAMERA_COORD			7
 #define UNIFORM_LOCATION_PREV_CAMERA_COORD		8
+#define UNIFORM_LOCATION_USER					16
 
 /* レンダーターゲット数 */
-#define NUM_RENDER_TARGETS						(4)
+#define NUM_RENDER_TARGETS						4
 
 /* ユーザーテクスチャ数 */
-#define NUM_USER_TEXTURES						(4)
+#define NUM_USER_TEXTURES						4
 
 /* サウンドのサンプルの型 */
 #define SOUND_SAMPLE_TYPE						float
@@ -71,7 +72,7 @@
 #define NUM_SOUND_BUFFER_SAMPLES				0x1000000
 
 /* 1 dispatch で生成するサウンドサンプル数 */
-#define NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH	0x8000
+#define NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH	0x1000
 
 /* サウンドバッファパーティション数 */
 #define NUM_SOUND_BUFFER_PARTITIONS				(NUM_SOUND_BUFFER_SAMPLES / NUM_SOUND_BUFFER_SAMPLES_PER_DISPATCH)

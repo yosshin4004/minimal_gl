@@ -58,7 +58,7 @@ struct CaptureScreenShotSettings {
 	char fileName[MAX_PATH];
 	int xReso;
 	int yReso;
-	bool replaceAlphaByOne;
+	bool replaceAlphaWithOne;
 };
 
 struct CaptureCubemapSettings {
@@ -86,27 +86,18 @@ bool GraphicsDeleteUserTexture(
 	int userTextureIndex
 );
 
-/* 頂点シェーダの作成 */
-bool GraphicsCreateVertexShader(
+/* 頂点シェーダのセットアップ */
+bool GraphicsSetupVertexShader(
 	const char *shaderCode
 );
 
-/* 頂点シェーダの削除 */
-bool GraphicsDeleteVertexShader();
-
-/* フラグメントシェーダの作成 */
-bool GraphicsCreateFragmentShader(
+/* フラグメントシェーダのセットアップ */
+bool GraphicsSetupFragmentShader(
 	const char *shaderCode
 );
 
-/* フラグメントシェーダの削除 */
-bool GraphicsDeleteFragmentShader();
-
-/* シェーダパイプラインの作成 */
-bool GraphicsCreateShaderPipeline();
-
-/* シェーダパイプラインの削除 */
-bool GraphicsDeleteShaderPipeline();
+/* シェーダパイプラインのセットアップ */
+bool GraphicsSetupShaderPipeline();
 
 /* スクリーンショットキャプチャ */
 bool GraphicsCaptureScreenShotOnMemory(

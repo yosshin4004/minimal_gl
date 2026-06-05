@@ -1,8 +1,8 @@
 ﻿#version 430	/* version ディレクティブが必要な場合は必ず 1 行目に書くこと */
-/* Copyright (C) 2020 Yosshin(@yosshin4004) */
+/* Copyright (C) 2026 Yosshin(@yosshin4004) */
 
 /*
-	マウス入力取得サンプルコード。
+	マウス入力取得サンプルコード
 
 	デバッグ用途で、マウス座標とボタンの状態が取得できる。
 

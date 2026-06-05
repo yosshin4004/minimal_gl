@@ -4,6 +4,7 @@
 #define WIN32_EXTRA_LEAN
 #include <windows.h>
 #include <Shlwapi.h>	/* for PathRelativePathTo */
+#include <timeapi.h>	/* for timeGetTime */
 #include "common.h"
 
 
@@ -33,11 +34,23 @@ strlcpy(
 	return s - src - 1;
 }
 
+int32_t AtomicSet32(volatile int32_t *p, int32_t x){
+	return _InterlockedExchange((long volatile *)p, (long)x);
+}
+
+int32_t AtomicGet32(volatile int32_t *p){
+	return _InterlockedExchangeAdd((long volatile *)p, 0);
+}
+
+int32_t AtomicAdd32(volatile int32_t *p, int32_t x){
+	return _InterlockedExchangeAdd((long volatile *)p, (long)x);
+}
+
 int CeilAlign(
 	int x,
 	int align
 ){
-	return x + (align - 1) & ~(align - 1);
+	return (x + (align - 1)) & ~(align - 1);
 }
 
 int32_t Pow2CeilAlign(
@@ -195,7 +208,7 @@ bool IsValidDirectoryName(
 
 bool IsFileUpdated(
 	const char *fileName,
-	struct stat *fileStat
+	const struct stat *fileStat
 ){
 	struct stat newStat;
 	bool ret = false;
@@ -208,7 +221,6 @@ bool IsFileUpdated(
 				if (fileStat->st_mtime != newStat.st_mtime) {
 					ret = true;
 				}
-				*fileStat = newStat;
 			}
 			fclose(file);
 		}
@@ -227,7 +239,6 @@ bool IsFileUpdated(
 				if (file) fclose(file);
 			}
 		}
-		*fileStat = newStat;
 	}
 #endif
 	return ret;
@@ -714,3 +725,23 @@ void SetMenuItemCheck(
 		CheckMenuItem(hMenu, idCheckItem, MF_BYCOMMAND | MFS_CHECKED);
 	}
 }
+
+uint64_t GetSystemTimeInUsec(){
+	LARGE_INTEGER	liPerfFreq;
+	LARGE_INTEGER	liPerfCount;
+	memset(&liPerfFreq, 0, sizeof(liPerfFreq));
+	memset(&liPerfCount, 0, sizeof(liPerfCount));
+
+	/* 現在時刻を得る */
+	if (QueryPerformanceCounter(&liPerfCount)) {
+		/* 周波数を得る */
+		if (QueryPerformanceFrequency(&liPerfFreq)) {
+			double	fp64Counter		= (double)liPerfCount.QuadPart;
+			double	fp64Frequency	= (double)liPerfFreq.QuadPart;
+			double	fp64CurrentTime	= fp64Counter * 1000000.0 / fp64Frequency;
+			return (uint64_t)fp64CurrentTime;
+		}
+	}
+	return (uint64_t)timeGetTime() * (uint64_t)1000;
+}
+

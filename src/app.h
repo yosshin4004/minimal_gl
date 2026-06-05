@@ -24,6 +24,12 @@ void AppSetMainWindowHandle(HWND hWindow);
 /* 現在のメインウィンドウのハンドルを取得 */
 HWND AppGetMainWindowHandle();
 
+/* 現在のメインウィンドウのリフレッシュレート(Hz)を設定 */
+void AppSetMainWindowRefreshRate(float refreshRate);
+
+/* 現在のメインウィンドウのリフレッシュレート(Hz)を取得 */
+float AppGetMainWindowRefreshRate();
+
 /* メインウィンドウを最前面に出す */
 void AppGetWindowFocus();
 
@@ -56,10 +62,10 @@ void AppMouseRButtonDown();
 /* マウス L ボタンが放された */
 void AppMouseLButtonUp();
 
-/* マウス L ボタンが放された */
+/* マウス M ボタンが放された */
 void AppMouseMButtonUp();
 
-/* マウス L ボタンが放された */
+/* マウス R ボタンが放された */
 void AppMouseRButtonUp();
 
 /* マウスホイールの回転を検出した */
@@ -204,10 +210,10 @@ void AppCaptureScreenShotSetResolution(int xReso, int yReso);
 void AppCaptureScreenShotGetResolution(int *xResoRet, int *yResoRet);
 
 /* スクリーンショットキャプチャ : αチャンネル 1.0 強制置換フラグの設定 */
-void AppCaptureScreenShotSetForceReplaceAlphaByOneFlag(bool flag);
+void AppCaptureScreenShotSetForceReplaceAlphaWithOneFlag(bool flag);
 
 /* スクリーンショットキャプチャ : αチャンネル 1.0 強制置換フラグの取得 */
-bool AppCaptureScreenShotGetForceReplaceAlphaByOneFlag();
+bool AppCaptureScreenShotGetForceReplaceAlphaWithOneFlag();
 
 /* スクリーンショットキャプチャ */
 void AppCaptureScreenShot();
@@ -370,10 +376,10 @@ void AppRecordImageSequenceSetFramesPerSecond(float framesPerSecond);
 float AppRecordImageSequenceGetFramesPerSecond();
 
 /* 連番画像保存 : αチャンネル 1.0 強制置換フラグの設定 */
-void AppRecordImageSequenceSetForceReplaceAlphaByOneFlag(bool flag);
+void AppRecordImageSequenceSetForceReplaceAlphaWithOneFlag(bool flag);
 
 /* 連番画像保存 : αチャンネル 1.0 強制置換フラグの取得 */
-bool AppRecordImageSequenceGetForceReplaceAlphaByOneFlag();
+bool AppRecordImageSequenceGetForceReplaceAlphaWithOneFlag();
 
 /* 連番画像の保存 */
 void AppRecordImageSequence();
