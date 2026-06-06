@@ -8,19 +8,19 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # https://github.com/actions/checkout v4.2.2
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # https://github.com/actions/checkout v6.0.3
 
       - name: Build Artifacts
         run: cmd.exe /c '.\scripts\make-artifacts.bat' ${{ github.ref_name }}
 
       - name: Archive Artifacts
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # https://github.com/actions/upload-artifact v4.4.3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # https://github.com/actions/upload-artifact v7.0.1
         with:
            name: "artifacts"
            path: artifacts
 
       - name: Release
-        uses: softprops/action-gh-release@72f2c25fcb47643c292f7107632f7a47c1df5cd8 # https://github.com/softprops/action-gh-release v2.3.2
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # https://github.com/softprops/action-gh-release v3.0.0
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
