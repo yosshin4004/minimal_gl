@@ -38,6 +38,7 @@ static int s_xReso = DEFAULT_SCREEN_XRESO;
 static int s_yReso = DEFAULT_SCREEN_YRESO;
 static int32_t s_waveOutSampleOffset = 0;
 static int32_t s_frameCount = 0;
+static bool s_midiStateTrackerIsAvailable = false;
 static struct ImGuiStatus {
 	bool displayCurrentStatus;
 	bool displayCameraSettings;
@@ -1999,10 +2000,7 @@ bool AppInitialize(int argc, char **argv){
 		AppErrorMessageBox(APP_NAME, "HighPrecisionTimerInitialize() failed.");
 		return false;
 	}
-	if (MidiStateTrackerInitialize() == false) {
-		AppErrorMessageBox(APP_NAME, "MidiStateTrackerInitialize() failed.");
-		return false;
-	}
+	s_midiStateTrackerIsAvailable = MidiStateTrackerInitialize();
 	if (CameraInitialize() == false) {
 		AppErrorMessageBox(APP_NAME, "CameraInitialize() failed.");
 		return false;
@@ -2064,9 +2062,12 @@ bool AppTerminate(){
 		AppErrorMessageBox(APP_NAME, "CameraTerminate() failed.");
 		return false;
 	}
-	if (MidiStateTrackerTerminate() == false) {
-		AppErrorMessageBox(APP_NAME, "MidiStateTrackerTerminate() failed.");
-		return false;
+	if (s_midiStateTrackerIsAvailable) {
+		if (MidiStateTrackerTerminate() == false) {
+			AppErrorMessageBox(APP_NAME, "MidiStateTrackerTerminate() failed.");
+			return false;
+		}
+		s_midiStateTrackerIsAvailable = false;
 	}
 	if (HighPrecisionTimerTerminate() == false) {
 		AppErrorMessageBox(APP_NAME, "HighPrecisionTimerTerminate() failed.");
