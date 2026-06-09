@@ -4,6 +4,7 @@
 #include "common.h"
 #include "app.h"
 #include "graphics.h"
+#include "sound.h"
 #include "png_util.h"
 #include "tiny_vmath.h"
 #include "record_image_sequence.h"
@@ -271,6 +272,9 @@ bool RecordImageSequence(
 
 	/* 先だって全レンダーターゲットをクリア */
 	AppClearAllRenderTargets();
+
+	/* サウンドの完全な更新（ブロッキング）*/
+	SoundFullUpdate();
 
 	/* 連番画像の保存 */
 	{
