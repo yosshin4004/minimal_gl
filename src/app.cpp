@@ -1609,6 +1609,13 @@ static bool AppLoadAndSetupCurrentGraphicsShaderFile() {
 	/* ファイルのロック状態が継続していることがあるため、リトライしながら読む */
 	for (int retryCount = 0; retryCount < 10; retryCount++) {
 		s_graphicsShaderCode = MallocReadTextFile(s_graphicsShaderFileName);
+		/* ファイル書き出し時に 0 バイトのファイルが読み込み可能状態で存在する瞬間がある一部エディタ向け対策 */
+		if (s_soundShaderCode != NULL) {
+			if (strlen(s_soundShaderCode) == 0) {
+				free(s_soundShaderCode);
+				s_soundShaderCode = NULL;
+			}
+		}
 		if (s_graphicsShaderCode != NULL) break;
 		printf("retry %d ... \n", retryCount);
 		Sleep(100);
@@ -1628,6 +1635,13 @@ static bool AppLoadAndSetupCurrentSoundShaderFile() {
 	/* ファイルのロック状態が継続していることがあるため、リトライしながら読む */
 	for (int retryCount = 0; retryCount < 10; retryCount++) {
 		s_soundShaderCode = MallocReadTextFile(s_soundShaderFileName);
+		/* ファイル書き出し時に 0 バイトのファイルが読み込み可能状態で存在する瞬間がある一部エディタ向け対策 */
+		if (s_soundShaderCode != NULL) {
+			if (strlen(s_soundShaderCode) == 0) {
+				free(s_soundShaderCode);
+				s_soundShaderCode = NULL;
+			}
+		}
 		if (s_soundShaderCode != NULL) break;
 		printf("retry %d ... \n", retryCount);
 		Sleep(100);

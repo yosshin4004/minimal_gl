@@ -47,6 +47,8 @@ uint8_t MidiStateGet(uint8_t ccNumber){
 
 
 bool MidiStateTrackerInitialize(){
+	printf("setting up MIDI state tracker ...\n");
+
 	int numDevs = midiInGetNumDevs();
 	for (int i = 0; i < numDevs; ++i) {
 		MIDIINCAPS caps = {};
@@ -63,11 +65,13 @@ bool MidiStateTrackerInitialize(){
 	);
 	s_midiIn.isAvailable = (ret == MMSYSERR_NOERROR);
 	if (s_midiIn.isAvailable == false) {
+		printf("setting up MIDI state tracker ... device not found.\n");
 	    return false;
 	}
 
 	midiInStart(s_midiIn.handle);
 
+	printf("setting up MIDI state tracker ... done.\n");
     return true;
 }
 
